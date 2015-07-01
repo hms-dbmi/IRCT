@@ -23,17 +23,8 @@
     <artifactId>IRCT-CL</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>war</packaging>
-    <name>WildFly Quickstarts: IRCT-CL</name>
-    <description>A starter Java EE 7 webapp project for use on JBoss WildFly / WildFly, generated from the jboss-javaee6-webapp archetype</description>
-
-    <url>http://wildfly.org</url>
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <distribution>repo</distribution>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
-        </license>
-    </licenses>
+    <name>INTER-RESOURCE COMMUNICATION TOOL : Communication Layer</name>
+    <description></description>
 
     <properties>
         <!-- Explicitly declaring the source encoding eliminates the following 

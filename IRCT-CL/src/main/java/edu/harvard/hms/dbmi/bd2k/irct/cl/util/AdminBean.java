@@ -1,4 +1,4 @@
-package edu.harvard.hms.dbmi.bd2k.iprt.cl.util;
+package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
 import javax.ejb.Startup;
 import javax.enterprise.context.ApplicationScoped;

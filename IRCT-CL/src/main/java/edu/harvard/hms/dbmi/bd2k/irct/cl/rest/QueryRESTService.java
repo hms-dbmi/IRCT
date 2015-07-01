@@ -18,8 +18,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 
-import edu.harvard.hms.dbmi.bd2k.iprt.cl.util.AdminBean;
-import edu.harvard.hms.dbmi.bd2k.iprt.cl.util.Constants;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Constants;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.LogicalOperatorNotFound;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PredicateTypeNotSupported;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
