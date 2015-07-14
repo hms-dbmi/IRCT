@@ -18,6 +18,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.ri.exception.ResourceInterfaceException;
 
 @Path("/resourceService")
 @RequestScoped
@@ -110,7 +111,7 @@ public class ResourceRESTService {
 
 			return paths.build();
 
-		} catch (IllegalArgumentException iae) {
+		} catch (IllegalArgumentException | ResourceInterfaceException iae) {
 
 		}
 

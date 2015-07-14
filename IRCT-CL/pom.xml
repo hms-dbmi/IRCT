@@ -199,6 +199,16 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+        	<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
+        	<artifactId>IRCT-API</artifactId>
+        	<version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+        	<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
+        	<artifactId>IRCT-RI</artifactId>
+        	<version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>

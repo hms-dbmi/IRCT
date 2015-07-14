@@ -108,20 +108,20 @@ public class QueryRESTService implements Serializable {
 		Long selectId;
 		String[] paramArray = parameters.split(",");
 
-		try {
-			if (sq.equals("")) {
-				selectId = qc.addSelectClause(null, paramArray);
-
-			} else {
-				selectId = qc.addSelectClause(Long.parseLong(sq), paramArray);
-			}
-			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("selectId", selectId);
-
-		} catch (SubQueryNotFoundException e) {
-			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-			responseBuilder.add("message", e.getMessage());
-		}
+//		try {
+//			if (sq.equals("")) {
+//				selectId = qc.addSelectClause(null, paramArray);
+//
+//			} else {
+//				selectId = qc.addSelectClause(Long.parseLong(sq), paramArray);
+//			}
+//			responseBuilder.add("status", Constants.STATUS_OK);
+//			responseBuilder.add("selectId", selectId);
+//
+//		} catch (SubQueryNotFoundException e) {
+//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+//			responseBuilder.add("message", e.getMessage());
+//		}
 
 		return responseBuilder.build();
 	}
@@ -148,17 +148,17 @@ public class QueryRESTService implements Serializable {
 			return responseBuilder.build();
 		}
 
-		try {
-			Long newJoinId = qc.addJoinClause(sqId1, sqId2, joinType, field1,
-					field2, relationship, joinId);
+//		try {
+//			Long newJoinId = qc.addJoinClause(sqId1, sqId2, joinType, field1,
+//					field2, relationship, joinId);
 			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("joinID", newJoinId);
+//			responseBuilder.add("joinID", newJoinId);
 
-		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
-				| SubQueryNotFoundException | JoinTypeNotSupported e) {
-			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-			responseBuilder.add("message", e.getMessage());
-		}
+//		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
+//				| SubQueryNotFoundException | JoinTypeNotSupported e) {
+//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+//			responseBuilder.add("message", e.getMessage());
+//		}
 
 		return responseBuilder.build();
 	}
@@ -200,17 +200,17 @@ public class QueryRESTService implements Serializable {
 		}
 
 		Long newJoinId;
-		try {
-			newJoinId = qc.addWhereClause(sqId, logicalOperator, fieldId,
-					predicate, value, additionalValue, whereId);
-			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("whereID", newJoinId);
-		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
-				| SubQueryNotFoundException | LogicalOperatorNotFound
-				| PredicateTypeNotSupported e) {
-			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-			responseBuilder.add("message", e.getMessage());
-		}
+//		try {
+//			newJoinId = qc.addWhereClause(sqId, logicalOperator, fieldId,
+//					predicate, value, additionalValue, whereId);
+//			responseBuilder.add("status", Constants.STATUS_OK);
+//			responseBuilder.add("whereID", newJoinId);
+//		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
+//				| SubQueryNotFoundException | LogicalOperatorNotFound
+//				| PredicateTypeNotSupported e) {
+//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+//			responseBuilder.add("message", e.getMessage());
+//		}
 
 		return responseBuilder.build();
 	}
@@ -221,13 +221,13 @@ public class QueryRESTService implements Serializable {
 	public JsonStructure deleteClause(@QueryParam(value = "clauseId") Long clauseId) {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 
-		try {
-			qc.deleteClause(clauseId);
-			responseBuilder.add("status", Constants.STATUS_OK);
-		} catch (ClauseNotFoundException e) {
-			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-			responseBuilder.add("message", e.getMessage());
-		}
+//		try {
+//			qc.deleteClause(clauseId);
+//			responseBuilder.add("status", Constants.STATUS_OK);
+//		} catch (ClauseNotFoundException e) {
+//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+//			responseBuilder.add("message", e.getMessage());
+//		}
 
 		return responseBuilder.build();
 	}
@@ -247,7 +247,7 @@ public class QueryRESTService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure cancelQuery() {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
-		qc.cancelQuery();
+//		qc.cancelQuery();
 		admin.endConversation();
 
 		responseBuilder.add("status", Constants.STATUS_OK);
