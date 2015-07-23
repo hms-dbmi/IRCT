@@ -1,18 +1,18 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2013, Red Hat, Inc. and/or its affiliates, and individual
- * contributors by the @authors tag. See the copyright.txt in the
- * distribution for a full listing of individual contributors.
+ *  This file is part of Inter-Resource Communication Tool (IRCT).
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  IRCT is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  IRCT is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with IRCT.  If not, see <http://www.gnu.org/licenses/>.
  */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
@@ -20,12 +20,9 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
 /**
- * A class extending {@link Application} and annotated with @ApplicationPath is the Java EE 7 "no XML" approach to activating
- * JAX-RS.
  * 
- * <p>
- * Resources are served relative to the servlet path specified in the {@link ApplicationPath} annotation.
- * </p>
+ * @author Jeremy R. Easton-Marks
+ *
  */
 @ApplicationPath("/rest")
 public class JaxRsActivator extends Application {

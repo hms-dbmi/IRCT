@@ -1,3 +1,19 @@
+/*
+ *  This file is part of Inter-Resource Communication Tool (IRCT).
+ *
+ *  IRCT is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  IRCT is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with IRCT.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
@@ -21,14 +37,17 @@ import javax.ws.rs.core.UriInfo;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Constants;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.LogicalOperatorNotFound;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PredicateTypeNotSupported;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
-import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryExecutor;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ClauseIsNotTheCorrectType;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ClauseNotFoundException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinTypeNotSupported;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceNotFoundException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.SubQueryNotFoundException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 
 @Path("/queryService")
 @ConversationScoped
@@ -39,12 +58,20 @@ public class QueryRESTService implements Serializable {
 
 	@Inject
 	private QueryController qc;
+	
+	@Inject
+	private ResourceController rc;
+	
+	@Inject
+	private PathController pc;
 
 	@Inject
-	private QueryExecutor qe;
+	private ExecutionController ec;
 
 	@Inject
 	private AdminBean admin;
+	
+	
 
 	/**
 	 * Initiates the creation of a query
@@ -82,12 +109,16 @@ public class QueryRESTService implements Serializable {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 		Long sqId;
 		try {
-			if (resource.equals("")) {
-				sqId = qc.createSubQuery(new String[] {});
-			} else {
-				sqId = qc.createSubQuery(resource.split(","));
+			String[] resourceNames = resource.split(",");
+			
+			Resource[] resources = new Resource[resourceNames.length];
+			
+			for(int resourceI = 0; resourceI < resourceNames.length; resourceI++) {
+				resources[resourceI] = rc.getResource(resourceNames[resourceI]);	
 			}
-
+			
+			sqId = qc.createSubQuery(resources);
+			
 			responseBuilder.add("status", Constants.STATUS_OK);
 			responseBuilder.add("subQueryId", sqId);
 		} catch (ResourceNotFoundException e) {
@@ -108,20 +139,21 @@ public class QueryRESTService implements Serializable {
 		Long selectId;
 		String[] paramArray = parameters.split(",");
 
-//		try {
-//			if (sq.equals("")) {
-//				selectId = qc.addSelectClause(null, paramArray);
-//
-//			} else {
-//				selectId = qc.addSelectClause(Long.parseLong(sq), paramArray);
-//			}
-//			responseBuilder.add("status", Constants.STATUS_OK);
-//			responseBuilder.add("selectId", selectId);
-//
-//		} catch (SubQueryNotFoundException e) {
-//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-//			responseBuilder.add("message", e.getMessage());
-//		}
+		try {
+			
+			if (sq.equals("")) {
+				selectId = qc.addSelectClause(null, getPaths(paramArray));
+
+			} else {
+				selectId = qc.addSelectClause(Long.parseLong(sq), getPaths(paramArray));
+			}
+			responseBuilder.add("status", Constants.STATUS_OK);
+			responseBuilder.add("selectId", selectId);
+
+		} catch (SubQueryNotFoundException e) {
+			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+			responseBuilder.add("message", e.getMessage());
+		}
 
 		return responseBuilder.build();
 	}
@@ -135,8 +167,8 @@ public class QueryRESTService implements Serializable {
 		Long sqId1 = Long.parseLong(getFirstMultiValuedMap(parameters, "q1"));
 		Long sqId2 = Long.parseLong(getFirstMultiValuedMap(parameters, "q2"));
 		String joinType = getFirstMultiValuedMap(parameters, "joinType");
-		Long field1 = Long.parseLong(getFirstMultiValuedMap(parameters, "f1"));
-		Long field2 = Long.parseLong(getFirstMultiValuedMap(parameters, "f2"));
+		String f1 = getFirstMultiValuedMap(parameters, "f1");
+		String f2 = getFirstMultiValuedMap(parameters, "f2");
 		String relationship = getFirstMultiValuedMap(parameters, "relationship");
 		Long joinId = Long.parseLong(getFirstMultiValuedMap(parameters,
 				"joinID"));
@@ -148,17 +180,18 @@ public class QueryRESTService implements Serializable {
 			return responseBuilder.build();
 		}
 
-//		try {
-//			Long newJoinId = qc.addJoinClause(sqId1, sqId2, joinType, field1,
-//					field2, relationship, joinId);
+		try {
+			
+			Long newJoinId = qc.addJoinClause(sqId1, sqId2, joinType, getPath(f1),
+					getPath(f2), relationship, joinId);
 			responseBuilder.add("status", Constants.STATUS_OK);
-//			responseBuilder.add("joinID", newJoinId);
+			responseBuilder.add("joinID", newJoinId);
 
-//		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
-//				| SubQueryNotFoundException | JoinTypeNotSupported e) {
-//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-//			responseBuilder.add("message", e.getMessage());
-//		}
+		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
+				| SubQueryNotFoundException | JoinTypeNotSupported e) {
+			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+			responseBuilder.add("message", e.getMessage());
+		}
 
 		return responseBuilder.build();
 	}
@@ -173,8 +206,7 @@ public class QueryRESTService implements Serializable {
 		Long sqId = Long.parseLong(getFirstMultiValuedMap(parameters, "sq"));
 		String logicalOperator = getFirstMultiValuedMap(parameters,
 				"logicalOperator");
-		Long fieldId = Long.parseLong(getFirstMultiValuedMap(parameters,
-				"field"));
+		String fieldId = getFirstMultiValuedMap(parameters, "field");
 		String predicate = getFirstMultiValuedMap(parameters, "predicate");
 		String value = getFirstMultiValuedMap(parameters, "value");
 		String additionalValue = getFirstMultiValuedMap(parameters,
@@ -200,17 +232,18 @@ public class QueryRESTService implements Serializable {
 		}
 
 		Long newJoinId;
-//		try {
-//			newJoinId = qc.addWhereClause(sqId, logicalOperator, fieldId,
-//					predicate, value, additionalValue, whereId);
-//			responseBuilder.add("status", Constants.STATUS_OK);
-//			responseBuilder.add("whereID", newJoinId);
-//		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
-//				| SubQueryNotFoundException | LogicalOperatorNotFound
-//				| PredicateTypeNotSupported e) {
-//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-//			responseBuilder.add("message", e.getMessage());
-//		}
+		try {
+			
+			newJoinId = qc.addWhereClause(sqId, logicalOperator, getPath(fieldId),
+					predicate, value, additionalValue, whereId);
+			responseBuilder.add("status", Constants.STATUS_OK);
+			responseBuilder.add("whereID", newJoinId);
+		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
+				| SubQueryNotFoundException | LogicalOperatorNotFound
+				| PredicateTypeNotSupported e) {
+			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+			responseBuilder.add("message", e.getMessage());
+		}
 
 		return responseBuilder.build();
 	}
@@ -221,13 +254,13 @@ public class QueryRESTService implements Serializable {
 	public JsonStructure deleteClause(@QueryParam(value = "clauseId") Long clauseId) {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 
-//		try {
-//			qc.deleteClause(clauseId);
-//			responseBuilder.add("status", Constants.STATUS_OK);
-//		} catch (ClauseNotFoundException e) {
-//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-//			responseBuilder.add("message", e.getMessage());
-//		}
+		try {
+			qc.deleteClause(clauseId);
+			responseBuilder.add("status", Constants.STATUS_OK);
+		} catch (ClauseNotFoundException e) {
+			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+			responseBuilder.add("message", e.getMessage());
+		}
 
 		return responseBuilder.build();
 	}
@@ -237,7 +270,7 @@ public class QueryRESTService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure runQuery() {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
-		qe.runQuery(qc.getQuery());
+		ec.runQuery(qc.getQuery());
 		admin.endConversation();
 		return responseBuilder.build();
 	}
@@ -247,7 +280,7 @@ public class QueryRESTService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure cancelQuery() {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
-//		qc.cancelQuery();
+		qc.cancelQuery();
 		admin.endConversation();
 
 		responseBuilder.add("status", Constants.STATUS_OK);
@@ -260,5 +293,19 @@ public class QueryRESTService implements Serializable {
 			return parameters.getFirst(parameter);
 		}
 		return null;
+	}
+	
+	private edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path getPath(String fullPath) {
+		Resource resource = rc.getResource(fullPath.split("/")[0]);
+		return pc.getPathFromString(resource, fullPath);
+	}
+	
+	private edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path[] getPaths(String[] fullPaths) {
+		edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path[] paths = new edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path[fullPaths.length];
+		
+		for(int pathI = 0; pathI < paths.length; pathI++) {
+			paths[pathI] = getPath(fullPaths[pathI]);
+		}
+		return paths;
 	}
 }
