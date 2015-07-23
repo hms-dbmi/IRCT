@@ -28,20 +28,39 @@ import javax.xml.bind.JAXBException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClients;
 
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.MemoryResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.message.ont.ONTCell;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.message.ont.xml.ConceptType;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.message.ont.xml.ConceptsType;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.message.ont.xml.ModifierType;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.message.pm.PMCell;
+import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
+import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientSet;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryResultInstanceType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
+import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptsType;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifierType;
+import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 
 /**
  * An implementation of a resource that communicates with the i2b2 servers via
@@ -56,6 +75,7 @@ public class I2B2XMLResourceImplementation implements
 		PathResourceImplementationInterface {
 	private ONTCell ontCell;
 	private PMCell pmCell;
+	private CRCCell crcCell;
 	private HttpClient client;
 	private String serverName;
 
@@ -70,6 +90,10 @@ public class I2B2XMLResourceImplementation implements
 			pmCell = new PMCell();
 			pmCell.setup(parameters);
 
+			// Initiate and setup the CRC Cell
+			crcCell = new CRCCell();
+			crcCell.setup(parameters);
+
 			// Create the HTTPClient
 			client = HttpClients.createDefault();
 
@@ -82,7 +106,7 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	public String getType() {
-		return "i2b2";
+		return "i2b2XML";
 	}
 
 	public OntologyType getOntologyType() {
@@ -116,15 +140,145 @@ public class I2B2XMLResourceImplementation implements
 							"core");
 				}
 				return convertConceptsTypeToPath(conceptsType);
-			} catch (JAXBException | IOException e) {
-				e.printStackTrace();
+			} catch (JAXBException | IOException | I2B2InterfaceException e) {
+				throw new ResourceInterfaceException("Error traversing relationship", e);
 
 			}
 		} else {
 			throw new ResourceInterfaceException(relationship.toString()
 					+ " not supported by this resource");
 		}
+	}
+
+	public Path getPathFromString(String path) {
+		Path pathObj = new Path();
+		pathObj.setPui(path);
+		return pathObj;
+	}
+
+	public Long run(Query qep) throws ResourceInterfaceException {
+		PanelType panel = new PanelType();
+		panel.setPanelNumber(1);
+		panel.setPanelAccuracyScale(100);
+		panel.setInvert(0);
+		panel.setPanelTiming("ANY");
+		PanelType.TotalItemOccurrences tio = new PanelType.TotalItemOccurrences();
+		tio.setValue(1);
+		panel.setTotalItemOccurrences(tio);
+
+		for (ClauseAbstract clause : qep.getClauses().values()) {
+			if (clause instanceof WhereClause) {
+				panel.getItem().add(
+						createItemTypeFromWhereClause((WhereClause) clause));
+			}
+		}
+		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
+		ResultOutputOptionType root = new ResultOutputOptionType();
+		root.setPriorityIndex(9);
+		root.setName("patientset");
+		roolt.getResultOutput().add(root);
+		HttpClient client = HttpClients.createDefault();
+
+		Long queryId = 0L;
+		try {
+			MasterInstanceResultResponseType mirrt = crcCell
+					.runQueryInstanceFromQueryDefinition(client, null, null,
+							"Hi Michael", null, "ANY", 0, roolt, panel);
+
+			queryId = Long.parseLong(mirrt.getQueryInstance()
+					.getQueryMasterId());
+		} catch (JAXBException | IOException | I2B2InterfaceException e) {
+			throw new ResourceInterfaceException("Error traversing relationship", e);
+		}
+		return queryId;
+	}
+
+	public ResultSet getResults(Long queryId) throws ResourceInterfaceException {
+		HttpClient client = HttpClients.createDefault();
+		try {
+			List<QueryResultInstanceType> response = crcCell
+					.getQueryResultInstanceListFromQueryInstanceId(client,
+							queryId.toString());
+			String resultInstanceId = response.get(0).getResultInstanceId();
+			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
+					resultInstanceId, 0, 100000, false, false, false,
+					OutputOptionSelectType.USING_INPUT_LIST);
+
+			return convertPatientSetToResultSet(pdrt.getPatientData()
+					.getPatientSet());
+
+		} catch (JAXBException | IOException | I2B2InterfaceException e) {
+			throw new ResourceInterfaceException("Error getting results", e);
+		}
+	}
+
+	public ResourceState getState() {
+		// TODO Auto-generated method stub
 		return null;
+	}
+
+	public JsonObject toJson() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public JsonObject toJson(int depth) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public Path getReturnEntity() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	// -------------------------------------------------------------------------
+	// Utility Methods
+	// -------------------------------------------------------------------------
+
+	private ResultSet convertPatientSetToResultSet(PatientSet patientSet) {
+		MemoryResultSet mrs = new MemoryResultSet();
+		try {
+			if(patientSet.getPatient().size() == 0) {
+				return mrs;
+			}
+			PatientType columnPT = patientSet.getPatient().get(0);
+			Column idColumn = new Column();
+			idColumn.setName("Patient Id");
+			mrs.appendColumn(idColumn);
+			for (ParamType paramType : columnPT.getParam()) {
+				Column column = new Column();
+				column.setName(paramType.getColumn());
+				column.setDataType(DataType.STRING);
+				mrs.appendColumn(column);
+			}
+
+			for (PatientType patientType : patientSet.getPatient()) {
+				mrs.appendRow();
+				mrs.updateString("Patient Id", patientType.getPatientId()
+						.getValue());
+				for (ParamType paramType : patientType.getParam()) {
+					mrs.updateString(paramType.getColumn(),
+							paramType.getValue());
+				}
+			}
+		} catch (ResultSetException e) {
+			e.printStackTrace();
+		}
+		return mrs;
+	}
+
+	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
+		ItemType item = new ItemType();
+		// item.setHlevel(4);
+		// item.setItemName("mild dementia");
+		item.setItemKey(whereClause.getField().getPui());
+		// item.setTooltip("oasis \\ Clinical Measures \\ Clinical Dementia Rating (CDR) \\ mild dementia");
+		// item.setClazz("ENC");
+		// item.setItemIcon("LA");
+		// item.setItemIsSynonym(false);
+
+		return item;
 	}
 
 	private List<Path> convertConceptsTypeToPath(ConceptsType conceptsType) {
@@ -201,41 +355,4 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns;
 	}
-
-	public Path getPathFromString(String path) {
-		Path pathObj = new Path();
-		pathObj.setPui(path);
-		return pathObj;
-	}
-
-	public JsonObject toJson() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public JsonObject toJson(int depth) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Long run(Query qep) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public ResultSet getResults(Long queryId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public ResourceState getState() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Path getReturnEntity() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

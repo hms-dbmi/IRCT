@@ -24,7 +24,15 @@ package edu.harvard.hms.dbmi.bd2k.irct.ri.exception;
 public class ResourceInterfaceException extends Exception {
 	private static final long serialVersionUID = -4688536480746747740L;
 	
-	public ResourceInterfaceException(String value) {
-		super(value);
+	public ResourceInterfaceException(String message) {
+		super(message);
+	}
+
+	public ResourceInterfaceException(Exception e) {
+		super(e);
+	}
+	
+	public ResourceInterfaceException(String message, Exception e) {
+		super(message, e);
 	}
 }
