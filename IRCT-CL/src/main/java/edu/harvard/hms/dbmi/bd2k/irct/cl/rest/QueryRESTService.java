@@ -17,6 +17,8 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.enterprise.context.ConversationScoped;
 import javax.inject.Inject;
@@ -26,6 +28,7 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -38,18 +41,19 @@ import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Constants;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.LogicalOperatorNotFound;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
-import edu.harvard.hms.dbmi.bd2k.irct.controller.PredicateTypeNotSupported;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ClauseIsNotTheCorrectType;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ClauseNotFoundException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinTypeNotSupported;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.PredicateTypeNotSupported;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceNotFoundException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.SubQueryNotFoundException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.PersistableException;
 
-@Path("/queryService")
+@Path("/queryRESTService")
 @ConversationScoped
 @Named
 public class QueryRESTService implements Serializable {
@@ -134,18 +138,18 @@ public class QueryRESTService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure selectClause(
 			@DefaultValue("") @QueryParam(value = "sq") String sq,
-			@DefaultValue("") @QueryParam(value = "parameters") String parameters) {
+			@DefaultValue("") @QueryParam(value = "parameter") String parameter,
+			@DefaultValue("") @QueryParam(value = "alias") String alias) {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 		Long selectId;
-		String[] paramArray = parameters.split(",");
 
 		try {
 			
 			if (sq.equals("")) {
-				selectId = qc.addSelectClause(null, getPaths(paramArray));
+				selectId = qc.addSelectClause(null, alias, getPath(parameter));
 
 			} else {
-				selectId = qc.addSelectClause(Long.parseLong(sq), getPaths(paramArray));
+				selectId = qc.addSelectClause(Long.parseLong(sq), alias, getPath(parameter));
 			}
 			responseBuilder.add("status", Constants.STATUS_OK);
 			responseBuilder.add("selectId", selectId);
@@ -197,47 +201,61 @@ public class QueryRESTService implements Serializable {
 	}
 
 	@GET
+	@POST
 	@Path("/whereClause")
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure whereClause(@Context UriInfo info) {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
-		MultivaluedMap<String, String> parameters = info.getPathParameters();
-
-		Long sqId = Long.parseLong(getFirstMultiValuedMap(parameters, "sq"));
-		String logicalOperator = getFirstMultiValuedMap(parameters,
-				"logicalOperator");
-		String fieldId = getFirstMultiValuedMap(parameters, "field");
-		String predicate = getFirstMultiValuedMap(parameters, "predicate");
-		String value = getFirstMultiValuedMap(parameters, "value");
-		String additionalValue = getFirstMultiValuedMap(parameters,
-				"additionalValue");
-		Long whereId = Long.parseLong(getFirstMultiValuedMap(parameters,
-				"whereID"));
-
+		MultivaluedMap<String, String> parameters = info.getQueryParameters();
+		
+		String sq = getFirstMultiValuedMap(parameters, "sq");
+		Long sqId = null;
+		if(sq != null) {
+			sqId = Long.parseLong(sq);
+		} 
+		String logicalOperator = getFirstMultiValuedMap(parameters, "logicalOperator");
 		if (logicalOperator == null) {
 			logicalOperator = "AND";
 		}
+		
+		String field = getFirstMultiValuedMap(parameters, "field");
+		String predicate = getFirstMultiValuedMap(parameters, "predicate");
+		
+		String whereParam = getFirstMultiValuedMap(parameters, "whereID");
+		Long whereId = null;
 
-		if (fieldId == null) {
-			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-			responseBuilder.add("message",
-					"Required parameter: fieldId not passed");
-			return responseBuilder.build();
-		}
-		if (predicate == null) {
-			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
-			responseBuilder.add("message",
-					"Required parameter: predicate not passed");
-			return responseBuilder.build();
+		if(whereParam != null) {
+			whereId = Long.parseLong(whereParam);
 		}
 
-		Long newJoinId;
+		if (field == null) {
+			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+			responseBuilder.add("message",
+					"Required parameter: field not passed");
+			return responseBuilder.build();
+		}
+		Map<String, String> values = new HashMap<String, String>();
+		
+		for(String key : parameters.keySet()) {
+			if(key.startsWith("data-")) {
+				values.put(key.replace("data-", ""), getFirstMultiValuedMap(parameters, key));
+			}
+		}
+		
+//		if (predicate == null) {
+//			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
+//			responseBuilder.add("message",
+//					"Required parameter: predicate not passed");
+//			return responseBuilder.build();
+//		}
+
+		Long newWhereId;
 		try {
-			
-			newJoinId = qc.addWhereClause(sqId, logicalOperator, getPath(fieldId),
-					predicate, value, additionalValue, whereId);
+			Resource resource = rc.getResource(field.split("/")[0]);
+			newWhereId = qc.addWhereClause(sqId, logicalOperator, getPath(field),
+					predicate, values, whereId, resource);
 			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("whereID", newJoinId);
+			responseBuilder.add("whereID", newWhereId);
 		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
 				| SubQueryNotFoundException | LogicalOperatorNotFound
 				| PredicateTypeNotSupported e) {
@@ -270,10 +288,36 @@ public class QueryRESTService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure runQuery() {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
-		ec.runQuery(qc.getQuery());
+		try {
+			responseBuilder.add("result", ec.runQuery(qc.getQuery()));
+		} catch (PersistableException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		admin.endConversation();
 		return responseBuilder.build();
 	}
+	
+//	@javax.annotation.Resource(name = "concurrent/_defaultManagedExecutorService")
+//	ManagedExecutorService mes;
+//	
+//	@GET
+//	@Path("/runQuery")
+//	@Produces(MediaType.APPLICATION_JSON)
+//	public void runQuery(@Suspended final AsyncResponse ar) {
+//		mes.submit(new Runnable() {
+//
+//			@Override
+//			public void run() {
+//				System.out.println("RUN");
+//				ar.resume("Performing: " + ar.isDone());
+//				
+//			}
+//			
+//		});
+//		
+//	}
+	
 
 	@GET
 	@Path("/cancelQuery")
@@ -297,15 +341,8 @@ public class QueryRESTService implements Serializable {
 	
 	private edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path getPath(String fullPath) {
 		Resource resource = rc.getResource(fullPath.split("/")[0]);
-		return pc.getPathFromString(resource, fullPath);
-	}
-	
-	private edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path[] getPaths(String[] fullPaths) {
-		edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path[] paths = new edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path[fullPaths.length];
 		
-		for(int pathI = 0; pathI < paths.length; pathI++) {
-			paths[pathI] = getPath(fullPaths[pathI]);
-		}
-		return paths;
+		String newPath = fullPath.replaceAll(resource.getName() + "/", "");
+		return pc.getPathFromString(resource, newPath);
 	}
 }

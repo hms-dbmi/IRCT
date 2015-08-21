@@ -31,24 +31,13 @@ public class ResourceRESTService {
 	private ResourceController rc;
 
 	@GET
-	@Path("/hello")
-	@Produces(MediaType.APPLICATION_JSON)
-	public JsonStructure test() {
-		// TODO: REMOVE ME
-		JsonObjectBuilder build = Json.createObjectBuilder();
-		build.add("hello", "world");
-		return build.build();
-
-	}
-
-	@GET
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure listResource() {
 		JsonArrayBuilder paths = Json.createArrayBuilder();
 
 		for (Resource resource : rc.getResources()) {
-			paths.add(resource.toJson());
+			paths.add(resource.toJson(3));
 		}
 
 		return paths.build();
@@ -61,7 +50,7 @@ public class ResourceRESTService {
 		JsonArrayBuilder paths = Json.createArrayBuilder();
 
 		for (Resource resource : rc.getQueryResources()) {
-			paths.add(resource.toJson());
+			paths.add(resource.toJson(2));
 		}
 
 		return paths.build();
@@ -91,11 +80,13 @@ public class ResourceRESTService {
 		try {
 			JsonArrayBuilder paths = Json.createArrayBuilder();
 			Resource resource = rc.getResource(resourceName);
-			OntologyRelationship ontologyRelationship = OntologyRelationship
-					.valueOf(relationship);
+			OntologyRelationship ontologyRelationship = pc.getRelationshipFromString(resource, relationship);
 
 			if (path.equals("")) {
-				paths.add(pc.getPathRoot(resource).toJson());
+				for (edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path childPath : pc.getPathRoot(resource)) {
+					paths.add(childPath.toJson());
+				}
+				
 			} else {
 				if (path.startsWith("/")) {
 					path = path.substring(1);
@@ -120,5 +111,7 @@ public class ResourceRESTService {
 		return build.build();
 
 	}
+	
+	
 
 }
