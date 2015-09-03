@@ -29,7 +29,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClients;
 
@@ -46,8 +45,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.QueryResourceImplementation
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
@@ -65,7 +64,6 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InclusiveType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryResultInstanceType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
@@ -265,8 +263,8 @@ public class I2B2XMLResourceImplementation implements
 
 		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
 		ResultOutputOptionType root = new ResultOutputOptionType();
-		root.setPriorityIndex(9);
-		root.setName("patientset");
+		root.setPriorityIndex(10);
+		root.setName("PATIENTSET");
 		roolt.getResultOutput().add(root);
 
 		Long queryId = 0L;
@@ -276,8 +274,7 @@ public class I2B2XMLResourceImplementation implements
 							"IRCT", null, "SAMEVISIT", 0, roolt,
 							panels.toArray(new PanelType[panels.size()]));
 			
-			queryId = Long.parseLong(mirrt.getQueryInstance()
-					.getQueryMasterId());
+			queryId = Long.parseLong(mirrt.getQueryResultInstance().get(0).getResultInstanceId());
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			throw new ResourceInterfaceException(
 					"Error traversing relationship", e);
@@ -288,9 +285,9 @@ public class I2B2XMLResourceImplementation implements
 	private PanelType createPanel(int panelItem) {
 		PanelType panel = new PanelType();
 		panel.setPanelNumber(panelItem);
-		panel.setPanelAccuracyScale(100);
 		panel.setInvert(0);
 		panel.setPanelTiming("ANY");
+		
 		PanelType.TotalItemOccurrences tio = new PanelType.TotalItemOccurrences();
 		tio.setValue(1);
 		panel.setTotalItemOccurrences(tio);
@@ -301,7 +298,7 @@ public class I2B2XMLResourceImplementation implements
 	public ResultSet getResults(Long queryId) throws ResourceInterfaceException {
 		try {
 			
-			String resultInstanceId = getResultInstanceId(queryId);
+			String resultInstanceId = queryId.toString();
 			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
 					resultInstanceId, 0, 100000, false, false, false,
 					OutputOptionSelectType.USING_INPUT_LIST);
@@ -312,13 +309,6 @@ public class I2B2XMLResourceImplementation implements
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			throw new ResourceInterfaceException("Error getting results", e);
 		}
-	}
-	
-	public String getResultInstanceId(Long queryId) throws ClientProtocolException, JAXBException, I2B2InterfaceException, IOException {
-		List<QueryResultInstanceType> response = crcCell
-				.getQueryResultInstanceListFromQueryInstanceId(client,
-						queryId.toString());
-		return response.get(0).getResultInstanceId();
 	}
 
 	public ResourceState getState() {
@@ -382,8 +372,11 @@ public class I2B2XMLResourceImplementation implements
 
 	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
 		ItemType item = new ItemType();
+		item.setHlevel(3);//????
+		item.setClazz("ENC");//???
 		item.setItemKey(whereClause.getField().getPui()
 				.replaceAll(getServerName() + "/", "").replace('/', '\\'));
+		item.setItemName(item.getItemKey());
 		if (whereClause.getPredicateType() != null) {
 			if (whereClause.getPredicateType().getName()
 					.equals("CONSTRAIN_MODIFIER")) {
@@ -588,10 +581,20 @@ public class I2B2XMLResourceImplementation implements
 		return returns;
 	}
 
+	/**
+	 * Returns the HTTP Client used for connections
+	 * 
+	 * @return HTTP Client
+	 */
 	public HttpClient getClient() {
 		return client;
 	}
 
+	/**
+	 * Sets the HTTP Client for the connection
+	 * 
+	 * @param client HTTP Client
+	 */
 	public void setClient(HttpClient client) {
 		this.client = client;
 	}
@@ -611,10 +614,20 @@ public class I2B2XMLResourceImplementation implements
 		return I2B2OntologyRelationship.valueOf(relationship);
 	}
 
+	/**
+	 * Returns a server name
+	 * 
+	 * @return Server name
+	 */
 	public String getServerName() {
 		return serverName;
 	}
 
+	/**
+	 * Sets a server name
+	 * 
+	 * @param serverName Server name
+	 */
 	public void setServerName(String serverName) {
 		this.serverName = serverName;
 	}

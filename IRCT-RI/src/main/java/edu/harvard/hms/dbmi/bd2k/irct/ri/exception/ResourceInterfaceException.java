@@ -16,7 +16,7 @@
  */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.exception;
 /**
- * A Resource Interface Exception occurs of some type
+ * Indicates a Resource Interface Exception occurred of some type
  * 
  * @author Jeremy R. Easton-Marks
  *
@@ -24,15 +24,31 @@ package edu.harvard.hms.dbmi.bd2k.irct.ri.exception;
 public class ResourceInterfaceException extends Exception {
 	private static final long serialVersionUID = -4688536480746747740L;
 	
+	/**
+	 * Create a Resource Interface Exception with the given message
+	 * 
+	 * @param message Messsage
+	 */
 	public ResourceInterfaceException(String message) {
 		super(message);
 	}
 
-	public ResourceInterfaceException(Exception e) {
-		super(e);
+	/**
+	 * Create a Resource Interface Exception
+	 * 
+	 * @param exception Exception
+	 */
+	public ResourceInterfaceException(Exception exception) {
+		super(exception);
 	}
 	
-	public ResourceInterfaceException(String message, Exception e) {
-		super(message, e);
+	/**
+	 * Create a Resource Interface Exception with the given message
+	 * 
+	 * @param message Message
+	 * @param exception Exception
+	 */
+	public ResourceInterfaceException(String message, Exception exception) {
+		super(message, exception);
 	}
 }
