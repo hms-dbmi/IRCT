@@ -20,6 +20,7 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 
 /**
+ * Initiates the JAX-RS Service to provide rest resources for the IRCT-CL
  * 
  * @author Jeremy R. Easton-Marks
  *
