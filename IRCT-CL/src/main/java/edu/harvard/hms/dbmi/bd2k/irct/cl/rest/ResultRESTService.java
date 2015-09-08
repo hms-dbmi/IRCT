@@ -35,16 +35,28 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Joinable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 
+/**
+ * Creates the result service for the JAX-RS REST service
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 @Path("/resultService")
 @RequestScoped
 public class ResultRESTService {
 	@Inject
 	private ResultController rc;
 
+	/**
+	 * Returns a JSON Array list of available formats that can be returned by
+	 * this service
+	 * 
+	 * @return JSON Array of available formats
+	 */
 	@GET
 	@Path("/availableFormats")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -58,23 +70,47 @@ public class ResultRESTService {
 		return build.build();
 	}
 
+	/**
+	 * Returns a JSON Array list of available results
+	 * 
+	 * NOTE: NOT IMPLEMENTED YET
+	 * 
+	 * @return JSON Array of available results
+	 */
 	@GET
 	@Path("/results")
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure availableResults() {
 		JsonObjectBuilder build = Json.createObjectBuilder();
+		// TODO: IMPLEMENT
 		return build.build();
 	}
 
+	/**
+	 * Returns a result
+	 * 
+	 * NOTE: NOT IMPLEMENTED YET
+	 * 
+	 * @param resultId
+	 *            Result ID
+	 * @return JSON Object of the result
+	 */
 	@GET
 	@Path("/result{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure availableResults(@PathParam("id") String resultId) {
 		JsonObjectBuilder build = Json.createObjectBuilder();
-		//TODO: IMPLEMENT
+		// TODO: IMPLEMENT
 		return build.build();
 	}
 
+	/**
+	 * Returns a JSON representation of the result
+	 * 
+	 * @param resultId
+	 *            Result ID
+	 * @return JSON representation of the result
+	 */
 	@GET
 	@Path("/result/json/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -109,6 +145,16 @@ public class ResultRESTService {
 		return build.build();
 	}
 
+	/**
+	 * Returns a JSON representation of the result set as an attachment. It
+	 * streams the response to lessen the memory footprint.
+	 * 
+	 * @param resultId
+	 *            Result ID
+	 * @param servletResponse
+	 *            Servlet Response
+	 * @return A JSON file
+	 */
 	@GET
 	@Path("/download/json/{id}")
 	public Response jsonResultSet(@PathParam("id") String resultId,
@@ -152,6 +198,16 @@ public class ResultRESTService {
 				.build();
 	}
 
+	/**
+	 * Returns an XML representation of the result set as an attachment. It
+	 * streams the response to lessen the memory footprint.
+	 * 
+	 * @param resultId
+	 *            Result ID
+	 * @param servletResponse
+	 *            Servlet Response
+	 * @return An XML file
+	 */
 	@GET
 	@Path("/download/xml/{id}")
 	public Response xmlResultSet(@PathParam("id") final String resultId,
@@ -163,17 +219,19 @@ public class ResultRESTService {
 					WebApplicationException {
 				try {
 					ResultSet rs = rc.getResultSet(Long.valueOf(resultId));
-					
-					XMLOutputFactory xof =  XMLOutputFactory.newInstance();
-					XMLStreamWriter xtw = xof.createXMLStreamWriter(new OutputStreamWriter(os));
-					xtw.writeStartDocument("utf-8","1.0");
+
+					XMLOutputFactory xof = XMLOutputFactory.newInstance();
+					XMLStreamWriter xtw = xof
+							.createXMLStreamWriter(new OutputStreamWriter(os));
+					xtw.writeStartDocument("utf-8", "1.0");
 					xtw.writeStartElement("results");
 					rs.beforeFirst();
-					while(rs.next()) {
+					while (rs.next()) {
 						xtw.writeStartElement("result");
-						for(int i = 0; i < rs.getColumnSize(); i++) {
+						for (int i = 0; i < rs.getColumnSize(); i++) {
 							xtw.writeStartElement(rs.getColumn(i).getName());
-							xtw.writeCharacters(((Joinable) rs).getObject(i).toString());
+							xtw.writeCharacters(((Joinable) rs).getObject(i)
+									.toString());
 							xtw.writeEndElement();
 						}
 						xtw.writeEndElement();
@@ -183,11 +241,12 @@ public class ResultRESTService {
 
 					xtw.flush();
 					xtw.close();
-				} catch (XMLStreamException | NumberFormatException | ResultSetException | PersistableException e) {
+				} catch (XMLStreamException | NumberFormatException
+						| ResultSetException | PersistableException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
+
 			}
 		};
 		return Response
@@ -198,6 +257,16 @@ public class ResultRESTService {
 
 	}
 
+	/**
+	 * Returns an XSLX representation of the result set as an attachment. It
+	 * streams the response to lessen the memory footprint.
+	 * 
+	 * @param resultId
+	 *            Result ID
+	 * @param servletResponse
+	 *            Servlet Response
+	 * @return XSLX file
+	 */
 	@GET
 	@Path("/download/xlsx/{id}")
 	public Response xlsxResultSet(@PathParam("id") final String resultId,
@@ -256,6 +325,16 @@ public class ResultRESTService {
 				.build();
 	}
 
+	/**
+	 * Returns an CSV representation of the result set as an attachment. It
+	 * streams the response to lessen the memory footprint.
+	 * 
+	 * @param resultId
+	 *            Result Id
+	 * @param servletResponse
+	 *            Servlet Response
+	 * @return CSV file
+	 */
 	@GET
 	@Path("/download/csv/{id}")
 	public Response csvResultSet(@PathParam("id") final String resultId,
@@ -266,8 +345,9 @@ public class ResultRESTService {
 			public void write(OutputStream os) throws IOException,
 					WebApplicationException {
 				try {
-					CSVPrinter printer  = new CSVPrinter(new OutputStreamWriter(os), CSVFormat.DEFAULT);
-					
+					CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(
+							os), CSVFormat.DEFAULT);
+
 					ResultSet rs = rc.getResultSet(Long.valueOf(resultId));
 
 					String[] columnHeaders = new String[rs.getColumnSize()];
@@ -275,7 +355,7 @@ public class ResultRESTService {
 						columnHeaders[i] = rs.getColumn(i).getName();
 					}
 					printer.printRecord((Object[]) columnHeaders);
-					
+
 					rs.beforeFirst();
 					while (rs.next()) {
 						String[] row = new String[rs.getColumnSize()];
@@ -284,7 +364,7 @@ public class ResultRESTService {
 						}
 						printer.printRecord((Object[]) row);
 					}
-					
+
 					printer.flush();
 					printer.close();
 				} catch (NumberFormatException | ResultSetException

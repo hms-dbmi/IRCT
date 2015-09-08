@@ -20,6 +20,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.exception.ResourceInterfaceException;
 
+/**
+ * Creates the resource service for the JAX-RS REST service
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 @Path("/resourceService")
 @RequestScoped
 public class ResourceRESTService {
@@ -30,6 +36,11 @@ public class ResourceRESTService {
 	@Inject
 	private ResourceController rc;
 
+	/**
+	 * Returns a list of resources as a JSON Array
+	 * 
+	 * @return Resources JSON Array
+	 */
 	@GET
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -43,6 +54,11 @@ public class ResourceRESTService {
 		return paths.build();
 	}
 
+	/**
+	 * Returns a list of the query resources as a JSON Array
+	 * 
+	 * @return Query Resources JSON Array
+	 */
 	@GET
 	@Path("/queryResources")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -56,6 +72,11 @@ public class ResourceRESTService {
 		return paths.build();
 	}
 
+	/**
+	 * Returns a list of the process resources as a JSON Array
+	 * 
+	 * @return Process Resources JSON Array
+	 */
 	@GET
 	@Path("/processResources")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -69,6 +90,20 @@ public class ResourceRESTService {
 		return paths.build();
 	}
 
+	/**
+	 * Returns a JSON Array of Paths from a given resource, path, and
+	 * relationship. The default relationship type is CHILD. If the path is
+	 * empty then it returns the path root of the resource.
+	 * 
+	 * 
+	 * @param resourceName
+	 *            Name of Resource
+	 * @param path
+	 *            Initial Path
+	 * @param relationship
+	 *            Relationship Type
+	 * @return JSON Array of Paths
+	 */
 	@GET
 	@Path("/path/{resource}{path:.*}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -80,13 +115,15 @@ public class ResourceRESTService {
 		try {
 			JsonArrayBuilder paths = Json.createArrayBuilder();
 			Resource resource = rc.getResource(resourceName);
-			OntologyRelationship ontologyRelationship = pc.getRelationshipFromString(resource, relationship);
+			OntologyRelationship ontologyRelationship = pc
+					.getRelationshipFromString(resource, relationship);
 
 			if (path.equals("")) {
-				for (edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path childPath : pc.getPathRoot(resource)) {
+				for (edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path childPath : pc
+						.getPathRoot(resource)) {
 					paths.add(childPath.toJson());
 				}
-				
+
 			} else {
 				if (path.startsWith("/")) {
 					path = path.substring(1);
@@ -111,7 +148,5 @@ public class ResourceRESTService {
 		return build.build();
 
 	}
-	
-	
 
 }

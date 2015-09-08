@@ -1,5 +1,11 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
+/**
+ * A set of Constants for the IRCT-RI
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class Constants {
 	public static String QUERYPROTOCOL = "1.0";
 	public static String STATUS_OK = "OK";
