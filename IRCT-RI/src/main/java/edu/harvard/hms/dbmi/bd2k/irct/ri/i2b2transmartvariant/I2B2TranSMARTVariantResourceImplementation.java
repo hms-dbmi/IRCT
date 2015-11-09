@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart;
+package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmartvariant;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -13,6 +13,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -63,7 +65,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
  * instance. It extends the i2b2 XML resource implementation.
  * 
  */
-public class I2B2TranSMARTResourceImplementation extends
+public class I2B2TranSMARTVariantResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String tranSMARTuserName;
 	private String tranSMARTpassword;
@@ -187,7 +189,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				} else {
 					actionState.setResults(convertJsonToPivotResultSetonEncounter(results, false));
 				}
-				
+				reader.close();
 				actionState.setComplete(true);
 			}
 
@@ -202,6 +204,8 @@ public class I2B2TranSMARTResourceImplementation extends
 	private ResultSet convertJsonToPivotResultSetonEncounter(JsonArray results, boolean onEncounter) {
 		FileResultSet mrs = new FileResultSet();
 
+		Pattern pattern = Pattern.compile("\\\\[0-9][0-9]_(?!.*\\\\[0-9][0-9]_*)");
+		
 		Set<String> columns = new HashSet<String>();
 		columns.add("PATIENT_NUM");
 		if(onEncounter) {
@@ -220,17 +224,31 @@ public class I2B2TranSMARTResourceImplementation extends
 			if(onEncounter) {
 				pivotString = obj.getString("ENCOUNTER_NUM");
 			}
+			
 			if(!rawData.containsKey(pivotString)) {
 				Map<String, String> entryMap = new HashMap<String, String>();
 				entryMap.put("PATIENT_NUM", obj.getString("PATIENT_NUM"));
 				if(onEncounter) {
 					entryMap.put("ENCOUNTER_NUM", obj.getString("ENCOUNTER_NUM"));
+					if(obj.containsKey("RACE_CD")) {
+						entryMap.put("RACE_CD", obj.getString("RACE_CD"));
+						columns.add("RACE_CD");
+					}
 				}
 				rawData.put(pivotString, entryMap);
 			}
 			
-			rawData.get(pivotString).put(obj.getString("CONCEPT_PATH"), obj.getString("VALUE"));
-			columns.add(obj.getString("CONCEPT_PATH"));
+			String columnString = obj.getString("CONCEPT_PATH");
+			if(onEncounter) {
+				Matcher matcher = pattern.matcher(columnString);
+				if(matcher.find()) {
+					int end = columnString.indexOf("\\", matcher.end());
+					columnString = columnString.substring(0, end);
+				}
+			}
+			columns.add(columnString);			
+			
+			rawData.get(pivotString).put(columnString, obj.getString("VALUE"));
 		}
 		
 		try {

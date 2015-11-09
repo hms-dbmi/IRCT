@@ -1,19 +1,6 @@
-/*
- *  This file is part of Inter-Resource Communication Tool (IRCT).
- *
- *  IRCT is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  IRCT is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with IRCT.  If not, see <http://www.gnu.org/licenses/>.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
 import java.io.IOException;
@@ -23,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.xml.bind.JAXBException;
@@ -32,7 +20,9 @@ import javax.xml.datatype.DatatypeFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClients;
 
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
@@ -48,7 +38,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
@@ -227,7 +216,7 @@ public class I2B2XMLResourceImplementation implements
 		return pathObj;
 	}
 
-	public Long runQuery(Query qep) throws ResourceInterfaceException {
+	public ActionState runQuery(Query qep) throws ResourceInterfaceException {
 		int panelCount = 1;
 		ArrayList<PanelType> panels = new ArrayList<PanelType>();
 		
@@ -267,19 +256,22 @@ public class I2B2XMLResourceImplementation implements
 		root.setName("PATIENTSET");
 		roolt.getResultOutput().add(root);
 
-		Long queryId = 0L;
+		String queryId = null;
 		try {
 			MasterInstanceResultResponseType mirrt = crcCell
 					.runQueryInstanceFromQueryDefinition(client, null, null,
-							"IRCT", null, "SAMEVISIT", 0, roolt,
+							"IRCT", null, "ANY", 0, roolt,
 							panels.toArray(new PanelType[panels.size()]));
 			
-			queryId = Long.parseLong(mirrt.getQueryResultInstance().get(0).getResultInstanceId());
+			queryId = mirrt.getQueryResultInstance().get(0).getResultInstanceId();
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			throw new ResourceInterfaceException(
 					"Error traversing relationship", e);
 		}
-		return queryId;
+		
+		ActionState as = new ActionState();
+		as.setResourceId(queryId);
+		return as;
 	}
 
 	private PanelType createPanel(int panelItem) {
@@ -295,14 +287,13 @@ public class I2B2XMLResourceImplementation implements
 		return panel;
 	}
 
-	public ResultSet getResults(Long queryId) throws ResourceInterfaceException {
+	public ResultSet getResults(ActionState actionState) throws ResourceInterfaceException {
 		try {
-			
-			String resultInstanceId = queryId.toString();
+			String resultInstanceId = actionState.getResourceId();
 			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
 					resultInstanceId, 0, 100000, false, false, false,
 					OutputOptionSelectType.USING_INPUT_LIST);
-
+			actionState.setComplete(true);
 			return convertPatientSetToResultSet(pdrt.getPatientData()
 					.getPatientSet());
 
@@ -324,12 +315,103 @@ public class I2B2XMLResourceImplementation implements
 		depth--;
 		JsonObjectBuilder returnJSON = Json.createObjectBuilder();
 		returnJSON.add("type", this.getType());
+		
+		JsonArrayBuilder returnEntityArray = Json.createArrayBuilder();
+		for(Path rePath : getReturnEntity()) {
+			returnEntityArray.add(rePath.toJson(depth));
+		}
+		returnJSON.add("returnEntity", returnEntityArray.build());
+		returnJSON.add("editableReturnEntity", this.editableReturnEntity());
+		
 		return returnJSON.build();
 	}
 
-	public Path getReturnEntity() {
-		// TODO Auto-generated method stub
-		return null;
+	public List<Path> getReturnEntity() {
+		List<Path> returnEntity = new ArrayList<Path>();
+//		 Patient Id	
+		Path patientId = new Path();
+		patientId.setName("Patient Id");
+		patientId.setPui("Patient Id");
+		patientId.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(patientId);
+		
+//		 vital_status_cd
+		Path vitalStatusCd = new Path();
+		vitalStatusCd.setName("Vital Status");
+		vitalStatusCd.setPui("vital_status_cd");
+		vitalStatusCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(vitalStatusCd);
+		
+//		 language_cd
+		Path languageCd = new Path();
+		languageCd.setName("Language");
+		languageCd.setPui("language_cd");
+		languageCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(languageCd);
+		
+//		 birth_date
+		Path birthDate = new Path();
+		birthDate.setName("Birth Date");
+		birthDate.setPui("birth_date");
+		birthDate.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(birthDate);
+		
+//		 race_cd
+		Path raceCd = new Path();
+		raceCd.setName("Race");
+		raceCd.setPui("race_cd");
+		raceCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(raceCd);
+		
+//		 religion_cd
+		Path religionCd = new Path();
+		religionCd.setName("Religion");
+		religionCd.setPui("Religion");
+		religionCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(religionCd);
+		
+//		 income_cd
+		Path incomeCd = new Path();
+		incomeCd.setName("Income");
+		incomeCd.setPui("income_cd");
+		incomeCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(incomeCd);
+		
+//		 statecityzip_path
+		Path stateCityCd = new Path();
+		stateCityCd.setName("State, City Zip");
+		stateCityCd.setPui("statecityzip_path");
+		stateCityCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(stateCityCd);
+		
+//		 zip_cd
+		Path zipCd = new Path();
+		zipCd.setName("Zip");
+		zipCd.setPui("zip_cd");
+		zipCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(zipCd);
+		
+//		 marital_status_cd
+		Path maritalCd = new Path();
+		maritalCd.setName("marital_status_cd");
+		maritalCd.setPui("marital_status_cd");
+		maritalCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(maritalCd);
+		
+//		 age_in_years_num
+		Path ageCd = new Path();
+		ageCd.setName("Age");
+		ageCd.setPui("age_in_years_num");
+		ageCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(ageCd);
+		
+//		 sex_cd
+		Path sexCd = new Path();
+		sexCd.setName("Sex");
+		sexCd.setPui("sex_cd");
+		sexCd.setDataType(PrimitiveDataType.STRING);
+		returnEntity.add(sexCd);
+		return returnEntity;
 	}
 
 	// -------------------------------------------------------------------------
@@ -346,12 +428,12 @@ public class I2B2XMLResourceImplementation implements
 			PatientType columnPT = patientSet.getPatient().get(0);
 			Column idColumn = new Column();
 			idColumn.setName("Patient Id");
-			idColumn.setDataType(DataType.STRING);
+			idColumn.setDataType(PrimitiveDataType.STRING);
 			mrs.appendColumn(idColumn);
 			for (ParamType paramType : columnPT.getParam()) {
 				Column column = new Column();
 				column.setName(paramType.getColumn());
-				column.setDataType(DataType.STRING);
+				column.setDataType(PrimitiveDataType.STRING);
 				mrs.appendColumn(column);
 			}
 
@@ -372,15 +454,13 @@ public class I2B2XMLResourceImplementation implements
 
 	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
 		ItemType item = new ItemType();
-		item.setHlevel(3);//????
-		item.setClazz("ENC");//???
 		item.setItemKey(whereClause.getField().getPui()
 				.replaceAll(getServerName() + "/", "").replace('/', '\\'));
 		item.setItemName(item.getItemKey());
+		item.setItemIsSynonym(false);
 		if (whereClause.getPredicateType() != null) {
 			if (whereClause.getPredicateType().getName()
 					.equals("CONSTRAIN_MODIFIER")) {
-
 				item.setConstrainByModifier(createConstrainByModifier(whereClause));
 			} else if (whereClause.getPredicateType().getName()
 					.equals("CONSTRAIN_VALUE")) {
@@ -464,7 +544,7 @@ public class I2B2XMLResourceImplementation implements
 			childPath.setPui(getServerName() + "/"
 					+ modifier.getKey().replace('\\', '/'));
 			if (modifier.getColumndatatype().equals("T")) {
-				childPath.setDataType(DataType.STRING);
+				childPath.setDataType(PrimitiveDataType.STRING);
 			}
 
 			Map<String, String> attributes = new HashMap<String, String>();
@@ -506,7 +586,7 @@ public class I2B2XMLResourceImplementation implements
 			childPath.setPui(getServerName() + "/"
 					+ concept.getKey().replace('\\', '/'));
 			if (concept.getVisualattributes().startsWith("L")) {
-				childPath.setDataType(DataType.STRING);
+				childPath.setDataType(PrimitiveDataType.STRING);
 			}
 			Map<String, String> attributes = new HashMap<String, String>();
 			attributes.put("level", Integer.toString(concept.getLevel()));
@@ -630,5 +710,10 @@ public class I2B2XMLResourceImplementation implements
 	 */
 	public void setServerName(String serverName) {
 		this.serverName = serverName;
+	}
+
+	@Override
+	public Boolean editableReturnEntity() {
+		return false;
 	}
 }

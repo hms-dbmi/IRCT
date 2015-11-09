@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.openCPU;
 
 import java.util.List;
@@ -5,6 +8,8 @@ import java.util.Map;
 
 import javax.json.JsonObject;
 
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessResourceImplementationInterface;
@@ -34,25 +39,19 @@ public class OpenCPUResourceImplementation implements
 	}
 
 	@Override
-	public List<IRCTProcess> availableProcesses() {
+	public List<Path> getReturnEntity() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Path getReturnEntity() {
+	public ActionState runProcess(IRCTProcess pep) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Long run(IRCTProcess pep) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ResultSet getResults(Long processId) {
+	public ResultSet getResults(ActionState actionState) throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -74,5 +73,4 @@ public class OpenCPUResourceImplementation implements
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 }
