@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import javax.enterprise.context.RequestScoped;
@@ -16,9 +19,9 @@ import javax.ws.rs.core.MediaType;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.exception.ResourceInterfaceException;
 
 /**
  * Creates the resource service for the JAX-RS REST service
@@ -84,7 +87,7 @@ public class ResourceRESTService {
 		JsonArrayBuilder paths = Json.createArrayBuilder();
 
 		for (Resource resource : rc.getProcessResources()) {
-			paths.add(resource.toJson());
+			paths.add(resource.toJson(3));
 		}
 
 		return paths.build();

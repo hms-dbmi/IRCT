@@ -28,8 +28,8 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.result.Result</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateTypeValue</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcessParameter</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.ProcessType</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.ProcessTypeParameter</class>
       
       
       

@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.IOException;
@@ -34,6 +37,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Joinable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
@@ -119,10 +123,18 @@ public class ResultRESTService {
 
 		try {
 			ResultSet rs = rc.getResultSet(Long.valueOf(resultId));
+			
 
 			if (rs.getSize() != 0) {
-				JsonArrayBuilder objects = Json.createArrayBuilder();
+				JsonArrayBuilder columns = Json.createArrayBuilder();
+				
+				//Get columns
+				for(Column column : rs.getColumns()) {
+					columns.add(column.toJson());
+				}
 
+				///Get data
+				JsonArrayBuilder objects = Json.createArrayBuilder();
 				rs.beforeFirst();
 				while (rs.next()) {
 					JsonObjectBuilder result = Json.createObjectBuilder();
@@ -133,7 +145,9 @@ public class ResultRESTService {
 					}
 					objects.add(result);
 				}
-				return objects.build();
+				build.add("columns", columns.build());
+				build.add("data", objects.build());
+				return build.build();
 			}
 		} catch (NumberFormatException | ResultSetException
 				| PersistableException e) {

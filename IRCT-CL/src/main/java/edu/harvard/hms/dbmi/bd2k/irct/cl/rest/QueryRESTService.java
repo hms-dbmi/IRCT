@@ -1,19 +1,6 @@
-/*
- *  This file is part of Inter-Resource Communication Tool (IRCT).
- *
- *  IRCT is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  IRCT is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with IRCT.  If not, see <http://www.gnu.org/licenses/>.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
@@ -146,10 +133,8 @@ public class QueryRESTService implements Serializable {
 	 * 
 	 * @param sq
 	 *            Query ID
-	 * @param parameter
+	 * @param field
 	 *            Parameter name
-	 * @param alias
-	 *            Alias
 	 * @return A JSON Object representing the status of that request
 	 */
 	@GET
@@ -157,22 +142,26 @@ public class QueryRESTService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure selectClause(
 			@DefaultValue("") @QueryParam(value = "sq") String sq,
-			@DefaultValue("") @QueryParam(value = "parameter") String parameter,
+			@DefaultValue("") @QueryParam(value = "field") String field,
 			@DefaultValue("") @QueryParam(value = "alias") String alias) {
+		
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 		Long selectId;
 
 		try {
-
+			Resource resource = rc.getResource(field.split("/")[0]);
+			edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path path = getPath(field);
+			path.setName(alias);
+			
 			if (sq.equals("")) {
-				selectId = qc.addSelectClause(null, alias, getPath(parameter));
+				selectId = qc.addSelectClause(null, path, resource);
 
 			} else {
-				selectId = qc.addSelectClause(Long.parseLong(sq), alias,
-						getPath(parameter));
+				selectId = qc.addSelectClause(Long.parseLong(sq),
+						path, resource);
 			}
 			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("selectId", selectId);
+			responseBuilder.add("clauseId", selectId);
 
 		} catch (SubQueryNotFoundException e) {
 			responseBuilder.add("status", Constants.STATUS_ERROR_FAIL);
@@ -217,7 +206,7 @@ public class QueryRESTService implements Serializable {
 			Long newJoinId = qc.addJoinClause(sqId1, sqId2, joinType,
 					getPath(f1), getPath(f2), relationship, joinId);
 			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("joinID", newJoinId);
+			responseBuilder.add("clauseId", newJoinId);
 
 		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
 				| SubQueryNotFoundException | JoinTypeNotSupported e) {
@@ -256,7 +245,7 @@ public class QueryRESTService implements Serializable {
 		String field = getFirstMultiValuedMap(parameters, "field");
 		String predicate = getFirstMultiValuedMap(parameters, "predicate");
 
-		String whereParam = getFirstMultiValuedMap(parameters, "whereID");
+		String whereParam = getFirstMultiValuedMap(parameters, "clauseId");
 		Long whereId = null;
 
 		if (whereParam != null) {
@@ -291,7 +280,7 @@ public class QueryRESTService implements Serializable {
 			newWhereId = qc.addWhereClause(sqId, logicalOperator,
 					getPath(field), predicate, values, whereId, resource);
 			responseBuilder.add("status", Constants.STATUS_OK);
-			responseBuilder.add("whereID", newWhereId);
+			responseBuilder.add("clauseId", newWhereId);
 		} catch (ClauseNotFoundException | ClauseIsNotTheCorrectType
 				| SubQueryNotFoundException | LogicalOperatorNotFound
 				| PredicateTypeNotSupported e) {
@@ -337,7 +326,7 @@ public class QueryRESTService implements Serializable {
 	public JsonStructure runQuery() {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 		try {
-			responseBuilder.add("result", ec.runQuery(qc.getQuery()));
+			responseBuilder.add("resultId", ec.runQuery(qc.getQuery()));
 		} catch (PersistableException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
