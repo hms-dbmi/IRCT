@@ -121,6 +121,7 @@ public class I2B2TranSMARTResourceImplementation extends
 								counts.getInt(i2b2Path));
 					}
 				}
+				jsonReader.close();
 			}
 			return paths;
 		} catch (KeyManagementException | NoSuchAlgorithmException
@@ -187,7 +188,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				} else {
 					actionState.setResults(convertJsonToPivotResultSetonEncounter(results, false));
 				}
-				
+				reader.close();
 				actionState.setComplete(true);
 			}
 

@@ -298,6 +298,7 @@ public class EXACResourceImplementation implements
 				
 				actionState.setResults(convertJsonToResultSet(results));
 				actionState.setComplete(true);
+				reader.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -313,6 +314,7 @@ public class EXACResourceImplementation implements
 				
 				actionState.setResults(convertJsonToResultSet(results));
 				actionState.setComplete(true);
+				reader.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

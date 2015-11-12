@@ -123,6 +123,7 @@ public class I2B2TranSMARTVariantResourceImplementation extends
 								counts.getInt(i2b2Path));
 					}
 				}
+				jsonReader.close();
 			}
 			return paths;
 		} catch (KeyManagementException | NoSuchAlgorithmException
