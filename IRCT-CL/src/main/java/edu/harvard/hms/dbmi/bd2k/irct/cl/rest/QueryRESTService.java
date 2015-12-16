@@ -135,6 +135,8 @@ public class QueryRESTService implements Serializable {
 	 *            Query ID
 	 * @param field
 	 *            Parameter name
+	 * @param alias
+	 *            Parameter alias         
 	 * @return A JSON Object representing the status of that request
 	 */
 	@GET
