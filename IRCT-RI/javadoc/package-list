@@ -1,5 +1,6 @@
-edu.harvard.hms.dbmi.bd2k.irct.ri.exception
+edu.harvard.hms.dbmi.bd2k.irct.ri.exac
 edu.harvard.hms.dbmi.bd2k.irct.ri.fakeResource
 edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2
 edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart
+edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmartvariant
 edu.harvard.hms.dbmi.bd2k.irct.ri.openCPU
