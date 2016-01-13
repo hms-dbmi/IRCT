@@ -296,7 +296,7 @@ public class EXACResourceImplementation implements
 						.getContent());
 				JsonArray results = reader.readArray();
 				
-				actionState.setResults(convertJsonToResultSet(results));
+				actionState.setResults(convertJsonArrayToResultSet(results));
 				actionState.setComplete(true);
 				reader.close();
 			} catch (IOException e) {
@@ -312,7 +312,7 @@ public class EXACResourceImplementation implements
 						.getContent());
 				JsonArray results = reader.readArray();
 				
-				actionState.setResults(convertJsonToResultSet(results));
+				actionState.setResults(convertJsonArrayToResultSet(results));
 				actionState.setComplete(true);
 				reader.close();
 			} catch (IOException e) {
@@ -320,7 +320,25 @@ public class EXACResourceImplementation implements
 				e.printStackTrace();
 			}
 		} else if (whereClause.getPredicateType().getName().equals("BYREGION")) {
+			String service = getServerURL() + "/rest/region/" + whereClause.getValues().get("chromosome") + "-" + whereClause.getValues().get("start");
+			if (whereClause.getValues().containsKey("stop")) {
+				service += "-" + whereClause.getValues().get("stop");
+			}
+			HttpGet get = new HttpGet(service);
 			
+			try {
+				HttpResponse response = client.execute(get);
+				JsonReader reader = Json.createReader(response.getEntity()
+						.getContent());
+				JsonArray results = reader.readArray();
+				
+				actionState.setResults(convertJsonArrayToResultSet(results));
+				actionState.setComplete(true);
+				reader.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		return actionState;
@@ -425,8 +443,12 @@ public class EXACResourceImplementation implements
 	public ResultSet getResults(ActionState actionState) throws ResourceInterfaceException {
 		return null;
 	}
+	
+	private ResultSet convertJsonToResultSet(JsonObject result) {
+		return null;
+	}
 
-	private ResultSet convertJsonToResultSet(JsonArray results) {
+	private ResultSet convertJsonArrayToResultSet(JsonArray results) {
 		FileResultSet mrs = new FileResultSet();
 
 		try {
