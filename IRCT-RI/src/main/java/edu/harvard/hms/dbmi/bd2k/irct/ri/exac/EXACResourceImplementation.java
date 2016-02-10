@@ -444,10 +444,6 @@ public class EXACResourceImplementation implements
 		return null;
 	}
 	
-	private ResultSet convertJsonToResultSet(JsonObject result) {
-		return null;
-	}
-
 	private ResultSet convertJsonArrayToResultSet(JsonArray results) {
 		FileResultSet mrs = new FileResultSet();
 
