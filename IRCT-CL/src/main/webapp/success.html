@@ -1,0 +1,29 @@
+<html>
+<head>
+
+</head>
+<body>
+
+	<script src="https://cdn.auth0.com/js/lock-8.2.min.js"></script>
+	<script type="text/javascript">
+		var lock = new Auth0Lock('fRzyzjioCu3PZVzqRCK539kLt34npNxo',
+				'avillachlab.auth0.com');
+
+		function signin() {
+			lock.show({
+				callbackURL : 'http://localhost:8080/IRCT-CL/callback',
+				responseType : 'code',
+				authParams : {
+					scope : 'openid profile'
+				}
+			});
+		}
+	</script>
+	SUCCESS!
+	<!-- <button onclick="window.signin();">Login</button> -->
+
+</body>
+</html>
+
+
+
