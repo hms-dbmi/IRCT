@@ -29,3 +29,5 @@
 .settings/org.eclipse.wst.validation.prefs
 
 .settings/org.jboss.ide.eclipse.as.core.prefs
+
+.metadata/src/main/webapp/WEB-INF/faces-config.pageflow
