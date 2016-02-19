@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 	<artifactId>IRCT-RI</artifactId>
-	<version>0.3-DEVELOPMENT</version>
+	<version>0.3</version>
 	<name>INTER-RESOURCE COMMUNICATION TOOL : Resource Interface</name>
 	<description></description>
 	<dependencies>
@@ -30,13 +30,13 @@
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.i2b2</groupId>
 			<artifactId>i2b2-Java-API</artifactId>
-			<version>0.3-DEVELOPMENT</version>
+			<version>0.3</version>
 		</dependency>
 		<!-- IRCT API -->
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-API</artifactId>
-			<version>0.3-DEVELOPMENT</version>
+			<version>0.3</version>
 		</dependency>
 	</dependencies>
 	<build>
