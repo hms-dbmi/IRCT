@@ -30,9 +30,10 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateTypeValue</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.ProcessType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.ProcessTypeParameter</class>
-      
-      
-      
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.Token</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.User</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession</class>
       <properties>
          <!-- Properties for Hibernate -->
          <property name="hibernate.hbm2ddl.auto" value="update" />
