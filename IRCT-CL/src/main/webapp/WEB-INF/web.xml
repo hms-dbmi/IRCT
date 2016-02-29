@@ -9,7 +9,7 @@
 
 
 
-	<servlet>
+	<!-- <servlet>
 		<servlet-name>RedirectCallback</servlet-name>
 		<servlet-class>com.auth0.Auth0ServletCallback</servlet-class>
 		<init-param>
@@ -36,7 +36,7 @@
 		<url-pattern>/login</url-pattern>
 	</servlet-mapping>
 
-	<!-- Filters -->
+	Filters
 	<filter>
 		<filter-name>AuthFilter</filter-name>
 		<filter-class>com.auth0.Auth0Filter</filter-class>
@@ -48,21 +48,27 @@
 	<filter-mapping>
 		<filter-name>AuthFilter</filter-name>
 		<url-pattern>/rest/*</url-pattern>
-	</filter-mapping>
+	</filter-mapping> -->
 
 	<!-- Auth0 Configuration -->
+	
 	<context-param>
-		<param-name>auth0.client_id</param-name>
+		<param-name>redirect_on_success</param-name>
+		<param-value>/IRCT-UI/token.html</param-value>
+	</context-param>
+	
+	<context-param>
+		<param-name>client_id</param-name>
 		<param-value>fRzyzjioCu3PZVzqRCK539kLt34npNxo</param-value>
 	</context-param>
 
 	<context-param>
-		<param-name>auth0.client_secret</param-name>
+		<param-name>client_secret</param-name>
 		<param-value>9Y8BI9Lndy8tfJ1MgOHSEi5zR_2Cd95y5edg0JnKJPstxciSUnWDGRB31-JaL1fc</param-value>
 	</context-param>
 
 	<context-param>
-		<param-name>auth0.domain</param-name>
+		<param-name>domain</param-name>
 		<param-value>avillachlab.auth0.com</param-value>
 	</context-param>
 </web-app>
