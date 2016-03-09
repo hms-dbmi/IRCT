@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.IOException;
@@ -9,10 +12,10 @@ import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
 import javax.inject.Inject;
 import javax.json.Json;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -31,6 +34,7 @@ import com.auth0.NonceGenerator;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 
@@ -55,6 +59,9 @@ public class SecurityService implements Serializable {
 
 	@Inject
 	private ServletContext context;
+
+	@Inject
+	private HttpSession session;
 
 	private final NonceGenerator nonceGenerator = new NonceGenerator();
 	private String state;
@@ -102,14 +109,17 @@ public class SecurityService implements Serializable {
 
 		return build.build();
 	}
-	
+
 	/**
 	 * Receives the callback from the authentication provider and validates it
 	 * 
-	 * @param code Identity code
-	 * @param state State code
-	 * @param error Error message
-	 * @return A redirect, or error message 
+	 * @param code
+	 *            Identity code
+	 * @param state
+	 *            State code
+	 * @param error
+	 *            Error message
+	 * @return A redirect, or error message
 	 */
 	@GET
 	@Path("/callback")
@@ -120,7 +130,7 @@ public class SecurityService implements Serializable {
 
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		URI redirect = null;
-		
+
 		// An Error occurred or is not valid
 		if (error != null || state == null || !state.equals(this.state)
 				|| code == null) {
@@ -139,11 +149,12 @@ public class SecurityService implements Serializable {
 			this.user = fetchUser(((JWT) token).getAccess());
 
 			// Associate the session with that user
-			//TODO: IMPLEMENT
-			
+			session.setAttribute("user", this.user);
+			session.setAttribute("token", this.token);
+
 			// If everything is successful
-			redirect = this.uriInfo.getAbsolutePath()
-					.resolve(this.redirectOnSuccess);
+			redirect = this.uriInfo.getAbsolutePath().resolve(
+					this.redirectOnSuccess);
 
 		} catch (JSONException e) {
 			build.add("status", "Internal Error");
@@ -170,11 +181,8 @@ public class SecurityService implements Serializable {
 
 		json.put("client_id", this.clientId);
 		json.put("client_secret", this.clientSecret);
-		
-		//TODO: CHANGE THIS TO BE A GENERATED URL
-		System.out.println("~" + uriInfo.getRequestUri().toString());
-		json.put("redirect_uri",
-				"http://localhost:8080/IRCT-CL/rest/securityService/callback");
+
+		json.put("redirect_uri", uriInfo.getAbsolutePath().toString());
 		json.put("grant_type", "authorization_code");
 		json.put("code", authorizationCode);
 
@@ -192,7 +200,9 @@ public class SecurityService implements Serializable {
 		JSONObject userInfo = resty.json(
 				this.userInfoUri + "?access_token=" + accessToken).toObject();
 
-		return new User((String) userInfo.get("email"));
+		String userEmail = userInfo.getString("email");
+
+		return sc.getUser(userEmail);
 	}
 
 	/**
@@ -205,7 +215,10 @@ public class SecurityService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createKey() {
 		JsonObjectBuilder build = Json.createObjectBuilder();
-
+		if((this.user == null) && (session.getAttribute("user") != null)) {
+			this.user = (User) session.getAttribute("user");
+			this.token = (Token) session.getAttribute("token");
+		}
 		String key = sc.createKey(this.user, this.token);
 		// IF USER IS LOGGED IN
 		if (key != null) {
@@ -223,21 +236,35 @@ public class SecurityService implements Serializable {
 	/**
 	 * Starts a session if presented with a valid key
 	 * 
-	 * @param key A session key 
+	 * @param key
+	 *            A session key
 	 * @return A status message stating if a new session has started
 	 */
 	@GET
 	@Path("/startSession")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startSession(@QueryParam(value = "key") String key) {
-		JsonArrayBuilder build = Json.createArrayBuilder();
+		JsonObjectBuilder build = Json.createObjectBuilder();
 
-		//Validate Token
-		
-		//Associate the session with that user
-		
-		// TODO: BUILD OUT
+		// Validate the key
+		SecureSession ss = sc.validateKey(key);
+		if (ss == null) {
+			build.add("status", "failed");
+			build.add("message", "Unable to start session");
+
+			return Response.status(Response.Status.FORBIDDEN)
+					.entity(build.build()).build();
+		}
+
+		this.user = ss.getUser();
+		this.token = ss.getToken();
+
+		// Associate the session with that user
+		session.setAttribute("user", this.user);
+		session.setAttribute("token", this.token);
+		build.add("status", "success");
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
+
 	}
 
 	/**
@@ -249,9 +276,12 @@ public class SecurityService implements Serializable {
 	@Path("/endSession")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response endSession() {
-		JsonArrayBuilder build = Json.createArrayBuilder();
-
-		// TODO: BUILD OUT
+		JsonObjectBuilder build = Json.createObjectBuilder();
+		this.user = null;
+		this.token = null;
+		session.removeAttribute("user");
+		session.removeAttribute("token");
+		build.add("status", "success");
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 }

@@ -7,51 +7,7 @@
 		<session-timeout>120</session-timeout>
 	</session-config>
 
-
-
-	<!-- <servlet>
-		<servlet-name>RedirectCallback</servlet-name>
-		<servlet-class>com.auth0.Auth0ServletCallback</servlet-class>
-		<init-param>
-			<param-name>auth0.redirect_on_success</param-name>
-			<param-value>/success.html</param-value>
-		</init-param>
-		<init-param>
-			<param-name>auth0.redirect_on_error</param-name>
-			<param-value>/login</param-value>
-		</init-param>
-	</servlet>
-
-	<servlet>
-		<servlet-name>Login</servlet-name>
-		<servlet-class>edu.harvard.hms.dbmi.bd2k.irct.cl.util.LoginServlet</servlet-class>
-	</servlet>
-
-	<servlet-mapping>
-		<servlet-name>RedirectCallback</servlet-name>
-		<url-pattern>/callback</url-pattern>
-	</servlet-mapping>
-	<servlet-mapping>
-		<servlet-name>Login</servlet-name>
-		<url-pattern>/login</url-pattern>
-	</servlet-mapping>
-
-	Filters
-	<filter>
-		<filter-name>AuthFilter</filter-name>
-		<filter-class>com.auth0.Auth0Filter</filter-class>
-		<init-param>
-			<param-name>auth0.redirect_on_authentication_error</param-name>
-			<param-value>/login</param-value>
-		</init-param>
-	</filter>
-	<filter-mapping>
-		<filter-name>AuthFilter</filter-name>
-		<url-pattern>/rest/*</url-pattern>
-	</filter-mapping> -->
-
 	<!-- Auth0 Configuration -->
-	
 	<context-param>
 		<param-name>redirect_on_success</param-name>
 		<param-value>/IRCT-UI/token.html</param-value>
