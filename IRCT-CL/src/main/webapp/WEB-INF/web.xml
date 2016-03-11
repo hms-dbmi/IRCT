@@ -13,18 +13,5 @@
 		<param-value>/IRCT-UI/token.html</param-value>
 	</context-param>
 	
-	<context-param>
-		<param-name>client_id</param-name>
-		<param-value>fRzyzjioCu3PZVzqRCK539kLt34npNxo</param-value>
-	</context-param>
-
-	<context-param>
-		<param-name>client_secret</param-name>
-		<param-value>9Y8BI9Lndy8tfJ1MgOHSEi5zR_2Cd95y5edg0JnKJPstxciSUnWDGRB31-JaL1fc</param-value>
-	</context-param>
-
-	<context-param>
-		<param-name>domain</param-name>
-		<param-value>avillachlab.auth0.com</param-value>
-	</context-param>
+	
 </web-app>
