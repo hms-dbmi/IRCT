@@ -47,17 +47,18 @@ import org.apache.http.message.BasicNameValuePair;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.PrimitiveDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
 
 /**
@@ -87,13 +88,13 @@ public class I2B2TranSMARTVariantResourceImplementation extends
 	}
 
 	@Override
-	public List<Path> getPathRelationship(Path path,
-			OntologyRelationship relationship)
+	public List<Entity> getPathRelationship(Entity path,
+			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
 		try {
 			HttpClient client = login();
 			super.setClient(client);
-			List<Path> paths = super.getPathRelationship(path, relationship);
+			List<Entity> paths = super.getPathRelationship(path, relationship, session);
 			String self = path.getPui()
 					.replaceAll(super.getServerName() + "/", "")
 					.replace('/', '\\');
@@ -113,7 +114,7 @@ public class I2B2TranSMARTVariantResourceImplementation extends
 				JsonObject counts = jsonReader.readObject().getJsonObject(
 						"counts");
 
-				for (Path singlePath : paths) {
+				for (Entity singlePath : paths) {
 					String i2b2Path = singlePath.getPui()
 							.replaceAll(getServerName() + "/", "")
 							.replace('/', '\\').substring(2);

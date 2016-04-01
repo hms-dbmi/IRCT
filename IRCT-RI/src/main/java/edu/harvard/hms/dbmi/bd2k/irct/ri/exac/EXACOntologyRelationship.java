@@ -21,5 +21,9 @@ public enum EXACOntologyRelationship implements OntologyRelationship {
 		public OntologyRelationship getInverse() {
 			return PARENT;
 		}
+	};
+	
+	public String getName() {
+		return this.name();
 	}
 }

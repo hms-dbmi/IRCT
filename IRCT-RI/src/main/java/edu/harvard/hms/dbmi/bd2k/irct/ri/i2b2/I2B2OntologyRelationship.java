@@ -37,5 +37,9 @@ public enum I2B2OntologyRelationship implements OntologyRelationship {
 			return TERM;
 		}
 	};
+	
+	public String getName() {
+		return this.name();
+	}
 
 }

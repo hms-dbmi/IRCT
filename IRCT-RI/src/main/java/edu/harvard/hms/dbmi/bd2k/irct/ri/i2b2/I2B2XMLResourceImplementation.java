@@ -5,66 +5,46 @@ package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.json.Json;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.xml.bind.JAXBException;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
 
+import org.apache.http.Header;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.LogicalOperator;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PathResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.QueryResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.i2b2.api.I2B2Factory;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
-import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientSet;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateTimeType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainOperatorType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainValueType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InclusiveType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptsType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifierType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.XmlValueType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
+import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
+import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 
 /**
- * An implementation of a resource that communicates with the i2b2 servers via
+ * A resource implementation of a resource that communicates with the i2b2 servers via
  * XML
  * 
  * 
@@ -74,339 +54,312 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 public class I2B2XMLResourceImplementation implements
 		QueryResourceImplementationInterface,
 		PathResourceImplementationInterface {
-	private ONTCell ontCell;
-	private PMCell pmCell;
-	private CRCCell crcCell;
-	private HttpClient client;
-	private String serverName;
+	private String resourceName;
+	private String resourceURL;
+	private String domain;
+	private I2B2Factory i2b2Factory;
 
-	public void setup(Map<String, String> parameters) {
-
-		try {
-			String userName = parameters.get("i2b2username");
-			String domain = parameters.get("i2b2domain");
-			String password = parameters.get("i2b2password");
-			String projectId = parameters.get("i2b2projectID");
-			String ontConnectionURL = parameters.get("ONTConnectionURL");
-			String crcConnectionURL = parameters.get("CRCConnectionURL");
-			String pmConnectionURL = parameters.get("PMConnectionURL");
-
-			// Initiate and setup Ontology Cell
-			ontCell = new ONTCell();
-			ontCell.setup(ontConnectionURL, domain, userName, password,
-					projectId);
-
-			// Initiate and setup PM Cell
-			pmCell = new PMCell();
-			pmCell.setup(pmConnectionURL, domain, userName, password, projectId);
-
-			// Initiate and setup the CRC Cell
-			crcCell = new CRCCell();
-			crcCell.setup(crcConnectionURL, domain, userName, password,
-					projectId);
-
-			// Create the HTTPClient
-			setClient(HttpClients.createDefault());
-
-			setServerName(parameters.get("serverName"));
-
-			// Setup predicates
-
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	@Override
+	public void setup(Map<String, String> parameters)
+			throws ResourceInterfaceException {
+		String[] strArray = { "resourceName", "resourceURL", "domain" };
+		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
+			throw new ResourceInterfaceException("Missing parameters");
 		}
+		this.resourceName = parameters.get("resourceName");
+		this.resourceURL = parameters.get("resourceURL");
+		this.domain = parameters.get("domain");
+
+		i2b2Factory = new I2B2Factory();
+		i2b2Factory.setup();
 	}
 
+	@Override
 	public String getType() {
 		return "i2b2XML";
 	}
 
-	public OntologyType getOntologyType() {
-		return OntologyType.TREE;
-	}
-
-	public List<Path> getPathRoot() {
-		Path root = new Path();
-		root.setName(getServerName());
-		root.setPui(getServerName());
-		List<Path> roots = new ArrayList<Path>();
-		roots.add(root);
-		return roots;
-	}
-
-	public List<Path> getPathRelationship(Path path,
-			OntologyRelationship relationship)
+	@Override
+	public List<Entity> getPathRelationship(Entity path,
+			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
+		List<Entity> entities = new ArrayList<Entity>();
 
-		if (relationship == I2B2OntologyRelationship.CHILD) {
-			try {
-				ConceptsType conceptsType = null;
+		// Build
+		HttpClient client = createClient(session.getToken().toString());
+		try {
+			if (relationship == I2B2OntologyRelationship.CHILD) {
+				String[] pathComponents = path.getPui().split("/");
+				String basePath = path.getPui();
+				// If first then get projects
+				if (pathComponents.length == 2) {
+					PMCell pmCell = new PMCell();
 
-				if (path.getPui().equals(getServerName())) {
-
-					conceptsType = ontCell.getCategories(getClient(), false,
-							false, true, "core");
+					pmCell.setup(this.resourceURL, this.domain, "", "", true);
+					ConfigureType configureType = pmCell.getUserConfiguration(
+							client, null, new String[] { "undefined" });
+					for (ProjectType pt : configureType.getUser().getProject()) {
+						Entity entity = new Entity();
+						entity.setPui(path.getPui() + pt.getPath());
+						entity.setDisplayName(pt.getName());
+						entity.setName(pt.getId());
+						entity.setDescription(pt.getDescription());
+						entities.add(entity);
+					}
 
 				} else {
-					String self = path.getPui()
-							.replaceAll(getServerName() + "/", "")
-							.replace('/', '\\');
-					conceptsType = ontCell.getChildren(getClient(), self,
-							false, false, false, -1, "core");
+					ONTCell ontCell = new ONTCell();
+					ontCell.setup(this.resourceURL, this.domain, "", "",
+							pathComponents[2], true);
 
-				}
-				List<Path> paths = convertConceptsTypeToPath(conceptsType);
+					ConceptsType conceptsType = null;
 
-				return paths;
-			} catch (JAXBException | IOException | I2B2InterfaceException e) {
-				throw new ResourceInterfaceException(
-						"Error traversing relationship", e);
+					if (pathComponents.length == 3) {
+						// If beyond second then get ontology categories
+						conceptsType = ontCell.getCategories(client, false,
+								false, true, "core");
+					} else {
+						// If second then get categories
+						String myPath = "\\";
+						for (String pathComponent : Arrays.copyOfRange(
+								pathComponents, 3, pathComponents.length)) {
+							myPath += "\\" + pathComponent;
+						}
+						basePath = pathComponents[0] + "/" + pathComponents[1]
+								+ "/" + pathComponents[2];
 
-			}
-		} else if (relationship == I2B2OntologyRelationship.MODIFIER) {
-			try {
-				ModifiersType modifiersType = null;
-				if (!path.getPui().equals(getServerName())) {
-					String self = path.getPui()
-							.replaceAll(getServerName() + "/", "")
-							.replace('/', '\\');
-					if (self.lastIndexOf('\\') != self.length() - 1) {
-						self += '\\';
+						conceptsType = ontCell.getChildren(client, myPath,
+								false, false, false, -1, "core");
+
 					}
-					modifiersType = ontCell.getModifiers(client, false, false,
-							null, -1, self, false, null);
+					// Convert ConceptsType to Entities
+					entities = convertConceptsTypeToEntities(basePath,
+							conceptsType);
 				}
-				List<Path> paths = convertModifiersTypeToPath(modifiersType, "");
-				return paths;
-			} catch (JAXBException | IOException | I2B2InterfaceException e) {
-				throw new ResourceInterfaceException(
-						"Error obtaining modifiers", e);
 
+			} else if (relationship == I2B2OntologyRelationship.MODIFIER) {
+
+			} else if (relationship == I2B2OntologyRelationship.TERM) {
+
+			} else {
+				throw new ResourceInterfaceException(relationship.toString()
+						+ " not supported by this resource");
 			}
-		} else if (relationship == I2B2OntologyRelationship.TERM) {
-			try {
-				ConceptsType conceptsType = null;
-				if (!path.getPui().equals(getServerName())) {
-					String self = path.getPui()
-							.replaceAll(getServerName() + "/", "")
-							.replace('/', '\\');
-					if (self.lastIndexOf('\\') != self.length() - 1) {
-						self += '\\';
-					}
-					conceptsType = ontCell.getTermInfo(client, true, self,
-							true, -1, true, "core");
-				}
-				List<Path> paths = convertConceptsTypeToPath(conceptsType);
-				return paths;
-
-			} catch (JAXBException | IOException | I2B2InterfaceException e) {
-				throw new ResourceInterfaceException("Error obtaining type", e);
-			}
-
-		} else {
-			throw new ResourceInterfaceException(relationship.toString()
-					+ " not supported by this resource");
+		} catch (JAXBException | UnsupportedOperationException
+				| I2B2InterfaceException | IOException e) {
+			e.printStackTrace();
 		}
+
+		return entities;
 	}
 
-	public Path getPathFromString(String path) {
-		Path pathObj = new Path();
-		pathObj.setPui(path);
-		return pathObj;
-	}
-
-	public ActionState runQuery(Query qep) throws ResourceInterfaceException {
-		int panelCount = 1;
-		ArrayList<PanelType> panels = new ArrayList<PanelType>();
-		
-		
-		PanelType currentPanel = createPanel(panelCount);
-		for (ClauseAbstract clause : qep.getClauses().values()) {
-			if (clause instanceof WhereClause) {
-				WhereClause whereClause = (WhereClause) clause;
-				ItemType itemType = createItemTypeFromWhereClause((WhereClause) clause);
-
-				//FIRST
-				if(panels.isEmpty() && currentPanel.getItem().isEmpty()) {
-					currentPanel.getItem().add(itemType);
-				} else if(whereClause.getLogicalOperator() == LogicalOperator.AND) {
-					panels.add(currentPanel);
-					currentPanel = createPanel(panelCount++);
-					currentPanel.getItem().add(itemType);
-				} else if (whereClause.getLogicalOperator() == LogicalOperator.OR) {
-					currentPanel.getItem().add(itemType);
-				} else if (whereClause.getLogicalOperator() == LogicalOperator.NOT) {
-					panels.add(currentPanel);
-					currentPanel = createPanel(panelCount++);
-					currentPanel.getItem().add(itemType);
-					currentPanel.setInvert(1);
-					panels.add(currentPanel);
-					currentPanel = createPanel(panelCount++);
-				}				
+	@Override
+	public List<Entity> searchPaths(Entity path, String searchTerm, SecureSession session) throws ResourceInterfaceException {
+		String strategy = "exact";
+		if(searchTerm.charAt(0) == '%') {
+			if(searchTerm.charAt(searchTerm.length() - 1) == '%') {
+				searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
+				strategy = "contains";
+			} else {
+				searchTerm = searchTerm.substring(1);
+				strategy = "right";
 			}
+		} else if(searchTerm.charAt(searchTerm.length() - 1) == '%') {
+			searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
+			strategy = "left";
 		}
-		if (currentPanel.getItem().size() != 0) {
-			panels.add(currentPanel);
-		}
-
-		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
-		ResultOutputOptionType root = new ResultOutputOptionType();
-		root.setPriorityIndex(10);
-		root.setName("PATIENTSET");
-		roolt.getResultOutput().add(root);
-
-		String queryId = null;
+		
+		List<Entity> entities = new ArrayList<Entity>();
+		HttpClient client = createClient(session.getToken().toString());
 		try {
-			MasterInstanceResultResponseType mirrt = crcCell
-					.runQueryInstanceFromQueryDefinition(client, null, null,
-							"IRCT", null, "ANY", 0, roolt,
-							panels.toArray(new PanelType[panels.size()]));
 			
-			queryId = mirrt.getQueryResultInstance().get(0).getResultInstanceId();
-		} catch (JAXBException | IOException | I2B2InterfaceException e) {
-			throw new ResourceInterfaceException(
-					"Error traversing relationship", e);
+			if ((path == null) || (path.getPui().split("/").length <= 2)) {
+				PMCell pmCell = new PMCell();
+
+				pmCell.setup(this.resourceURL, this.domain, "", "", true);
+				ConfigureType configureType = pmCell.getUserConfiguration(
+						client, null, new String[] { "undefined" });
+				for (ProjectType pt : configureType.getUser().getProject()) {
+					for(ConceptType category : getCategories(client, pt.getId()).getConcept()) {
+						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
+						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runNameSearch(client, pt.getId(), categoryName, strategy, searchTerm)));
+					}
+				}
+			} else {
+				String[] pathComponents = path.getPui().split("/");
+				if (pathComponents.length == 3) {
+					// Get All Categories
+					for(ConceptType category : getCategories(client, pathComponents[2]).getConcept()) {
+						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
+						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runNameSearch(client, pathComponents[2], categoryName, strategy, searchTerm)));
+					}
+				} else {
+					// Run request
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runNameSearch(client, pathComponents[2], pathComponents[3], strategy, searchTerm)));
+				}
+			}
+		} catch (JAXBException | UnsupportedOperationException
+				| I2B2InterfaceException | IOException e) {
+			e.printStackTrace();
 		}
-		
-		ActionState as = new ActionState();
-		as.setResourceId(queryId);
-		return as;
+		return entities;
 	}
-
-	private PanelType createPanel(int panelItem) {
-		PanelType panel = new PanelType();
-		panel.setPanelNumber(panelItem);
-		panel.setInvert(0);
-		panel.setPanelTiming("ANY");
-		
-		PanelType.TotalItemOccurrences tio = new PanelType.TotalItemOccurrences();
-		tio.setValue(1);
-		panel.setTotalItemOccurrences(tio);
-
-		return panel;
-	}
-
-	public ResultSet getResults(ActionState actionState) throws ResourceInterfaceException {
+	
+//  <ns4:get_code_info blob="true" type="core" max='200'  synonyms="true" hiddens="false">
+//     <match_str strategy="exact">ICD10:P84</match_str>
+//  </ns4:get_code_info>
+	@Override
+	public List<Entity> searchOntology(Entity path, String ontologyType,
+			String ontologyTerm, SecureSession session)
+			throws ResourceInterfaceException {
+		List<Entity> entities = new ArrayList<Entity>();
+		HttpClient client = createClient(session.getToken().toString());
 		try {
-			String resultInstanceId = actionState.getResourceId();
-			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
-					resultInstanceId, 0, 100000, false, false, false,
-					OutputOptionSelectType.USING_INPUT_LIST);
-			actionState.setComplete(true);
-			return convertPatientSetToResultSet(pdrt.getPatientData()
-					.getPatientSet());
+			
+			if ((path == null) || (path.getPui().split("/").length <= 2)) {
+				PMCell pmCell = new PMCell();
 
-		} catch (JAXBException | IOException | I2B2InterfaceException e) {
-			throw new ResourceInterfaceException("Error getting results", e);
+				pmCell.setup(this.resourceURL, this.domain, "", "", true);
+				ConfigureType configureType = pmCell.getUserConfiguration(
+						client, null, new String[] { "undefined" });
+				for (ProjectType pt : configureType.getUser().getProject()) {
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runCategorySearch(client, pt.getId(), null, ontologyType, ontologyTerm)));
+				}
+			} else {
+				String[] pathComponents = path.getPui().split("/");
+				if (pathComponents.length == 3) {
+					// Get All Categories
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runCategorySearch(client, pathComponents[2], null, ontologyType, ontologyTerm)));
+				} else {
+					// Run request
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runCategorySearch(client, pathComponents[2], pathComponents[3], ontologyType, ontologyTerm)));
+				}
+			}
+		} catch (JAXBException | UnsupportedOperationException
+				| I2B2InterfaceException | IOException e) {
+			e.printStackTrace();
 		}
+		return entities;
+	}
+	
+	private ConceptsType runCategorySearch(HttpClient client, String projectId, String category, String ontologyType, String ontologyTerm) throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
+		ONTCell ontCell = new ONTCell();
+		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
+		return ontCell.getCodeInfo(client, true, category, false, "exact", ontologyType + ":" + ontologyTerm, -1, null, true, "core");
+	}
+	
+	
+	@Override
+	public ActionState runQuery(Query qep) throws ResourceInterfaceException {
+		return null;
 	}
 
+	@Override
+	public ResultSet getResults(ActionState actionState)
+			throws ResourceInterfaceException {
+		return null;
+	}
+
+	@Override
 	public ResourceState getState() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	@Override
 	public JsonObject toJson() {
 		return toJson(1);
 	}
 
+	@Override
 	public JsonObject toJson(int depth) {
-		depth--;
 		JsonObjectBuilder returnJSON = Json.createObjectBuilder();
-		returnJSON.add("type", this.getType());
-		
-		JsonArrayBuilder returnEntityArray = Json.createArrayBuilder();
-		for(Path rePath : getReturnEntity()) {
-			returnEntityArray.add(rePath.toJson(depth));
-		}
-		returnJSON.add("returnEntity", returnEntityArray.build());
-		returnJSON.add("editableReturnEntity", this.editableReturnEntity());
-		
+
 		return returnJSON.build();
 	}
 
-	public List<Path> getReturnEntity() {
-		List<Path> returnEntity = new ArrayList<Path>();
-//		 Patient Id	
-		Path patientId = new Path();
+	@Override
+	public List<Entity> getReturnEntity() {
+		List<Entity> returnEntity = new ArrayList<Entity>();
+		// Patient Id
+		Entity patientId = new Entity();
 		patientId.setName("Patient Id");
 		patientId.setPui("Patient Id");
 		patientId.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(patientId);
-		
-//		 vital_status_cd
-		Path vitalStatusCd = new Path();
+
+		// vital_status_cd
+		Entity vitalStatusCd = new Entity();
 		vitalStatusCd.setName("Vital Status");
 		vitalStatusCd.setPui("vital_status_cd");
 		vitalStatusCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(vitalStatusCd);
-		
-//		 language_cd
-		Path languageCd = new Path();
+
+		// language_cd
+		Entity languageCd = new Entity();
 		languageCd.setName("Language");
 		languageCd.setPui("language_cd");
 		languageCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(languageCd);
-		
-//		 birth_date
-		Path birthDate = new Path();
+
+		// birth_date
+		Entity birthDate = new Entity();
 		birthDate.setName("Birth Date");
 		birthDate.setPui("birth_date");
 		birthDate.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(birthDate);
-		
-//		 race_cd
-		Path raceCd = new Path();
+
+		// race_cd
+		Entity raceCd = new Entity();
 		raceCd.setName("Race");
 		raceCd.setPui("race_cd");
 		raceCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(raceCd);
-		
-//		 religion_cd
-		Path religionCd = new Path();
+
+		// religion_cd
+		Entity religionCd = new Entity();
 		religionCd.setName("Religion");
 		religionCd.setPui("Religion");
 		religionCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(religionCd);
-		
-//		 income_cd
-		Path incomeCd = new Path();
+
+		// income_cd
+		Entity incomeCd = new Entity();
 		incomeCd.setName("Income");
 		incomeCd.setPui("income_cd");
 		incomeCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(incomeCd);
-		
-//		 statecityzip_path
-		Path stateCityCd = new Path();
+
+		// statecityzip_path
+		Entity stateCityCd = new Entity();
 		stateCityCd.setName("State, City Zip");
 		stateCityCd.setPui("statecityzip_path");
 		stateCityCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(stateCityCd);
-		
-//		 zip_cd
-		Path zipCd = new Path();
+
+		// zip_cd
+		Entity zipCd = new Entity();
 		zipCd.setName("Zip");
 		zipCd.setPui("zip_cd");
 		zipCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(zipCd);
-		
-//		 marital_status_cd
-		Path maritalCd = new Path();
+
+		// marital_status_cd
+		Entity maritalCd = new Entity();
 		maritalCd.setName("marital_status_cd");
 		maritalCd.setPui("marital_status_cd");
 		maritalCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(maritalCd);
-		
-//		 age_in_years_num
-		Path ageCd = new Path();
+
+		// age_in_years_num
+		Entity ageCd = new Entity();
 		ageCd.setName("Age");
 		ageCd.setPui("age_in_years_num");
 		ageCd.setDataType(PrimitiveDataType.STRING);
 		returnEntity.add(ageCd);
-		
-//		 sex_cd
-		Path sexCd = new Path();
+
+		// sex_cd
+		Entity sexCd = new Entity();
 		sexCd.setName("Sex");
 		sexCd.setPui("sex_cd");
 		sexCd.setDataType(PrimitiveDataType.STRING);
@@ -414,184 +367,36 @@ public class I2B2XMLResourceImplementation implements
 		return returnEntity;
 	}
 
+	@Override
+	public Boolean editableReturnEntity() {
+		return false;
+	}
+
 	// -------------------------------------------------------------------------
 	// Utility Methods
 	// -------------------------------------------------------------------------
 
-	private ResultSet convertPatientSetToResultSet(PatientSet patientSet) {
-		FileResultSet mrs = new FileResultSet();
-
-		try {
-			if (patientSet.getPatient().size() == 0) {
-				return mrs;
-			}
-			PatientType columnPT = patientSet.getPatient().get(0);
-			Column idColumn = new Column();
-			idColumn.setName("Patient Id");
-			idColumn.setDataType(PrimitiveDataType.STRING);
-			mrs.appendColumn(idColumn);
-			for (ParamType paramType : columnPT.getParam()) {
-				Column column = new Column();
-				column.setName(paramType.getColumn());
-				column.setDataType(PrimitiveDataType.STRING);
-				mrs.appendColumn(column);
-			}
-
-			for (PatientType patientType : patientSet.getPatient()) {
-				mrs.appendRow();
-				mrs.updateString("Patient Id", patientType.getPatientId()
-						.getValue());
-				for (ParamType paramType : patientType.getParam()) {
-					mrs.updateString(paramType.getColumn(),
-							paramType.getValue());
-				}
-			}
-		} catch (ResultSetException | PersistableException e) {
-			e.printStackTrace();
-		}
-		return mrs;
-	}
-
-	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
-		ItemType item = new ItemType();
-		item.setItemKey(whereClause.getField().getPui()
-				.replaceAll(getServerName() + "/", "").replace('/', '\\'));
-		item.setItemName(item.getItemKey());
-		item.setItemIsSynonym(false);
-		if (whereClause.getPredicateType() != null) {
-			if (whereClause.getPredicateType().getName()
-					.equals("CONSTRAIN_MODIFIER")) {
-				item.setConstrainByModifier(createConstrainByModifier(whereClause));
-			} else if (whereClause.getPredicateType().getName()
-					.equals("CONSTRAIN_VALUE")) {
-				item.getConstrainByValue().add(
-						createConstrainByValue(whereClause));
-			} else if (whereClause.getPredicateType().getName()
-					.equals("CONSTRAIN_DATE")) {
-				item.getConstrainByDate().add(
-						createConstrainByDate(whereClause));
-			}
-		}
-		return item;
-	}
-
-	private ItemType.ConstrainByValue createConstrainByValue(
-			WhereClause whereClause) {
-		ItemType.ConstrainByValue cbv = new ItemType.ConstrainByValue();
-		// value_operator
-		cbv.setValueOperator(ConstrainOperatorType.fromValue(whereClause
-				.getValues().get("value_operator")));
-		// value_constraint
-		cbv.setValueConstraint(whereClause.getValues().get("value_constraint"));
-		// value_unit_of_measure
-		cbv.setValueUnitOfMeasure(whereClause.getValues().get(
-				"value_unit_of_measure"));
-		// value_type
-		cbv.setValueType(ConstrainValueType.fromValue(whereClause.getValues()
-				.get("value_type")));
-
-		return cbv;
-	}
-
-	private ItemType.ConstrainByModifier createConstrainByModifier(
-			WhereClause whereClause) {
-		ItemType.ConstrainByModifier cbm = new ItemType.ConstrainByModifier();
-		cbm.setModifierKey(whereClause.getValues().get("modifier_key")
-				.replaceAll(getServerName() + "/", "").replace('/', '\\'));
-		return cbm;
-	}
-
-	private ItemType.ConstrainByDate createConstrainByDate(
-			WhereClause whereClause) {
-		ItemType.ConstrainByDate cbd = new ItemType.ConstrainByDate();
-		try {
-			ConstrainDateType from = new ConstrainDateType();
-			from.setInclusive(InclusiveType.fromValue(whereClause.getValues()
-					.get("value_from_inclusive")));
-			from.setTime(ConstrainDateTimeType.fromValue(whereClause
-					.getValues().get("value_from_time")));
-
-			from.setValue(DatatypeFactory.newInstance()
-					.newXMLGregorianCalendar(
-							whereClause.getValues().get("value_to_date")));
-
-			cbd.setDateFrom(from);
-
-			ConstrainDateType to = new ConstrainDateType();
-			to.setInclusive(InclusiveType.fromValue(whereClause.getValues()
-					.get("value_to_inclusive")));
-			to.setTime(ConstrainDateTimeType.fromValue(whereClause.getValues()
-					.get("value_to_time")));
-			to.setValue(DatatypeFactory.newInstance().newXMLGregorianCalendar(
-					whereClause.getValues().get("value_to_date")));
-			cbd.setDateTo(to);
-		} catch (DatatypeConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return cbd;
-	}
-
-	private List<Path> convertModifiersTypeToPath(ModifiersType modifiersType,
-			String parent) {
-		List<Path> returns = new ArrayList<Path>();
-		if (modifiersType == null) {
-			return returns;
-		}
-		for (ModifierType modifier : modifiersType.getModifier()) {
-			Path childPath = new Path();
-			childPath.setName(modifier.getName());
-			childPath.setPui(getServerName() + "/"
-					+ modifier.getKey().replace('\\', '/'));
-			if (modifier.getColumndatatype().equals("T")) {
-				childPath.setDataType(PrimitiveDataType.STRING);
-			}
-
-			Map<String, String> attributes = new HashMap<String, String>();
-
-			attributes.put("appliedPath", modifier.getAppliedPath());
-			attributes.put("baseCode", modifier.getBasecode());
-			attributes.put("columnName", modifier.getColumnname());
-			attributes.put("comment", modifier.getComment());
-			attributes.put("dimCode", modifier.getDimcode());
-			// attributes.put("downloadDate", modifier.getDownloadDate());
-			attributes.put("factTableColumn", modifier.getFacttablecolumn());
-			attributes.put("fullName", modifier.getFullname());
-			// attributes.put("importDate", modifier.getImportDate());
-			attributes.put("level", Integer.toString(modifier.getLevel()));
-			// attributes.put("metadataXML", modifier.getMetadataxml());
-			attributes.put("operator", modifier.getOperator());
-			attributes.put("sourceSystemCd", modifier.getSourcesystemCd());
-			attributes.put("synonymCd", modifier.getSynonymCd());
-			attributes.put("tableName", modifier.getTablename());
-			attributes.put("toolTip", modifier.getTooltip());
-			if (modifier.getTotalnum() != null) {
-				attributes.put("totalNum",
-						Integer.toString(modifier.getTotalnum()));
-			}
-			// attributes.put("updateDate", modifier.getUpdateDate());
-			attributes.put("visualAttributes", modifier.getVisualattributes());
-			childPath.setAttributes(attributes);
-			returns.add(childPath);
-		}
-
-		return returns;
-	}
-
-	private List<Path> convertConceptsTypeToPath(ConceptsType conceptsType) {
-		List<Path> returns = new ArrayList<Path>();
+	private List<Entity> convertConceptsTypeToEntities(String basePath,
+			ConceptsType conceptsType) {
+		List<Entity> returns = new ArrayList<Entity>();
 		for (ConceptType concept : conceptsType.getConcept()) {
-			Path childPath = new Path();
-			childPath.setName(concept.getName());
-			childPath.setPui(getServerName() + "/"
-					+ concept.getKey().replace('\\', '/'));
+			Entity returnEntity = new Entity();
+			returnEntity.setName(concept.getName());
+			String appendPath = converti2b2Path(concept.getKey());
+			returnEntity.setPui(basePath + appendPath);
+
 			if (concept.getVisualattributes().startsWith("L")) {
-				childPath.setDataType(PrimitiveDataType.STRING);
+				returnEntity.setDataType(PrimitiveDataType.STRING);
 			}
+
+			returnEntity.setDisplayName(concept.getName());
+			;
+
 			Map<String, String> attributes = new HashMap<String, String>();
 			attributes.put("level", Integer.toString(concept.getLevel()));
 			attributes.put("key", concept.getKey());
 			attributes.put("name", concept.getName());
+
 			attributes.put("synonymCd", concept.getSynonymCd());
 			attributes.put("visualattributes", concept.getVisualattributes());
 			if (concept.getTotalnum() != null) {
@@ -654,66 +459,45 @@ public class I2B2XMLResourceImplementation implements
 			if (metadata != null) {
 				// TODO IMPLEMENT
 			}
-			childPath.setAttributes(attributes);
-			returns.add(childPath);
+			returnEntity.setAttributes(attributes);
+			returns.add(returnEntity);
 		}
 
 		return returns;
 	}
+	
+	private String converti2b2Path(String i2b2Path) {
+		return i2b2Path.replaceAll("\\\\\\\\", "/").replace('\\', '/');
+	}
+	
+	private ConceptsType runNameSearch(HttpClient client, String projectId, String category, String strategy, String searchTerm) throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
+		ONTCell ontCell = new ONTCell();
+		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
+		return ontCell.getNameInfo(client, true, category, false, strategy, searchTerm, -1, null, true, "core");
+	}
 
-	/**
-	 * Returns the HTTP Client used for connections
-	 * 
-	 * @return HTTP Client
-	 */
-	public HttpClient getClient() {
-		return client;
+
+	private ConceptsType getCategories(HttpClient client, String projectId) throws JAXBException, ClientProtocolException, IOException, I2B2InterfaceException {
+		ONTCell ontCell = new ONTCell();
+		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
+		
+		return ontCell.getCategories(client, false, false, true, "core");
 	}
 
 	/**
-	 * Sets the HTTP Client for the connection
+	 * CREATES A CLIENT
 	 * 
-	 * @param client HTTP Client
+	 * @param token
+	 * @return
 	 */
-	public void setClient(HttpClient client) {
-		this.client = client;
-	}
+	private HttpClient createClient(String token) {
+		HttpClientBuilder returns = HttpClientBuilder.create();
+		List<Header> defaultHeaders = new ArrayList<Header>();
+		defaultHeaders.add(new BasicHeader("Authorization", token));
+		defaultHeaders.add(new BasicHeader("Content-Type",
+				"application/x-www-form-urlencoded"));
+		returns.setDefaultHeaders(defaultHeaders);
 
-	@Override
-	public List<OntologyRelationship> relationships() {
-		List<OntologyRelationship> relationships = new ArrayList<OntologyRelationship>();
-		relationships.add(I2B2OntologyRelationship.CHILD);
-		relationships.add(I2B2OntologyRelationship.PARENT);
-		relationships.add(I2B2OntologyRelationship.SIBLING);
-		relationships.add(I2B2OntologyRelationship.MODIFIER);
-		return relationships;
-	}
-
-	@Override
-	public OntologyRelationship getRelationshipFromString(String relationship) {
-		return I2B2OntologyRelationship.valueOf(relationship);
-	}
-
-	/**
-	 * Returns a server name
-	 * 
-	 * @return Server name
-	 */
-	public String getServerName() {
-		return serverName;
-	}
-
-	/**
-	 * Sets a server name
-	 * 
-	 * @param serverName Server name
-	 */
-	public void setServerName(String serverName) {
-		this.serverName = serverName;
-	}
-
-	@Override
-	public Boolean editableReturnEntity() {
-		return false;
+		return returns.build();
 	}
 }

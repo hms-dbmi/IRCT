@@ -30,21 +30,21 @@ import org.apache.http.impl.client.LaxRedirectStrategy;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.PrimitiveDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PathResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.QueryResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 public class EXACResourceImplementation implements
 		QueryResourceImplementationInterface,
@@ -77,7 +77,7 @@ public class EXACResourceImplementation implements
 		returnJSON.add("type", this.getType());
 
 		JsonArrayBuilder returnEntityArray = Json.createArrayBuilder();
-		for (Path rePath : getReturnEntity()) {
+		for (Entity rePath : getReturnEntity()) {
 			returnEntityArray.add(rePath.toJson(depth));
 		}
 		returnJSON.add("returnEntity", returnEntityArray.build());
@@ -86,175 +86,132 @@ public class EXACResourceImplementation implements
 		return returnJSON.build();
 	}
 
-	@Override
-	public List<Path> getPathRoot() {
-		List<Path> roots = new ArrayList<Path>();
-
-		Path variant = new Path();
-		variant.setName("Variant");
-		variant.setPui("variant");
-		variant.setDataType(EXACDataType.VARIANT);
-		roots.add(variant);
-
-		Path gene = new Path();
-		gene.setName("Gene");
-		gene.setPui("gene");
-		gene.setDataType(EXACDataType.GENE);
-		roots.add(gene);
-
-		Path transcript = new Path();
-		transcript.setName("Transcript");
-		transcript.setPui("transcript");
-		transcript.setDataType(EXACDataType.TRANSCRIPT);
-		roots.add(transcript);
-
-		Path region = new Path();
-		region.setName("Region");
-		region.setPui("region");
-		region.setDataType(EXACDataType.REGION);
-		roots.add(region);
-		
-		return roots;
-	}
 
 	@Override
-	public List<OntologyRelationship> relationships() {
-		List<OntologyRelationship> relationships = new ArrayList<OntologyRelationship>();
-		relationships.add(EXACOntologyRelationship.CHILD);
-		relationships.add(EXACOntologyRelationship.PARENT);
-		return relationships;
-	}
-
-	@Override
-	public OntologyRelationship getRelationshipFromString(String relationship) {
-		return EXACOntologyRelationship.valueOf(relationship);
-	}
-
-	@Override
-	public List<Path> getPathRelationship(Path path,
-			OntologyRelationship relationship)
+	public List<Entity> getPathRelationship(Entity path,
+			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
-		List<Path> returns = new ArrayList<Path>();
+		List<Entity> returns = new ArrayList<Entity>();
 
 		if (path.getPui().equals("variant")) {
 			
 //			/rest/variant/variant/<variant_str>
-			Path variant = new Path();
+			Entity variant = new Entity();
 			variant.setName("Variant");
 			variant.setPui("variant/variant");
 			variant.setDataType(EXACDataType.VARIANT);
 			returns.add(variant);
 			
 //			/rest/variant/base_coverage/<variant_str>
-			Path baseCoverage = new Path();
+			Entity baseCoverage = new Entity();
 			baseCoverage.setName("Base Coverage");
 			baseCoverage.setPui("variant/base_coverage");
 			baseCoverage.setDataType(EXACDataType.VARIANT);
 			returns.add(baseCoverage);
 			
 //			/rest/variant/consequences/<variant_str>
-			Path consequences = new Path();
+			Entity consequences = new Entity();
 			consequences.setName("Consequences");
 			consequences.setPui("variant/consequences");
 			consequences.setDataType(EXACDataType.VARIANT);
 			returns.add(consequences);
 			
 //			/rest/variant/any_covered/<variant_str>
-			Path anyCovered = new Path();
+			Entity anyCovered = new Entity();
 			anyCovered.setName("Any Covered");
 			anyCovered.setPui("variant/any_covered");
 			anyCovered.setDataType(EXACDataType.VARIANT);
 			returns.add(anyCovered);
 			
 //			/rest/variant/ordered_csqs/<variant_str>
-			Path orderedCSQS = new Path();
+			Entity orderedCSQS = new Entity();
 			orderedCSQS.setName("Ordered CSQS");
 			orderedCSQS.setPui("variant/ordered_csqs");
 			orderedCSQS.setDataType(EXACDataType.VARIANT);
 			returns.add(orderedCSQS);
 			
 //			/rest/variant/metrics/<variant_str>
-			Path metrics = new Path();
+			Entity metrics = new Entity();
 			metrics.setName("Metrics");
 			metrics.setPui("variant/metrics");
 			metrics.setDataType(EXACDataType.VARIANT);
 			returns.add(metrics);
 			
 		} else if (path.getPui().equals("gene")) {
-			Path transcript = new Path();
+			Entity transcript = new Entity();
 			transcript.setName("Transcripts");
 			transcript.setPui("gene/transcript");
 			transcript.setDataType(EXACDataType.GENE);
 			returns.add(transcript);
 
-			Path geneVariants = new Path();
+			Entity geneVariants = new Entity();
 			geneVariants.setName("Variants in Gene");
 			geneVariants.setPui("gene/variants_in_gene");
 			geneVariants.setDataType(EXACDataType.GENE);
 			returns.add(geneVariants);
 
-			Path transcriptVariants = new Path();
+			Entity transcriptVariants = new Entity();
 			transcriptVariants.setName("Variants in Transcript");
 			transcriptVariants.setPui("gene/variants_in_transcript");
 			transcriptVariants.setDataType(EXACDataType.GENE);
 			returns.add(transcriptVariants);
 
-			Path transcriptGenes = new Path();
+			Entity transcriptGenes = new Entity();
 			transcriptGenes.setName("Transcripts in Gene");
 			transcriptGenes.setPui("gene/transcripts_in_gene");
 			transcriptGenes.setDataType(EXACDataType.GENE);
 			returns.add(transcriptGenes);
 
-			Path coverageStats = new Path();
+			Entity coverageStats = new Entity();
 			coverageStats.setName("Coverage Stats");
 			coverageStats.setPui("gene/coverage_stats");
 			coverageStats.setDataType(EXACDataType.GENE);
 			returns.add(coverageStats);
 		} else if (path.getPui().equals("transcript")) {
 //			/rest/transcript/transcript/<transcript_id>
-			Path transcript = new Path();
+			Entity transcript = new Entity();
 			transcript.setName("Transcript");
 			transcript.setPui("transcript/transcript");
 			transcript.setDataType(EXACDataType.TRANSCRIPT);
 			returns.add(transcript);
 			
 //			/rest/transcript/variants_in_transcript/<transcript_id>
-			Path variantsInTranscript = new Path();
+			Entity variantsInTranscript = new Entity();
 			variantsInTranscript.setName("Variants in Transcript");
 			variantsInTranscript.setPui("transcript/variants_in_transcript");
 			variantsInTranscript.setDataType(EXACDataType.TRANSCRIPT);
 			returns.add(variantsInTranscript);
 			
 //			/rest/transcript/coverage_stats/<transcript_id>
-			Path coverageStats = new Path();
+			Entity coverageStats = new Entity();
 			coverageStats.setName("Coverage Stats");
 			coverageStats.setPui("transcript/coverage_stats");
 			coverageStats.setDataType(EXACDataType.TRANSCRIPT);
 			returns.add(coverageStats);
 			
 //			/rest/transcript/gene/<transcript_id>
-			Path gene = new Path();
+			Entity gene = new Entity();
 			gene.setName("Gene");
 			gene.setPui("transcript/gene");
 			gene.setDataType(EXACDataType.VARIANT);
 			returns.add(gene);
 		} else if (path.getPui().equals("region")) {
 //			/rest/region/genes_in_region/<region_id>
-			Path genesInRegion = new Path();
+			Entity genesInRegion = new Entity();
 			genesInRegion.setName("Genes in region");
 			genesInRegion.setPui("region/genes_in_region");
 			genesInRegion.setDataType(EXACDataType.REGION);
 			returns.add(genesInRegion);
 			
 //			/rest/region/variants_in_region/<region_id>
-			Path variantsInRegion = new Path();
+			Entity variantsInRegion = new Entity();
 			variantsInRegion.setName("Variants in region");
 			variantsInRegion.setPui("region/variants_in_region");
 			variantsInRegion.setDataType(EXACDataType.REGION);
 			returns.add(variantsInRegion);
 			
 //			/rest/region/coverage_array/<region_id>
-			Path coverageArray = new Path();
+			Entity coverageArray = new Entity();
 			coverageArray.setName("Coverage Array");
 			coverageArray.setPui("region/coverage_array");
 			coverageArray.setDataType(EXACDataType.REGION);
@@ -264,17 +221,6 @@ public class EXACResourceImplementation implements
 		return returns;
 	}
 
-	@Override
-	public OntologyType getOntologyType() {
-		return OntologyType.TREE;
-	}
-
-	@Override
-	public Path getPathFromString(String path) {
-		Path pathObj = new Path();
-		pathObj.setPui(path);
-		return pathObj;
-	}
 
 	@Override
 	public ActionState runQuery(Query qep) throws ResourceInterfaceException {
@@ -444,6 +390,20 @@ public class EXACResourceImplementation implements
 		return null;
 	}
 	
+	@Override
+	public List<Entity> searchPaths(Entity path, String searchTerm, SecureSession session)
+			throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Entity> searchOntology(Entity path, String ontologyType,
+			String ontologyTerm, SecureSession session) throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	private ResultSet convertJsonArrayToResultSet(JsonArray results) {
 		FileResultSet mrs = new FileResultSet();
 
@@ -532,8 +492,8 @@ public class EXACResourceImplementation implements
 	}
 
 	@Override
-	public List<Path> getReturnEntity() {
-		return new ArrayList<Path>();
+	public List<Entity> getReturnEntity() {
+		return new ArrayList<Entity>();
 	}
 
 	@Override
@@ -570,7 +530,4 @@ public class EXACResourceImplementation implements
 	public void setServerURL(String serverURL) {
 		this.serverURL = serverURL;
 	}
-
-	
-
 }

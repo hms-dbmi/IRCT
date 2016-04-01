@@ -10,10 +10,10 @@ import javax.json.JsonObject;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
 
 /**
@@ -39,7 +39,7 @@ public class OpenCPUResourceImplementation implements
 	}
 
 	@Override
-	public List<Path> getReturnEntity() {
+	public List<Entity> getReturnEntity() {
 		// TODO Auto-generated method stub
 		return null;
 	}
