@@ -22,7 +22,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Constants;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ProcessController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -71,9 +70,7 @@ public class ProcessRESTService implements Serializable {
 		String conversationId = admin.startConversation();
 		pc.createProcess(conversationId);
 
-		responseBuilder.add("status", Constants.STATUS_OK);
 		responseBuilder.add("cid", conversationId);
-		responseBuilder.add("version", Constants.QUERYPROTOCOL);
 		return responseBuilder.build();
 	}
 
@@ -105,7 +102,6 @@ public class ProcessRESTService implements Serializable {
 
 		pc.updateProcess(resource, processName, values);
 
-		responseBuilder.add("status", Constants.STATUS_OK);
 		return responseBuilder.build();
 	}
 
@@ -144,7 +140,6 @@ public class ProcessRESTService implements Serializable {
 		pc.cancelProcess();
 		admin.endConversation();
 
-		responseBuilder.add("status", Constants.STATUS_OK);
 		return responseBuilder.build();
 	}
 

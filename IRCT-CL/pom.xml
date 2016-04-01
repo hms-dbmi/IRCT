@@ -46,6 +46,17 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<dependency>
+			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
+			<artifactId>IRCT-RI</artifactId>
+			<version>1.0-Development</version>
+		</dependency>
+
+		<dependency>
+			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
+			<artifactId>IRCT-API</artifactId>
+			<version>1.0-Development</version>
+		</dependency>
 		<!-- JWT OAuth -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -200,17 +211,6 @@
 			<groupId>org.jboss.arquillian.protocol</groupId>
 			<artifactId>arquillian-protocol-servlet</artifactId>
 			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
-			<artifactId>IRCT-API</artifactId>
-			<version>1.0-Development</version>
-		</dependency>
-		<dependency>
-			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
-			<artifactId>IRCT-RI</artifactId>
-			<version>1.0-Development</version>
 		</dependency>
 	</dependencies>
 

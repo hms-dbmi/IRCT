@@ -30,6 +30,8 @@ import com.auth0.jwt.JWTVerifyException;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
@@ -59,9 +61,9 @@ public class SessionFilter implements Filter {
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain fc)
 			throws IOException, ServletException {
 
-		// Security Service can go straight through
-		if (!((HttpServletRequest) req).getPathInfo().startsWith(
-				"/securityService/")) {
+		// Calls to the Security Service can go straight through
+		if (!((HttpServletRequest) req).getPathInfo().startsWith("/securityService/")) {
+			//Get the session and user information
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			User user = (User) session.getAttribute("user");
 
@@ -81,11 +83,16 @@ public class SessionFilter implements Filter {
 					res.getOutputStream().close();
 					return;
 				}
-
-				session.setAttribute("user", sc.getUser(email));
-				session.setAttribute("token", new JWT(
-						((HttpServletRequest) req).getHeader("Authorization"),
-						"", "Bearer"));
+				
+				user = sc.getUser(email);
+				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer");
+				SecureSession secureSession = new SecureSession();
+				secureSession.setToken(token);
+				secureSession.setUser(user);
+				
+				session.setAttribute("user", user);
+				session.setAttribute("token", token);
+				session.setAttribute("secureSession", secureSession);
 
 			}
 		} else {
@@ -93,14 +100,30 @@ public class SessionFilter implements Filter {
 
 			if (name != null) {
 				HttpSession session = ((HttpServletRequest) req).getSession();
-				session.setAttribute("user", sc.getUser(name));
-				session.setAttribute("token", new JWT(
-						((HttpServletRequest) req).getHeader("Authorization"),
-						"", "Bearer"));
+				
+				User user = sc.getUser(name);
+				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer");
+				SecureSession secureSession = new SecureSession();
+				secureSession.setToken(token);
+				secureSession.setUser(user);
+				
+				session.setAttribute("user", user);
+				session.setAttribute("token", token);
+				session.setAttribute("secureSession", secureSession);
 			}
 
 		}
-
+		// FOR DEBUGGING PURPOSES ONLY
+//		HttpSession session = ((HttpServletRequest) req).getSession();
+//		User user = sc.getUser("Jeremy_Easton-Marks@hms.harvard.edu");
+//		Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer");
+//		SecureSession secureSession = new SecureSession();
+//		secureSession.setToken(token);
+//		secureSession.setUser(user);
+//		session.setAttribute("user", user);
+//		session.setAttribute("token", token);
+//		session.setAttribute("secureSession", secureSession);
+		
 		fc.doFilter(req, res);
 	}
 
@@ -134,6 +157,7 @@ public class SessionFilter implements Filter {
 			} catch (InvalidKeyException | NoSuchAlgorithmException
 					| IllegalStateException | SignatureException | IOException
 					| JWTVerifyException e) {
+				e.printStackTrace();
 			}
 		}
 		return null;

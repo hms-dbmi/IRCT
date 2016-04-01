@@ -22,22 +22,23 @@
         http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
    
    <persistence-unit name="primary">
-      <jta-data-source>java:jboss/datasources/irct-cl-DS</jta-data-source>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource</class>
+      <jta-data-source>java:jboss/datasources/irct-cl-dev-DS</jta-data-source>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.result.Result</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateTypeValue</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.ProcessType</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.ProcessTypeParameter</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.Token</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.User</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.Token</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT</class>
+      <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- Properties for Hibernate -->
          <property name="hibernate.hbm2ddl.auto" value="update" />
          <property name="hibernate.show_sql" value="true" />
+         <property name="hibernate.format_sql" value="true" />
          <property name="hibernate.connection.autocommit" value="false" />
       </properties>
    </persistence-unit>

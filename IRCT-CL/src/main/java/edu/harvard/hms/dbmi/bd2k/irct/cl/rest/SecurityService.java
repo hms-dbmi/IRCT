@@ -262,6 +262,7 @@ public class SecurityService implements Serializable {
 		// Associate the session with that user
 		session.setAttribute("user", this.user);
 		session.setAttribute("token", this.token);
+		session.setAttribute("secureSession", ss);
 		build.add("status", "success");
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 
@@ -281,7 +282,9 @@ public class SecurityService implements Serializable {
 		this.token = null;
 		session.removeAttribute("user");
 		session.removeAttribute("token");
+		session.removeAttribute("secureSession");
 		build.add("status", "success");
+		session.invalidate();
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 }
