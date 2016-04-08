@@ -22,17 +22,27 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.i2b2.api.I2B2Factory;
+import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
@@ -58,6 +68,8 @@ public class I2B2XMLResourceImplementation implements
 	private String resourceURL;
 	private String domain;
 	private I2B2Factory i2b2Factory;
+	
+	private ResourceState resourceState;
 
 	@Override
 	public void setup(Map<String, String> parameters)
@@ -72,6 +84,7 @@ public class I2B2XMLResourceImplementation implements
 
 		i2b2Factory = new I2B2Factory();
 		i2b2Factory.setup();
+		resourceState = ResourceState.READY;
 	}
 
 	@Override
@@ -86,7 +99,7 @@ public class I2B2XMLResourceImplementation implements
 		List<Entity> entities = new ArrayList<Entity>();
 
 		// Build
-		HttpClient client = createClient(session.getToken().toString());
+		HttpClient client = createClient(session);
 		try {
 			if (relationship == I2B2OntologyRelationship.CHILD) {
 				String[] pathComponents = path.getPui().split("/");
@@ -109,8 +122,7 @@ public class I2B2XMLResourceImplementation implements
 
 				} else {
 					ONTCell ontCell = new ONTCell();
-					ontCell.setup(this.resourceURL, this.domain, "", "",
-							pathComponents[2], true);
+					ontCell.setup(this.resourceURL, this.domain, "", "", pathComponents[2], true);
 
 					ConceptsType conceptsType = null;
 
@@ -170,7 +182,7 @@ public class I2B2XMLResourceImplementation implements
 		}
 		
 		List<Entity> entities = new ArrayList<Entity>();
-		HttpClient client = createClient(session.getToken().toString());
+		HttpClient client = createClient(session);
 		try {
 			
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
@@ -205,15 +217,11 @@ public class I2B2XMLResourceImplementation implements
 		return entities;
 	}
 	
-//  <ns4:get_code_info blob="true" type="core" max='200'  synonyms="true" hiddens="false">
-//     <match_str strategy="exact">ICD10:P84</match_str>
-//  </ns4:get_code_info>
-	@Override
 	public List<Entity> searchOntology(Entity path, String ontologyType,
 			String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
 		List<Entity> entities = new ArrayList<Entity>();
-		HttpClient client = createClient(session.getToken().toString());
+		HttpClient client = createClient(session);
 		try {
 			
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
@@ -242,28 +250,119 @@ public class I2B2XMLResourceImplementation implements
 		return entities;
 	}
 	
-	private ConceptsType runCategorySearch(HttpClient client, String projectId, String category, String ontologyType, String ontologyTerm) throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
-		ONTCell ontCell = new ONTCell();
-		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
-		return ontCell.getCodeInfo(client, true, category, false, "exact", ontologyType + ":" + ontologyTerm, -1, null, true, "core");
+	@Override
+	public Result runQuery(SecureSession session, Query qep)
+			throws ResourceInterfaceException {
+		HttpClient client = createClient(session);
+//		CRCCell crcCell = new CRCCell();
+//		String projectId = null;
+//		crcCell.setup(this.resourceURL, this.domain, "", "", projectId,true);
+//		int panelCount = 1;
+//		ArrayList<PanelType> panels = new ArrayList<PanelType>();
+//		
+//		
+//		PanelType currentPanel = createPanel(panelCount);
+//		for (ClauseAbstract clause : qep.getClauses().values()) {
+//			if (clause instanceof WhereClause) {
+//				WhereClause whereClause = (WhereClause) clause;
+//				ItemType itemType = createItemTypeFromWhereClause((WhereClause) clause);
+//
+//				//FIRST
+//				if(panels.isEmpty() && currentPanel.getItem().isEmpty()) {
+//					currentPanel.getItem().add(itemType);
+//				} else if(whereClause.getLogicalOperator() == LogicalOperator.AND) {
+//					panels.add(currentPanel);
+//					currentPanel = createPanel(panelCount++);
+//					currentPanel.getItem().add(itemType);
+//				} else if (whereClause.getLogicalOperator() == LogicalOperator.OR) {
+//					currentPanel.getItem().add(itemType);
+//				} else if (whereClause.getLogicalOperator() == LogicalOperator.NOT) {
+//					panels.add(currentPanel);
+//					currentPanel = createPanel(panelCount++);
+//					currentPanel.getItem().add(itemType);
+//					currentPanel.setInvert(1);
+//					panels.add(currentPanel);
+//					currentPanel = createPanel(panelCount++);
+//				}				
+//			}
+//		}
+//		if (currentPanel.getItem().size() != 0) {
+//			panels.add(currentPanel);
+//		}
+//
+//		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
+//		ResultOutputOptionType root = new ResultOutputOptionType();
+//		root.setPriorityIndex(10);
+//		root.setName("PATIENTSET");
+//		roolt.getResultOutput().add(root);
+//
+//		String queryId = null;
+//		try {
+//			MasterInstanceResultResponseType mirrt = crcCell
+//					.runQueryInstanceFromQueryDefinition(client, null, null,
+//							"IRCT", null, "ANY", 0, roolt,
+//							panels.toArray(new PanelType[panels.size()]));
+//			
+//			queryId = mirrt.getQueryResultInstance().get(0).getResultInstanceId();
+//		} catch (JAXBException | IOException | I2B2InterfaceException e) {
+//			throw new ResourceInterfaceException(
+//					"Error traversing relationship", e);
+//		}
+//		
+//		ActionState as = new ActionState();
+//		as.setResourceId(queryId);
+//		return as;
+		return null;
 	}
 	
 	
-	@Override
-	public ActionState runQuery(Query qep) throws ResourceInterfaceException {
-		return null;
+	
+	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
+		ItemType item = new ItemType();
+//		item.setItemKey(whereClause.getField().getPui()
+//				.replaceAll(getServerName() + "/", "").replace('/', '\\'));
+//		item.setItemName(item.getItemKey());
+//		item.setItemIsSynonym(false);
+//		if (whereClause.getPredicateType() != null) {
+//			if (whereClause.getPredicateType().getName()
+//					.equals("CONSTRAIN_MODIFIER")) {
+//				item.setConstrainByModifier(createConstrainByModifier(whereClause));
+//			} else if (whereClause.getPredicateType().getName()
+//					.equals("CONSTRAIN_VALUE")) {
+//				item.getConstrainByValue().add(
+//						createConstrainByValue(whereClause));
+//			} else if (whereClause.getPredicateType().getName()
+//					.equals("CONSTRAIN_DATE")) {
+//				item.getConstrainByDate().add(
+//						createConstrainByDate(whereClause));
+//			}
+//		}
+		return item;
+	}
+	
+	private PanelType createPanel(int panelItem) {
+		PanelType panel = new PanelType();
+		panel.setPanelNumber(panelItem);
+		panel.setInvert(0);
+		panel.setPanelTiming("ANY");
+		
+		PanelType.TotalItemOccurrences tio = new PanelType.TotalItemOccurrences();
+		tio.setValue(1);
+		panel.setTotalItemOccurrences(tio);
+
+		return panel;
 	}
 
 	@Override
-	public ResultSet getResults(ActionState actionState)
+	public Result getResults(SecureSession session, Result result)
 			throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public ResourceState getState() {
-		// TODO Auto-generated method stub
-		return null;
+		return resourceState;
 	}
 
 	@Override
@@ -490,14 +589,24 @@ public class I2B2XMLResourceImplementation implements
 	 * @param token
 	 * @return
 	 */
-	private HttpClient createClient(String token) {
+	private HttpClient createClient(SecureSession session) {
 		HttpClientBuilder returns = HttpClientBuilder.create();
 		List<Header> defaultHeaders = new ArrayList<Header>();
-		defaultHeaders.add(new BasicHeader("Authorization", token));
+		if(session != null) {
+			defaultHeaders.add(new BasicHeader("Authorization", session.getToken().toString()));
+		}
 		defaultHeaders.add(new BasicHeader("Content-Type",
 				"application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
 
 		return returns.build();
 	}
+	
+	private ConceptsType runCategorySearch(HttpClient client, String projectId, String category, String ontologyType, String ontologyTerm) throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
+		ONTCell ontCell = new ONTCell();
+		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
+		return ontCell.getCodeInfo(client, true, category, false, "exact", ontologyType + ":" + ontologyTerm, -1, null, true, "core");
+	}
+
+	
 }
