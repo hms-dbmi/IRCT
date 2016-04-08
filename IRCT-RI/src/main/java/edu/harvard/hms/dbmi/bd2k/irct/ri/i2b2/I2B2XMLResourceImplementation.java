@@ -54,8 +54,8 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 
 /**
- * A resource implementation of a resource that communicates with the i2b2 servers via
- * XML
+ * A resource implementation of a resource that communicates with the i2b2
+ * servers via XML
  * 
  * 
  * @author Jeremy R. Easton-Marks
@@ -68,7 +68,11 @@ public class I2B2XMLResourceImplementation implements
 	private String resourceURL;
 	private String domain;
 	private I2B2Factory i2b2Factory;
-	
+	private boolean useProxy;
+	private String proxyURL;
+	private String userName;
+	private String password;
+
 	private ResourceState resourceState;
 
 	@Override
@@ -81,6 +85,13 @@ public class I2B2XMLResourceImplementation implements
 		this.resourceName = parameters.get("resourceName");
 		this.resourceURL = parameters.get("resourceURL");
 		this.domain = parameters.get("domain");
+		this.proxyURL = parameters.get("proxyURL");
+
+		if (this.proxyURL == null) {
+			this.useProxy = false;
+			this.userName = parameters.get("username");
+			this.password = parameters.get("password");
+		}
 
 		i2b2Factory = new I2B2Factory();
 		i2b2Factory.setup();
@@ -106,9 +117,7 @@ public class I2B2XMLResourceImplementation implements
 				String basePath = path.getPui();
 				// If first then get projects
 				if (pathComponents.length == 2) {
-					PMCell pmCell = new PMCell();
-
-					pmCell.setup(this.resourceURL, this.domain, "", "", true);
+					PMCell pmCell = createPMCell();
 					ConfigureType configureType = pmCell.getUserConfiguration(
 							client, null, new String[] { "undefined" });
 					for (ProjectType pt : configureType.getUser().getProject()) {
@@ -121,8 +130,7 @@ public class I2B2XMLResourceImplementation implements
 					}
 
 				} else {
-					ONTCell ontCell = new ONTCell();
-					ontCell.setup(this.resourceURL, this.domain, "", "", pathComponents[2], true);
+					ONTCell ontCell = createOntCell(pathComponents[2]);
 
 					ConceptsType conceptsType = null;
 
@@ -166,48 +174,60 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm, SecureSession session) throws ResourceInterfaceException {
+	public List<Entity> searchPaths(Entity path, String searchTerm,
+			SecureSession session) throws ResourceInterfaceException {
 		String strategy = "exact";
-		if(searchTerm.charAt(0) == '%') {
-			if(searchTerm.charAt(searchTerm.length() - 1) == '%') {
+		if (searchTerm.charAt(0) == '%') {
+			if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
 				searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
 				strategy = "contains";
 			} else {
 				searchTerm = searchTerm.substring(1);
 				strategy = "right";
 			}
-		} else if(searchTerm.charAt(searchTerm.length() - 1) == '%') {
+		} else if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
 			searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
 			strategy = "left";
 		}
-		
+
 		List<Entity> entities = new ArrayList<Entity>();
 		HttpClient client = createClient(session);
 		try {
-			
-			if ((path == null) || (path.getPui().split("/").length <= 2)) {
-				PMCell pmCell = new PMCell();
 
-				pmCell.setup(this.resourceURL, this.domain, "", "", true);
+			if ((path == null) || (path.getPui().split("/").length <= 2)) {
+				PMCell pmCell = createPMCell();
 				ConfigureType configureType = pmCell.getUserConfiguration(
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
-					for(ConceptType category : getCategories(client, pt.getId()).getConcept()) {
-						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
-						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runNameSearch(client, pt.getId(), categoryName, strategy, searchTerm)));
+					for (ConceptType category : getCategories(client,
+							pt.getId()).getConcept()) {
+						String categoryName = converti2b2Path(category.getKey())
+								.split("/")[1];
+						entities.addAll(convertConceptsTypeToEntities(
+								"/" + this.resourceName,
+								runNameSearch(client, pt.getId(), categoryName,
+										strategy, searchTerm)));
 					}
 				}
 			} else {
 				String[] pathComponents = path.getPui().split("/");
 				if (pathComponents.length == 3) {
 					// Get All Categories
-					for(ConceptType category : getCategories(client, pathComponents[2]).getConcept()) {
-						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
-						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runNameSearch(client, pathComponents[2], categoryName, strategy, searchTerm)));
+					for (ConceptType category : getCategories(client,
+							pathComponents[2]).getConcept()) {
+						String categoryName = converti2b2Path(category.getKey())
+								.split("/")[1];
+						entities.addAll(convertConceptsTypeToEntities(
+								"/" + this.resourceName,
+								runNameSearch(client, pathComponents[2],
+										categoryName, strategy, searchTerm)));
 					}
 				} else {
 					// Run request
-					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runNameSearch(client, pathComponents[2], pathComponents[3], strategy, searchTerm)));
+					entities.addAll(convertConceptsTypeToEntities(
+							"/" + this.resourceName,
+							runNameSearch(client, pathComponents[2],
+									pathComponents[3], strategy, searchTerm)));
 				}
 			}
 		} catch (JAXBException | UnsupportedOperationException
@@ -216,31 +236,39 @@ public class I2B2XMLResourceImplementation implements
 		}
 		return entities;
 	}
-	
+
 	public List<Entity> searchOntology(Entity path, String ontologyType,
 			String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
 		List<Entity> entities = new ArrayList<Entity>();
 		HttpClient client = createClient(session);
 		try {
-			
-			if ((path == null) || (path.getPui().split("/").length <= 2)) {
-				PMCell pmCell = new PMCell();
 
-				pmCell.setup(this.resourceURL, this.domain, "", "", true);
+			if ((path == null) || (path.getPui().split("/").length <= 2)) {
+				PMCell pmCell = createPMCell();
 				ConfigureType configureType = pmCell.getUserConfiguration(
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
-					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runCategorySearch(client, pt.getId(), null, ontologyType, ontologyTerm)));
+					entities.addAll(convertConceptsTypeToEntities(
+							"/" + this.resourceName,
+							runCategorySearch(client, pt.getId(), null,
+									ontologyType, ontologyTerm)));
 				}
 			} else {
 				String[] pathComponents = path.getPui().split("/");
 				if (pathComponents.length == 3) {
 					// Get All Categories
-					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runCategorySearch(client, pathComponents[2], null, ontologyType, ontologyTerm)));
+					entities.addAll(convertConceptsTypeToEntities(
+							"/" + this.resourceName,
+							runCategorySearch(client, pathComponents[2], null,
+									ontologyType, ontologyTerm)));
 				} else {
 					// Run request
-					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName, runCategorySearch(client, pathComponents[2], pathComponents[3], ontologyType, ontologyTerm)));
+					entities.addAll(convertConceptsTypeToEntities(
+							"/" + this.resourceName,
+							runCategorySearch(client, pathComponents[2],
+									pathComponents[3], ontologyType,
+									ontologyTerm)));
 				}
 			}
 		} catch (JAXBException | UnsupportedOperationException
@@ -249,103 +277,103 @@ public class I2B2XMLResourceImplementation implements
 		}
 		return entities;
 	}
-	
+
 	@Override
 	public Result runQuery(SecureSession session, Query qep)
 			throws ResourceInterfaceException {
 		HttpClient client = createClient(session);
-//		CRCCell crcCell = new CRCCell();
-//		String projectId = null;
-//		crcCell.setup(this.resourceURL, this.domain, "", "", projectId,true);
-//		int panelCount = 1;
-//		ArrayList<PanelType> panels = new ArrayList<PanelType>();
-//		
-//		
-//		PanelType currentPanel = createPanel(panelCount);
-//		for (ClauseAbstract clause : qep.getClauses().values()) {
-//			if (clause instanceof WhereClause) {
-//				WhereClause whereClause = (WhereClause) clause;
-//				ItemType itemType = createItemTypeFromWhereClause((WhereClause) clause);
-//
-//				//FIRST
-//				if(panels.isEmpty() && currentPanel.getItem().isEmpty()) {
-//					currentPanel.getItem().add(itemType);
-//				} else if(whereClause.getLogicalOperator() == LogicalOperator.AND) {
-//					panels.add(currentPanel);
-//					currentPanel = createPanel(panelCount++);
-//					currentPanel.getItem().add(itemType);
-//				} else if (whereClause.getLogicalOperator() == LogicalOperator.OR) {
-//					currentPanel.getItem().add(itemType);
-//				} else if (whereClause.getLogicalOperator() == LogicalOperator.NOT) {
-//					panels.add(currentPanel);
-//					currentPanel = createPanel(panelCount++);
-//					currentPanel.getItem().add(itemType);
-//					currentPanel.setInvert(1);
-//					panels.add(currentPanel);
-//					currentPanel = createPanel(panelCount++);
-//				}				
-//			}
-//		}
-//		if (currentPanel.getItem().size() != 0) {
-//			panels.add(currentPanel);
-//		}
-//
-//		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
-//		ResultOutputOptionType root = new ResultOutputOptionType();
-//		root.setPriorityIndex(10);
-//		root.setName("PATIENTSET");
-//		roolt.getResultOutput().add(root);
-//
-//		String queryId = null;
-//		try {
-//			MasterInstanceResultResponseType mirrt = crcCell
-//					.runQueryInstanceFromQueryDefinition(client, null, null,
-//							"IRCT", null, "ANY", 0, roolt,
-//							panels.toArray(new PanelType[panels.size()]));
-//			
-//			queryId = mirrt.getQueryResultInstance().get(0).getResultInstanceId();
-//		} catch (JAXBException | IOException | I2B2InterfaceException e) {
-//			throw new ResourceInterfaceException(
-//					"Error traversing relationship", e);
-//		}
-//		
-//		ActionState as = new ActionState();
-//		as.setResourceId(queryId);
-//		return as;
+		// CRCCell crcCell = new CRCCell();
+		// String projectId = null;
+		// crcCell.setup(this.resourceURL, this.domain, "", "", projectId,true);
+		// int panelCount = 1;
+		// ArrayList<PanelType> panels = new ArrayList<PanelType>();
+		//
+		//
+		// PanelType currentPanel = createPanel(panelCount);
+		// for (ClauseAbstract clause : qep.getClauses().values()) {
+		// if (clause instanceof WhereClause) {
+		// WhereClause whereClause = (WhereClause) clause;
+		// ItemType itemType = createItemTypeFromWhereClause((WhereClause)
+		// clause);
+		//
+		// //FIRST
+		// if(panels.isEmpty() && currentPanel.getItem().isEmpty()) {
+		// currentPanel.getItem().add(itemType);
+		// } else if(whereClause.getLogicalOperator() == LogicalOperator.AND) {
+		// panels.add(currentPanel);
+		// currentPanel = createPanel(panelCount++);
+		// currentPanel.getItem().add(itemType);
+		// } else if (whereClause.getLogicalOperator() == LogicalOperator.OR) {
+		// currentPanel.getItem().add(itemType);
+		// } else if (whereClause.getLogicalOperator() == LogicalOperator.NOT) {
+		// panels.add(currentPanel);
+		// currentPanel = createPanel(panelCount++);
+		// currentPanel.getItem().add(itemType);
+		// currentPanel.setInvert(1);
+		// panels.add(currentPanel);
+		// currentPanel = createPanel(panelCount++);
+		// }
+		// }
+		// }
+		// if (currentPanel.getItem().size() != 0) {
+		// panels.add(currentPanel);
+		// }
+		//
+		// ResultOutputOptionListType roolt = new ResultOutputOptionListType();
+		// ResultOutputOptionType root = new ResultOutputOptionType();
+		// root.setPriorityIndex(10);
+		// root.setName("PATIENTSET");
+		// roolt.getResultOutput().add(root);
+		//
+		// String queryId = null;
+		// try {
+		// MasterInstanceResultResponseType mirrt = crcCell
+		// .runQueryInstanceFromQueryDefinition(client, null, null,
+		// "IRCT", null, "ANY", 0, roolt,
+		// panels.toArray(new PanelType[panels.size()]));
+		//
+		// queryId =
+		// mirrt.getQueryResultInstance().get(0).getResultInstanceId();
+		// } catch (JAXBException | IOException | I2B2InterfaceException e) {
+		// throw new ResourceInterfaceException(
+		// "Error traversing relationship", e);
+		// }
+		//
+		// ActionState as = new ActionState();
+		// as.setResourceId(queryId);
+		// return as;
 		return null;
 	}
-	
-	
-	
+
 	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
 		ItemType item = new ItemType();
-//		item.setItemKey(whereClause.getField().getPui()
-//				.replaceAll(getServerName() + "/", "").replace('/', '\\'));
-//		item.setItemName(item.getItemKey());
-//		item.setItemIsSynonym(false);
-//		if (whereClause.getPredicateType() != null) {
-//			if (whereClause.getPredicateType().getName()
-//					.equals("CONSTRAIN_MODIFIER")) {
-//				item.setConstrainByModifier(createConstrainByModifier(whereClause));
-//			} else if (whereClause.getPredicateType().getName()
-//					.equals("CONSTRAIN_VALUE")) {
-//				item.getConstrainByValue().add(
-//						createConstrainByValue(whereClause));
-//			} else if (whereClause.getPredicateType().getName()
-//					.equals("CONSTRAIN_DATE")) {
-//				item.getConstrainByDate().add(
-//						createConstrainByDate(whereClause));
-//			}
-//		}
+		// item.setItemKey(whereClause.getField().getPui()
+		// .replaceAll(getServerName() + "/", "").replace('/', '\\'));
+		// item.setItemName(item.getItemKey());
+		// item.setItemIsSynonym(false);
+		// if (whereClause.getPredicateType() != null) {
+		// if (whereClause.getPredicateType().getName()
+		// .equals("CONSTRAIN_MODIFIER")) {
+		// item.setConstrainByModifier(createConstrainByModifier(whereClause));
+		// } else if (whereClause.getPredicateType().getName()
+		// .equals("CONSTRAIN_VALUE")) {
+		// item.getConstrainByValue().add(
+		// createConstrainByValue(whereClause));
+		// } else if (whereClause.getPredicateType().getName()
+		// .equals("CONSTRAIN_DATE")) {
+		// item.getConstrainByDate().add(
+		// createConstrainByDate(whereClause));
+		// }
+		// }
 		return item;
 	}
-	
+
 	private PanelType createPanel(int panelItem) {
 		PanelType panel = new PanelType();
 		panel.setPanelNumber(panelItem);
 		panel.setInvert(0);
 		panel.setPanelTiming("ANY");
-		
+
 		PanelType.TotalItemOccurrences tio = new PanelType.TotalItemOccurrences();
 		tio.setValue(1);
 		panel.setTotalItemOccurrences(tio);
@@ -564,23 +592,69 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns;
 	}
-	
+
 	private String converti2b2Path(String i2b2Path) {
 		return i2b2Path.replaceAll("\\\\\\\\", "/").replace('\\', '/');
 	}
-	
-	private ConceptsType runNameSearch(HttpClient client, String projectId, String category, String strategy, String searchTerm) throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
-		ONTCell ontCell = new ONTCell();
-		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
-		return ontCell.getNameInfo(client, true, category, false, strategy, searchTerm, -1, null, true, "core");
+
+	private ConceptsType runNameSearch(HttpClient client, String projectId,
+			String category, String strategy, String searchTerm)
+			throws UnsupportedOperationException, JAXBException,
+			I2B2InterfaceException, IOException {
+		ONTCell ontCell = createOntCell(projectId);
+		return ontCell.getNameInfo(client, true, category, false, strategy,
+				searchTerm, -1, null, true, "core");
 	}
 
+	private ConceptsType getCategories(HttpClient client, String projectId)
+			throws JAXBException, ClientProtocolException, IOException,
+			I2B2InterfaceException {
+		ONTCell ontCell = createOntCell(projectId);
 
-	private ConceptsType getCategories(HttpClient client, String projectId) throws JAXBException, ClientProtocolException, IOException, I2B2InterfaceException {
-		ONTCell ontCell = new ONTCell();
-		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
-		
 		return ontCell.getCategories(client, false, false, true, "core");
+	}
+
+	private ConceptsType runCategorySearch(HttpClient client, String projectId,
+			String category, String ontologyType, String ontologyTerm)
+			throws UnsupportedOperationException, JAXBException,
+			I2B2InterfaceException, IOException {
+		ONTCell ontCell = createOntCell(projectId);
+		return ontCell.getCodeInfo(client, true, category, false, "exact",
+				ontologyType + ":" + ontologyTerm, -1, null, true, "core");
+	}
+	
+	private CRCCell createCRCCell(String projectId) throws JAXBException {
+		CRCCell crcCell = new CRCCell();
+		if(this.useProxy) {
+			crcCell.setup(this.resourceURL, this.domain, userName, password, projectId, this.useProxy, this.proxyURL + "/QueryToolService");
+		} else {
+			crcCell.setup(this.resourceURL, this.domain, this.userName, this.password, projectId, false, null);
+		}
+		return crcCell;
+	}
+
+	private ONTCell createOntCell(String projectId) throws JAXBException {
+		ONTCell ontCell = new ONTCell();
+		if (this.useProxy) {
+			ontCell.setup(this.resourceURL, this.domain, "", "", projectId,
+					this.useProxy, this.proxyURL + "/OntologyService");
+		} else {
+			ontCell.setup(this.resourceURL, this.domain, this.userName,
+					this.password, projectId, false, null);
+		}
+		return ontCell;
+	}
+
+	private PMCell createPMCell() throws JAXBException {
+		PMCell pmCell = new PMCell();
+		if (this.useProxy) {
+			pmCell.setup(this.resourceURL, this.domain, "", "", this.useProxy,
+					this.proxyURL + "/PMService");
+		} else {
+			pmCell.setup(this.resourceURL, this.domain, this.userName,
+					this.password, false, null);
+		}
+		return pmCell;
 	}
 
 	/**
@@ -592,8 +666,9 @@ public class I2B2XMLResourceImplementation implements
 	private HttpClient createClient(SecureSession session) {
 		HttpClientBuilder returns = HttpClientBuilder.create();
 		List<Header> defaultHeaders = new ArrayList<Header>();
-		if(session != null) {
-			defaultHeaders.add(new BasicHeader("Authorization", session.getToken().toString()));
+		if (session != null) {
+			defaultHeaders.add(new BasicHeader("Authorization", session
+					.getToken().toString()));
 		}
 		defaultHeaders.add(new BasicHeader("Content-Type",
 				"application/x-www-form-urlencoded"));
@@ -601,12 +676,5 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns.build();
 	}
-	
-	private ConceptsType runCategorySearch(HttpClient client, String projectId, String category, String ontologyType, String ontologyTerm) throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
-		ONTCell ontCell = new ONTCell();
-		ontCell.setup(this.resourceURL, this.domain, "", "", projectId, true);
-		return ontCell.getCodeInfo(client, true, category, false, "exact", ontologyType + ":" + ontologyTerm, -1, null, true, "core");
-	}
 
-	
 }
