@@ -33,6 +33,14 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.Token</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.result.Result</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.Query</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.SubQuery</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinClause</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- Properties for Hibernate -->

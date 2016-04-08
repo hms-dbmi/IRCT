@@ -10,10 +10,10 @@ import javax.enterprise.context.ConversationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.json.Json;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -26,6 +26,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
@@ -33,6 +34,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 @Path("/queryService")
 @ConversationScoped
@@ -51,6 +54,12 @@ public class QueryService implements Serializable {
 
 	@Inject
 	private AdminBean admin;
+	
+	@Inject
+	private ExecutionController ec;
+	
+	@Inject
+	private HttpSession session;
 
 	@GET
 	@Path("/startQuery")
@@ -65,6 +74,52 @@ public class QueryService implements Serializable {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
+	
+	@GET
+	@Path("/saveQuery")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response saveQuery() {
+		JsonObjectBuilder response = Json.createObjectBuilder();
+		try {
+			qc.saveQuery();
+		} catch (QueryException e) {
+			response.add("status", "Invalid Request");
+			response.add("message", e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+		
+		response.add("queryId", qc.getQuery().getId());
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+				.build();
+	}
+	
+	
+	@GET
+	@Path("/loadQuery")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response loadQuery(@QueryParam(value = "queryId") Long queryId) {
+		JsonObjectBuilder response = Json.createObjectBuilder();
+		String conversationId = admin.startConversation();
+		
+		if(queryId == null) {
+			response.add("status", "Invalid Request");
+			response.add("message", "queryId is not set");
+			return Response.status(400).entity(response.build()).build();
+		}
+		
+		try {
+			qc.loadQuery(queryId);
+		} catch (QueryException e) {
+			response.add("status", "Invalid Request");
+			response.add("message", e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+		
+		response.add("cid", conversationId);
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+				.build();
+	}
+	
 
 	@POST
 	@Path("/clause")
@@ -225,8 +280,14 @@ public class QueryService implements Serializable {
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery() {
-		JsonArrayBuilder response = Json.createArrayBuilder();
-
+		JsonObjectBuilder response = Json.createObjectBuilder();
+		try {
+			response.add("resultId", ec.runQuery(qc.getQuery(), (SecureSession) session.getAttribute("secureSession")));
+		} catch (PersistableException e) {
+			response.add("status", "Error running request");
+			response.add("message", "An error occurred running this request");
+			return Response.status(400).entity(response.build()).build();
+		}
 		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();

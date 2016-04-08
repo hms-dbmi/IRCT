@@ -13,6 +13,7 @@ import javax.inject.Named;
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -27,6 +28,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.controller.ProcessController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
  * Creates the process service for the JAX-RS REST service. This service is
@@ -55,6 +57,9 @@ public class ProcessRESTService implements Serializable {
 
 	@Inject
 	private ResourceController rc;
+	
+	@Inject
+	private HttpSession session;
 
 	/**
 	 * Initiates the creation of a process
@@ -117,7 +122,7 @@ public class ProcessRESTService implements Serializable {
 		JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
 
 		try {
-			responseBuilder.add("resultId", ec.runProcess(pc.getProcess()));
+			responseBuilder.add("resultId", ec.runProcess(pc.getProcess(), (SecureSession) session.getAttribute("secureSession")));
 		} catch (PersistableException e) {
 			e.printStackTrace();
 		}

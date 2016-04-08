@@ -13,6 +13,7 @@ import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -31,6 +32,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
  * Creates a REST interface for the systems service.
@@ -53,6 +55,9 @@ public class SystemService {
 
 	@Inject
 	Logger log;
+	
+	@Inject
+	private HttpSession session;
 
 	/**
 	 * Returns a JSON Array of supported Data Types by the IRCT core.
@@ -106,7 +111,7 @@ public class SystemService {
 
 		try {
 			jc.setup(parameters);
-			ec.runJoin(jc.getJoinAction());
+			ec.runJoin(jc.getJoinAction(), (SecureSession) session.getAttribute("secureSession"));
 
 		} catch (ActionNotSetException | FieldException
 				| JoinActionSetupException e) {
