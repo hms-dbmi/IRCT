@@ -29,7 +29,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.controller.JoinController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ActionNotSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.FieldException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
@@ -85,7 +85,7 @@ public class SystemService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure joins() {
 		JsonArrayBuilder build = Json.createArrayBuilder();
-		for (JoinType jt : irctApp.getSupportedJoinTypes().values()) {
+		for (IRCTJoin jt : irctApp.getSupportedJoinTypes().values()) {
 			build.add(jt.toJson());
 		}
 		return build.build();
@@ -111,7 +111,7 @@ public class SystemService {
 
 		try {
 			jc.setup(parameters);
-			ec.runJoin(jc.getJoinAction(), (SecureSession) session.getAttribute("secureSession"));
+			ec.runJoin(jc.getJoinType(), (SecureSession) session.getAttribute("secureSession"));
 
 		} catch (ActionNotSetException | FieldException
 				| JoinActionSetupException e) {

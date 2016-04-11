@@ -23,7 +23,6 @@
    
    <persistence-unit name="primary">
       <jta-data-source>java:jboss/datasources/irct-cl-dev-DS</jta-data-source>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessType</class>
@@ -39,8 +38,8 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinClause</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- Properties for Hibernate -->
