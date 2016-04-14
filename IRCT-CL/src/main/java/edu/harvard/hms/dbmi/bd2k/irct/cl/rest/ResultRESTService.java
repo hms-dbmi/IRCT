@@ -37,11 +37,11 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Joinable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
 
 /**
  * Creates the result service for the JAX-RS REST service
@@ -140,7 +140,7 @@ public class ResultRESTService {
 					JsonObjectBuilder result = Json.createObjectBuilder();
 					for (int columnIndex = 0; columnIndex < rs.getColumnSize(); columnIndex++) {
 						result.add(rs.getColumn(columnIndex).getName(),
-								((Joinable) rs).getObject(columnIndex)
+								((ResultSetImpl) rs).getObject(columnIndex)
 										.toString());
 					}
 					objects.add(result);
@@ -186,7 +186,7 @@ public class ResultRESTService {
 					JsonObjectBuilder result = Json.createObjectBuilder();
 					for (int columnIndex = 0; columnIndex < rs.getColumnSize(); columnIndex++) {
 						result.add(rs.getColumn(columnIndex).getName(),
-								((Joinable) rs).getObject(columnIndex)
+								((ResultSetImpl) rs).getObject(columnIndex)
 										.toString());
 					}
 					objects.add(result);
@@ -244,7 +244,7 @@ public class ResultRESTService {
 						xtw.writeStartElement("result");
 						for (int i = 0; i < rs.getColumnSize(); i++) {
 							xtw.writeStartElement(rs.getColumn(i).getName());
-							xtw.writeCharacters(((Joinable) rs).getObject(i)
+							xtw.writeCharacters(((ResultSetImpl) rs).getObject(i)
 									.toString());
 							xtw.writeEndElement();
 						}
@@ -317,7 +317,7 @@ public class ResultRESTService {
 						Row row = sh.createRow(rowNum);
 						for (int i = 0; i < rs.getColumnSize(); i++) {
 							Cell cell = row.createCell(i);
-							cell.setCellValue(((Joinable) rs).getObject(i)
+							cell.setCellValue(((ResultSetImpl) rs).getObject(i)
 									.toString());
 						}
 						rowNum++;
@@ -374,7 +374,7 @@ public class ResultRESTService {
 					while (rs.next()) {
 						String[] row = new String[rs.getColumnSize()];
 						for (int i = 0; i < rs.getColumnSize(); i++) {
-							row[i] = ((Joinable) rs).getObject(i).toString();
+							row[i] = ((ResultSetImpl) rs).getObject(i).toString();
 						}
 						printer.printRecord((Object[]) row);
 					}
