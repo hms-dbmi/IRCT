@@ -10,10 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.xml.bind.JAXBException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
 
 import org.apache.http.Header;
 import org.apache.http.client.ClientProtocolException;
@@ -22,6 +21,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
@@ -33,14 +33,29 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.i2b2.api.I2B2Factory;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientSet;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateTimeType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainOperatorType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainValueType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InclusiveType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InstanceResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryResultInstanceType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
@@ -48,6 +63,7 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptsType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifierType;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.XmlValueType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
@@ -67,7 +83,6 @@ public class I2B2XMLResourceImplementation implements
 	private String resourceName;
 	private String resourceURL;
 	private String domain;
-	private I2B2Factory i2b2Factory;
 	private boolean useProxy;
 	private String proxyURL;
 	private String userName;
@@ -91,10 +106,10 @@ public class I2B2XMLResourceImplementation implements
 			this.useProxy = false;
 			this.userName = parameters.get("username");
 			this.password = parameters.get("password");
+		} else {
+			this.useProxy = true;
 		}
 
-		i2b2Factory = new I2B2Factory();
-		i2b2Factory.setup();
 		resourceState = ResourceState.READY;
 	}
 
@@ -111,10 +126,12 @@ public class I2B2XMLResourceImplementation implements
 
 		// Build
 		HttpClient client = createClient(session);
+		String basePath = path.getPui();
+		String[] pathComponents = basePath.split("/");
+		
+		
 		try {
 			if (relationship == I2B2OntologyRelationship.CHILD) {
-				String[] pathComponents = path.getPui().split("/");
-				String basePath = path.getPui();
 				// If first then get projects
 				if (pathComponents.length == 2) {
 					PMCell pmCell = createPMCell();
@@ -158,9 +175,35 @@ public class I2B2XMLResourceImplementation implements
 				}
 
 			} else if (relationship == I2B2OntologyRelationship.MODIFIER) {
-
+				String resourcePath = getResourcePathFromPUI(basePath);
+				
+				if(resourcePath == null) {
+					return entities;
+				}
+				
+				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
+					resourcePath += '\\';
+				}
+				ONTCell ontCell = createOntCell(pathComponents[2]);
+				ModifiersType modifiersType = ontCell.getModifiers(client, false, false, null, -1, resourcePath, false, null);
+				entities = convertModifiersTypeToEntities(basePath, modifiersType);
 			} else if (relationship == I2B2OntologyRelationship.TERM) {
-
+				String resourcePath = getResourcePathFromPUI(basePath);
+				
+				if(resourcePath == null) {
+					return entities;
+				}
+				
+				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
+					resourcePath += '\\';
+				}
+				ONTCell ontCell = createOntCell(pathComponents[2]);
+				
+				
+				ConceptsType conceptsType = null;
+				
+				conceptsType = ontCell.getTermInfo(client, true, resourcePath, true, -1, true, "core");
+				entities = convertConceptsTypeToEntities(basePath, conceptsType);
 			} else {
 				throw new ResourceInterfaceException(relationship.toString()
 						+ " not supported by this resource");
@@ -279,93 +322,311 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query qep)
+	public Result runQuery(SecureSession session, Query qep, Result result)
 			throws ResourceInterfaceException {
+		// Initial setup
 		HttpClient client = createClient(session);
-		// CRCCell crcCell = new CRCCell();
-		// String projectId = null;
-		// crcCell.setup(this.resourceURL, this.domain, "", "", projectId,true);
-		// int panelCount = 1;
-		// ArrayList<PanelType> panels = new ArrayList<PanelType>();
-		//
-		//
-		// PanelType currentPanel = createPanel(panelCount);
-		// for (ClauseAbstract clause : qep.getClauses().values()) {
-		// if (clause instanceof WhereClause) {
-		// WhereClause whereClause = (WhereClause) clause;
-		// ItemType itemType = createItemTypeFromWhereClause((WhereClause)
-		// clause);
-		//
-		// //FIRST
-		// if(panels.isEmpty() && currentPanel.getItem().isEmpty()) {
-		// currentPanel.getItem().add(itemType);
-		// } else if(whereClause.getLogicalOperator() == LogicalOperator.AND) {
-		// panels.add(currentPanel);
-		// currentPanel = createPanel(panelCount++);
-		// currentPanel.getItem().add(itemType);
-		// } else if (whereClause.getLogicalOperator() == LogicalOperator.OR) {
-		// currentPanel.getItem().add(itemType);
-		// } else if (whereClause.getLogicalOperator() == LogicalOperator.NOT) {
-		// panels.add(currentPanel);
-		// currentPanel = createPanel(panelCount++);
-		// currentPanel.getItem().add(itemType);
-		// currentPanel.setInvert(1);
-		// panels.add(currentPanel);
-		// currentPanel = createPanel(panelCount++);
-		// }
-		// }
-		// }
-		// if (currentPanel.getItem().size() != 0) {
-		// panels.add(currentPanel);
-		// }
-		//
-		// ResultOutputOptionListType roolt = new ResultOutputOptionListType();
-		// ResultOutputOptionType root = new ResultOutputOptionType();
-		// root.setPriorityIndex(10);
-		// root.setName("PATIENTSET");
-		// roolt.getResultOutput().add(root);
-		//
-		// String queryId = null;
-		// try {
-		// MasterInstanceResultResponseType mirrt = crcCell
-		// .runQueryInstanceFromQueryDefinition(client, null, null,
-		// "IRCT", null, "ANY", 0, roolt,
-		// panels.toArray(new PanelType[panels.size()]));
-		//
-		// queryId =
-		// mirrt.getQueryResultInstance().get(0).getResultInstanceId();
-		// } catch (JAXBException | IOException | I2B2InterfaceException e) {
-		// throw new ResourceInterfaceException(
-		// "Error traversing relationship", e);
-		// }
-		//
-		// ActionState as = new ActionState();
-		// as.setResourceId(queryId);
-		// return as;
-		return null;
+		result.setResultStatus(ResultStatus.CREATED);
+		String projectId = "";
+
+		// Create the query
+		ArrayList<PanelType> panels = new ArrayList<PanelType>();
+		int panelCount = 1;
+
+		try {
+			PanelType currentPanel = createPanel(panelCount);
+
+			for (ClauseAbstract clause : qep.getClauses().values()) {
+				if (clause instanceof WhereClause) {
+					// Get the projectId if it isn't already set
+					if (projectId.equals("")) {
+						String[] pathComponents = ((WhereClause) clause)
+								.getField().getPui().split("/");
+						projectId = pathComponents[2];
+					}
+					WhereClause whereClause = (WhereClause) clause;
+					ItemType itemType = createItemTypeFromWhereClause((WhereClause) clause);
+
+					// FIRST
+					if (panels.isEmpty() && currentPanel.getItem().isEmpty()) {
+						currentPanel.getItem().add(itemType);
+					} else if (whereClause.getLogicalOperator() == LogicalOperator.AND) {
+						panels.add(currentPanel);
+						currentPanel = createPanel(panelCount++);
+						currentPanel.getItem().add(itemType);
+					} else if (whereClause.getLogicalOperator() == LogicalOperator.OR) {
+						currentPanel.getItem().add(itemType);
+					} else if (whereClause.getLogicalOperator() == LogicalOperator.NOT) {
+						panels.add(currentPanel);
+						currentPanel = createPanel(panelCount++);
+						currentPanel.getItem().add(itemType);
+						currentPanel.setInvert(1);
+						panels.add(currentPanel);
+						currentPanel = createPanel(panelCount++);
+					}
+				}
+			}
+			if (currentPanel.getItem().size() != 0) {
+				panels.add(currentPanel);
+			}
+		} catch (DatatypeConfigurationException e) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage(e.getMessage());
+		}
+
+		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
+		ResultOutputOptionType root = new ResultOutputOptionType();
+		root.setPriorityIndex(10);
+		root.setName("PATIENTSET");
+		roolt.getResultOutput().add(root);
+
+		try {
+			CRCCell crcCell = createCRCCell(projectId, session.getUser()
+					.getName());
+			MasterInstanceResultResponseType mirrt = crcCell
+					.runQueryInstanceFromQueryDefinition(client, null, null,
+							"IRCT", null, "ANY", 0, roolt,
+							panels.toArray(new PanelType[panels.size()]));
+
+			String resultId = mirrt.getQueryResultInstance().get(0)
+					.getResultInstanceId();
+			String queryId = mirrt.getQueryResultInstance().get(0)
+					.getQueryInstanceId();
+			result.setResourceActionId(projectId + "|" + queryId + "|"
+					+ resultId);
+			result.setResultStatus(ResultStatus.RUNNING);
+		} catch (JAXBException | IOException | I2B2InterfaceException e) {
+			System.out.println(e.getMessage());
+			result.setResultStatus(ResultStatus.ERROR);
+		}
+		return result;
 	}
 
-	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) {
+	@Override
+	public Result getResults(SecureSession session, Result result)
+			throws ResourceInterfaceException {
+		HttpClient client = createClient(session);
+
+		String resultInstanceId = result.getResourceActionId();
+		String projectId = resultInstanceId.split("\\|")[0];
+		String queryId = resultInstanceId.split("\\|")[1];
+		String resultId = resultInstanceId.split("\\|")[2];
+
+		try {
+			CRCCell crcCell = createCRCCell(projectId, session.getUser()
+					.getName());
+
+			// Is Query Master List Complete?
+
+			InstanceResponseType instanceResponse = crcCell
+					.getQueryInstanceListFromQueryId(client, queryId);
+			String instanceResultStatusType = instanceResponse
+					.getQueryInstance().get(0).getQueryStatusType().getName();
+
+			switch (instanceResultStatusType) {
+			case "RUNNING":
+				result.setResultStatus(ResultStatus.RUNNING);
+				return result;
+			case "ERROR":
+			case "INCOMPLETE":
+				result.setResultStatus(ResultStatus.ERROR);
+				result.setMessage(instanceResultStatusType);
+				return result;
+			}
+
+			// Is Query Result instance list complete?
+
+			QueryResultInstanceType queryResultInstance = crcCell
+					.getQueryResultInstanceListFromQueryInstanceId(client,
+							queryId).get(0);
+
+			String queryResultInstanceStatusType = queryResultInstance
+					.getQueryStatusType().getName();
+			switch (queryResultInstanceStatusType) {
+			case "RUNNING":
+				result.setResultStatus(ResultStatus.RUNNING);
+				return result;
+			case "ERROR":
+				result.setResultStatus(ResultStatus.ERROR);
+				return result;
+			}
+
+			// Get PDO List
+			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
+					resultId, 0, 100000, false, false, false,
+					OutputOptionSelectType.USING_INPUT_LIST);
+
+			result = convertPatientSetToResultSet(pdrt, result);
+			result.setResultStatus(ResultStatus.COMPLETE);
+		} catch (JAXBException | I2B2InterfaceException | IOException
+				| ResultSetException | PersistableException e) {
+			result.setResultStatus(ResultStatus.ERROR);
+			System.out.println(e.getMessage());
+		}
+
+		return result;
+	}
+
+	@Override
+	public ResourceState getState() {
+		return resourceState;
+	}
+
+	@Override
+	public ResultDataType getQueryDataType() {
+		return ResultDataType.TABULAR;
+	}
+
+	// -------------------------------------------------------------------------
+	// Utility Methods
+	// -------------------------------------------------------------------------
+
+	private ItemType createItemTypeFromWhereClause(WhereClause whereClause)
+			throws DatatypeConfigurationException {
 		ItemType item = new ItemType();
-		// item.setItemKey(whereClause.getField().getPui()
-		// .replaceAll(getServerName() + "/", "").replace('/', '\\'));
-		// item.setItemName(item.getItemKey());
-		// item.setItemIsSynonym(false);
-		// if (whereClause.getPredicateType() != null) {
-		// if (whereClause.getPredicateType().getName()
-		// .equals("CONSTRAIN_MODIFIER")) {
-		// item.setConstrainByModifier(createConstrainByModifier(whereClause));
-		// } else if (whereClause.getPredicateType().getName()
-		// .equals("CONSTRAIN_VALUE")) {
-		// item.getConstrainByValue().add(
-		// createConstrainByValue(whereClause));
-		// } else if (whereClause.getPredicateType().getName()
-		// .equals("CONSTRAIN_DATE")) {
-		// item.getConstrainByDate().add(
-		// createConstrainByDate(whereClause));
-		// }
-		// }
+		String myPath = getPathFromField(whereClause.getField());
+
+		item.setItemKey(myPath);
+		item.setItemName(myPath);
+
+		item.setItemIsSynonym(false);
+		if (whereClause.getPredicateType() != null) {
+			if (whereClause.getPredicateType().getName()
+					.equals("CONSTRAIN_MODIFIER")) {
+				item.setConstrainByModifier(createConstrainByModifier(whereClause));
+			} else if (whereClause.getPredicateType().getName()
+					.equals("CONSTRAIN_VALUE")) {
+				item.getConstrainByValue().add(
+						createConstrainByValue(whereClause, whereClause.getField().getDataType()));
+			} else if (whereClause.getPredicateType().getName()
+					.equals("CONSTRAIN_DATE")) {
+				item.getConstrainByDate().add(
+						createConstrainByDate(whereClause));
+			}
+		}
 		return item;
+	}
+
+	private ItemType.ConstrainByValue createConstrainByValue(
+			WhereClause whereClause, DataType dataType) {
+		ItemType.ConstrainByValue cbv = new ItemType.ConstrainByValue();
+		// value_operator
+		cbv.setValueOperator(ConstrainOperatorType.fromValue(whereClause
+				.getStringValues().get("OPERATOR")));
+		// value_constraint
+		cbv.setValueConstraint(whereClause.getStringValues().get(
+				"CONSTRAINT"));
+		// value_unit_of_measure
+		cbv.setValueUnitOfMeasure(whereClause.getStringValues().get(
+				"UNIT_OF_MEASURE"));
+		// value_type
+		if((dataType.toString().equals("INTEGER")) || (dataType.toString().equals("LONG"))) {
+			cbv.setValueType(ConstrainValueType.NUMBER);
+		} else if(dataType.toString().equals("STRING")) {
+			cbv.setValueType(ConstrainValueType.TEXT);
+		}
+
+		return cbv;
+	}
+
+	private ItemType.ConstrainByModifier createConstrainByModifier(
+			WhereClause whereClause) {
+		String modifierPath = getPathFromString(whereClause.getStringValues().get("MODIFIER_KEY"));
+		ItemType.ConstrainByModifier cbm = new ItemType.ConstrainByModifier();
+		cbm.setModifierKey(modifierPath);
+		return cbm;
+	}
+
+	private ItemType.ConstrainByDate createConstrainByDate(
+			WhereClause whereClause) throws DatatypeConfigurationException {
+		ItemType.ConstrainByDate cbd = new ItemType.ConstrainByDate();
+		ConstrainDateType from = new ConstrainDateType();
+		from.setInclusive(InclusiveType.fromValue(whereClause.getStringValues()
+				.get("FROM_INCLUSIVE")));
+		from.setTime(ConstrainDateTimeType.fromValue(whereClause
+				.getStringValues().get("FROM_TIME")));
+
+		from.setValue(DatatypeFactory.newInstance().newXMLGregorianCalendar(
+				whereClause.getStringValues().get("FROM_DATE")));
+
+		cbd.setDateFrom(from);
+
+		ConstrainDateType to = new ConstrainDateType();
+		to.setInclusive(InclusiveType.fromValue(whereClause.getStringValues()
+				.get("TO_INCLUSIVE")));
+		to.setTime(ConstrainDateTimeType.fromValue(whereClause
+				.getStringValues().get("TO_TIME")));
+		to.setValue(DatatypeFactory.newInstance().newXMLGregorianCalendar(
+				whereClause.getStringValues().get("TO_DATE")));
+		cbd.setDateTo(to);
+		return cbd;
+	}
+
+	private String getResourcePathFromPUI(String pui) {
+		String[] pathComponents = pui.split("/");
+
+		if (pathComponents.length <= 2) {
+			return null;
+		}
+		String myPath = "";
+
+		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3,
+				pathComponents.length)) {
+			myPath += "\\" + pathComponent;
+		}
+
+		return myPath;
+	}
+
+	private Result convertPatientSetToResultSet(
+			PatientDataResponseType patientDataResponse, Result result)
+			throws ResultSetException, PersistableException {
+		PatientSet patientSet = patientDataResponse.getPatientData()
+				.getPatientSet();
+
+		FileResultSet mrs = (FileResultSet) result.getData();
+
+		if (patientSet.getPatient().size() == 0) {
+			return result;
+		}
+		PatientType columnPT = patientSet.getPatient().get(0);
+		Column idColumn = new Column();
+		idColumn.setName("Patient Id");
+		idColumn.setDataType(PrimitiveDataType.STRING);
+		mrs.appendColumn(idColumn);
+		for (ParamType paramType : columnPT.getParam()) {
+			Column column = new Column();
+			column.setName(paramType.getColumn());
+			column.setDataType(PrimitiveDataType.STRING);
+			mrs.appendColumn(column);
+		}
+
+		for (PatientType patientType : patientSet.getPatient()) {
+			mrs.appendRow();
+			mrs.updateString("Patient Id", patientType.getPatientId()
+					.getValue());
+			for (ParamType paramType : patientType.getParam()) {
+				mrs.updateString(paramType.getColumn(), paramType.getValue());
+			}
+		}
+
+		result.setData(mrs);
+		return result;
+	}
+
+	private String getPathFromField(Entity field) {
+		return getPathFromString(field.getPui());
+	}
+	
+	private String getPathFromString(String pathString) {
+		String[] pathComponents = pathString.split("/");
+		String myPath = "\\";
+		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3,
+				pathComponents.length)) {
+			myPath += "\\" + pathComponent;
+		}
+
+		return myPath;
 	}
 
 	private PanelType createPanel(int panelItem) {
@@ -380,128 +641,6 @@ public class I2B2XMLResourceImplementation implements
 
 		return panel;
 	}
-
-	@Override
-	public Result getResults(SecureSession session, Result result)
-			throws ResourceInterfaceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ResourceState getState() {
-		return resourceState;
-	}
-
-	@Override
-	public JsonObject toJson() {
-		return toJson(1);
-	}
-
-	@Override
-	public JsonObject toJson(int depth) {
-		JsonObjectBuilder returnJSON = Json.createObjectBuilder();
-
-		return returnJSON.build();
-	}
-
-	@Override
-	public List<Entity> getReturnEntity() {
-		List<Entity> returnEntity = new ArrayList<Entity>();
-		// Patient Id
-		Entity patientId = new Entity();
-		patientId.setName("Patient Id");
-		patientId.setPui("Patient Id");
-		patientId.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(patientId);
-
-		// vital_status_cd
-		Entity vitalStatusCd = new Entity();
-		vitalStatusCd.setName("Vital Status");
-		vitalStatusCd.setPui("vital_status_cd");
-		vitalStatusCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(vitalStatusCd);
-
-		// language_cd
-		Entity languageCd = new Entity();
-		languageCd.setName("Language");
-		languageCd.setPui("language_cd");
-		languageCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(languageCd);
-
-		// birth_date
-		Entity birthDate = new Entity();
-		birthDate.setName("Birth Date");
-		birthDate.setPui("birth_date");
-		birthDate.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(birthDate);
-
-		// race_cd
-		Entity raceCd = new Entity();
-		raceCd.setName("Race");
-		raceCd.setPui("race_cd");
-		raceCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(raceCd);
-
-		// religion_cd
-		Entity religionCd = new Entity();
-		religionCd.setName("Religion");
-		religionCd.setPui("Religion");
-		religionCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(religionCd);
-
-		// income_cd
-		Entity incomeCd = new Entity();
-		incomeCd.setName("Income");
-		incomeCd.setPui("income_cd");
-		incomeCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(incomeCd);
-
-		// statecityzip_path
-		Entity stateCityCd = new Entity();
-		stateCityCd.setName("State, City Zip");
-		stateCityCd.setPui("statecityzip_path");
-		stateCityCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(stateCityCd);
-
-		// zip_cd
-		Entity zipCd = new Entity();
-		zipCd.setName("Zip");
-		zipCd.setPui("zip_cd");
-		zipCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(zipCd);
-
-		// marital_status_cd
-		Entity maritalCd = new Entity();
-		maritalCd.setName("marital_status_cd");
-		maritalCd.setPui("marital_status_cd");
-		maritalCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(maritalCd);
-
-		// age_in_years_num
-		Entity ageCd = new Entity();
-		ageCd.setName("Age");
-		ageCd.setPui("age_in_years_num");
-		ageCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(ageCd);
-
-		// sex_cd
-		Entity sexCd = new Entity();
-		sexCd.setName("Sex");
-		sexCd.setPui("sex_cd");
-		sexCd.setDataType(PrimitiveDataType.STRING);
-		returnEntity.add(sexCd);
-		return returnEntity;
-	}
-
-	@Override
-	public Boolean editableReturnEntity() {
-		return false;
-	}
-
-	// -------------------------------------------------------------------------
-	// Utility Methods
-	// -------------------------------------------------------------------------
 
 	private List<Entity> convertConceptsTypeToEntities(String basePath,
 			ConceptsType conceptsType) {
@@ -592,6 +731,53 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns;
 	}
+	
+	private List<Entity> convertModifiersTypeToEntities(String basePath, ModifiersType modifiersType) {
+		List<Entity> returns = new ArrayList<Entity>();
+		if (modifiersType == null) {
+			return returns;
+		}
+		for (ModifierType modifier : modifiersType.getModifier()) {
+			Entity returnEntity = new Entity();
+			returnEntity.setName(modifier.getName());
+			String appendPath = converti2b2Path(modifier.getKey());
+			returnEntity.setPui(basePath + appendPath);
+			
+			
+			if (modifier.getColumndatatype().equals("T")) {
+				returnEntity.setDataType(PrimitiveDataType.STRING);
+			}
+
+			Map<String, String> attributes = new HashMap<String, String>();
+
+			attributes.put("appliedPath", modifier.getAppliedPath());
+			attributes.put("baseCode", modifier.getBasecode());
+			attributes.put("columnName", modifier.getColumnname());
+			attributes.put("comment", modifier.getComment());
+			attributes.put("dimCode", modifier.getDimcode());
+			// attributes.put("downloadDate", modifier.getDownloadDate());
+			attributes.put("factTableColumn", modifier.getFacttablecolumn());
+			attributes.put("fullName", modifier.getFullname());
+			// attributes.put("importDate", modifier.getImportDate());
+			attributes.put("level", Integer.toString(modifier.getLevel()));
+			// attributes.put("metadataXML", modifier.getMetadataxml());
+			attributes.put("operator", modifier.getOperator());
+			attributes.put("sourceSystemCd", modifier.getSourcesystemCd());
+			attributes.put("synonymCd", modifier.getSynonymCd());
+			attributes.put("tableName", modifier.getTablename());
+			attributes.put("toolTip", modifier.getTooltip());
+			if (modifier.getTotalnum() != null) {
+				attributes.put("totalNum",
+						Integer.toString(modifier.getTotalnum()));
+			}
+			// attributes.put("updateDate", modifier.getUpdateDate());
+			attributes.put("visualAttributes", modifier.getVisualattributes());
+			returnEntity.setAttributes(attributes);
+			returns.add(returnEntity);
+		}
+
+		return returns;
+	}
 
 	private String converti2b2Path(String i2b2Path) {
 		return i2b2Path.replaceAll("\\\\\\\\", "/").replace('\\', '/');
@@ -622,13 +808,17 @@ public class I2B2XMLResourceImplementation implements
 		return ontCell.getCodeInfo(client, true, category, false, "exact",
 				ontologyType + ":" + ontologyTerm, -1, null, true, "core");
 	}
-	
-	private CRCCell createCRCCell(String projectId) throws JAXBException {
+
+	private CRCCell createCRCCell(String projectId, String userName)
+			throws JAXBException {
 		CRCCell crcCell = new CRCCell();
-		if(this.useProxy) {
-			crcCell.setup(this.resourceURL, this.domain, userName, password, projectId, this.useProxy, this.proxyURL + "/QueryToolService");
+		if (this.useProxy) {
+			crcCell.setup(this.resourceURL, this.domain, userName, "",
+					projectId, this.useProxy, this.proxyURL
+							+ "/QueryToolService");
 		} else {
-			crcCell.setup(this.resourceURL, this.domain, this.userName, this.password, projectId, false, null);
+			crcCell.setup(this.resourceURL, this.domain, this.userName,
+					this.password, projectId, false, null);
 		}
 		return crcCell;
 	}
@@ -676,5 +866,4 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns.build();
 	}
-
 }
