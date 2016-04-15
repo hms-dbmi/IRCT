@@ -132,9 +132,16 @@ public class QueryService implements Serializable {
 		jsonReader.close();
 
 		String path = null;
+		String dataType = null;
 		if(object.containsKey("field")) {
 			path = object.getJsonObject("field").getString("pui");
+			if(object.getJsonObject("field").containsKey("dataType")) {
+				dataType = object.getJsonObject("field").getString("dataType");
+			}
 		}
+		
+		
+		
 		
 		Long clauseId = null;
 		if(object.containsKey("clauseId")) {
@@ -148,6 +155,9 @@ public class QueryService implements Serializable {
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
 			field = new Entity(path);
+			if(dataType != null) {
+				field.setDataType(resource.getDataTypeByName(dataType));
+			}
 		}
 		if ((resource == null) || (field == null)) {
 			response.add("status", "Invalid Request");
