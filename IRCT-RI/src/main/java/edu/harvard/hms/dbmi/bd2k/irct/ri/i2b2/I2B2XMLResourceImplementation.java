@@ -87,6 +87,9 @@ public class I2B2XMLResourceImplementation implements
 	private String proxyURL;
 	private String userName;
 	private String password;
+	private CRCCell crcCell;
+	private PMCell pmCell;
+	private ONTCell ontCell;
 
 	private ResourceState resourceState;
 
@@ -110,6 +113,20 @@ public class I2B2XMLResourceImplementation implements
 			this.useProxy = true;
 		}
 
+		//Setup Cells
+		try {
+			crcCell = new CRCCell();
+			ontCell = new ONTCell();
+			pmCell = new PMCell();
+			crcCell.setup();
+			ontCell.setup();
+			pmCell.setup();
+			
+		} catch (JAXBException e) {
+			throw new ResourceInterfaceException(e);
+		}
+		
+		
 		resourceState = ResourceState.READY;
 	}
 
@@ -134,7 +151,7 @@ public class I2B2XMLResourceImplementation implements
 			if (relationship == I2B2OntologyRelationship.CHILD) {
 				// If first then get projects
 				if (pathComponents.length == 2) {
-					PMCell pmCell = createPMCell();
+					pmCell = createPMCell();
 					ConfigureType configureType = pmCell.getUserConfiguration(
 							client, null, new String[] { "undefined" });
 					for (ProjectType pt : configureType.getUser().getProject()) {
@@ -147,7 +164,7 @@ public class I2B2XMLResourceImplementation implements
 					}
 
 				} else {
-					ONTCell ontCell = createOntCell(pathComponents[2]);
+					ontCell = createOntCell(pathComponents[2]);
 
 					ConceptsType conceptsType = null;
 
@@ -184,7 +201,7 @@ public class I2B2XMLResourceImplementation implements
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
-				ONTCell ontCell = createOntCell(pathComponents[2]);
+				ontCell = createOntCell(pathComponents[2]);
 				ModifiersType modifiersType = ontCell.getModifiers(client, false, false, null, -1, resourcePath, false, null);
 				entities = convertModifiersTypeToEntities(basePath, modifiersType);
 			} else if (relationship == I2B2OntologyRelationship.TERM) {
@@ -197,7 +214,7 @@ public class I2B2XMLResourceImplementation implements
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
-				ONTCell ontCell = createOntCell(pathComponents[2]);
+				ontCell = createOntCell(pathComponents[2]);
 				
 				
 				ConceptsType conceptsType = null;
@@ -210,7 +227,7 @@ public class I2B2XMLResourceImplementation implements
 			}
 		} catch (JAXBException | UnsupportedOperationException
 				| I2B2InterfaceException | IOException e) {
-			e.printStackTrace();
+			throw new ResourceInterfaceException(e.getMessage());
 		}
 
 		return entities;
@@ -238,7 +255,7 @@ public class I2B2XMLResourceImplementation implements
 		try {
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
-				PMCell pmCell = createPMCell();
+				pmCell = createPMCell();
 				ConfigureType configureType = pmCell.getUserConfiguration(
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
@@ -275,7 +292,7 @@ public class I2B2XMLResourceImplementation implements
 			}
 		} catch (JAXBException | UnsupportedOperationException
 				| I2B2InterfaceException | IOException e) {
-			e.printStackTrace();
+			throw new ResourceInterfaceException(e.getMessage());
 		}
 		return entities;
 	}
@@ -288,7 +305,7 @@ public class I2B2XMLResourceImplementation implements
 		try {
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
-				PMCell pmCell = createPMCell();
+				pmCell = createPMCell();
 				ConfigureType configureType = pmCell.getUserConfiguration(
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
@@ -316,7 +333,7 @@ public class I2B2XMLResourceImplementation implements
 			}
 		} catch (JAXBException | UnsupportedOperationException
 				| I2B2InterfaceException | IOException e) {
-			e.printStackTrace();
+			throw new ResourceInterfaceException(e.getMessage());
 		}
 		return entities;
 	}
@@ -381,7 +398,7 @@ public class I2B2XMLResourceImplementation implements
 		roolt.getResultOutput().add(root);
 
 		try {
-			CRCCell crcCell = createCRCCell(projectId, session.getUser()
+			crcCell = createCRCCell(projectId, session.getUser()
 					.getName());
 			MasterInstanceResultResponseType mirrt = crcCell
 					.runQueryInstanceFromQueryDefinition(client, null, null,
@@ -396,7 +413,6 @@ public class I2B2XMLResourceImplementation implements
 					+ resultId);
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
-			System.out.println(e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
 		return result;
@@ -413,7 +429,7 @@ public class I2B2XMLResourceImplementation implements
 		String resultId = resultInstanceId.split("\\|")[2];
 
 		try {
-			CRCCell crcCell = createCRCCell(projectId, session.getUser()
+			crcCell = createCRCCell(projectId, session.getUser()
 					.getName());
 
 			// Is Query Master List Complete?
@@ -460,8 +476,8 @@ public class I2B2XMLResourceImplementation implements
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (JAXBException | I2B2InterfaceException | IOException
 				| ResultSetException | PersistableException e) {
+			result.setMessage(e.getLocalizedMessage());
 			result.setResultStatus(ResultStatus.ERROR);
-			System.out.println(e.getMessage());
 		}
 
 		return result;
@@ -811,38 +827,32 @@ public class I2B2XMLResourceImplementation implements
 
 	private CRCCell createCRCCell(String projectId, String userName)
 			throws JAXBException {
-		CRCCell crcCell = new CRCCell();
 		if (this.useProxy) {
-			crcCell.setup(this.resourceURL, this.domain, userName, "",
+			crcCell.setupConnection(this.resourceURL, this.domain, userName, "",
 					projectId, this.useProxy, this.proxyURL
 							+ "/QueryToolService");
 		} else {
-			crcCell.setup(this.resourceURL, this.domain, this.userName,
+			crcCell.setupConnection(this.resourceURL, this.domain, this.userName,
 					this.password, projectId, false, null);
 		}
 		return crcCell;
 	}
 
 	private ONTCell createOntCell(String projectId) throws JAXBException {
-		ONTCell ontCell = new ONTCell();
 		if (this.useProxy) {
-			ontCell.setup(this.resourceURL, this.domain, "", "", projectId,
-					this.useProxy, this.proxyURL + "/OntologyService");
+			ontCell.setupConnection(this.resourceURL, this.domain, "", "", projectId, this.useProxy, this.proxyURL + "/OntologyService");
 		} else {
-			ontCell.setup(this.resourceURL, this.domain, this.userName,
+			ontCell.setupConnection(this.resourceURL, this.domain, this.userName,
 					this.password, projectId, false, null);
 		}
 		return ontCell;
 	}
 
 	private PMCell createPMCell() throws JAXBException {
-		PMCell pmCell = new PMCell();
 		if (this.useProxy) {
-			pmCell.setup(this.resourceURL, this.domain, "", "", this.useProxy,
-					this.proxyURL + "/PMService");
+			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "", this.useProxy, this.proxyURL + "/PMService");
 		} else {
-			pmCell.setup(this.resourceURL, this.domain, this.userName,
-					this.password, false, null);
+			pmCell.setupConnection(this.resourceURL, this.domain, this.userName, this.password, "", false, null);
 		}
 		return pmCell;
 	}
