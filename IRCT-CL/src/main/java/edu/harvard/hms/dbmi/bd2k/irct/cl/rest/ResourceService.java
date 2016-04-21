@@ -145,7 +145,7 @@ public class ResourceService {
 	@GET
 	@Path("/path{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response regionArea(@PathParam("path") String path,
+	public Response path(@PathParam("path") String path,
 			@QueryParam("relationship") String relationshipString,
 			@QueryParam("searchTerm") String searchTerm,
 			@QueryParam("searchOntologyType") String ontologyType,
