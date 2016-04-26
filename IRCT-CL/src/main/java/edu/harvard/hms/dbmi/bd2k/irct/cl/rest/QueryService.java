@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
@@ -5,7 +8,6 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.enterprise.context.Conversation;
 import javax.enterprise.context.ConversationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -42,9 +44,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 @Named
 public class QueryService implements Serializable {
 	private static final long serialVersionUID = -3951500710489406681L;
-
-	@Inject
-	private Conversation conversation;
 
 	@Inject
 	private QueryController qc;
@@ -194,12 +193,7 @@ public class QueryService implements Serializable {
 	public Response clause(@QueryParam(value = "type") String type,
 			@Context UriInfo info) {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		if (conversation.isTransient()) {
-			response.add("status", "Invalid Conversation");
-			response.add("message", "Invalid or missing conversation id");
-			return Response.status(400).entity(response.build()).build();
-		}
-
+		
 		MultivaluedMap<String, String> queryParameters = info
 				.getQueryParameters();
 

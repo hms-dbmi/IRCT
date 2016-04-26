@@ -181,7 +181,7 @@ public class ResourceService {
 						"Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
 								+ e.getMessage());
-				return invalidRequest();
+				return invalidRequest(e.getMessage());
 			}
 		} else if (searchTerm != null) {
 			try {
@@ -224,12 +224,20 @@ public class ResourceService {
 				.build();
 
 	}
-
+	
 	private Response invalidRequest() {
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		build.add("status", "Invalid Request");
 		build.add("message",
-				"The request submitted is not correctly formatted.");
+				"The request submitted returned an error");
+		return Response.status(400).entity(build.build()).build();
+	}
+
+	private Response invalidRequest(String message) {
+		JsonObjectBuilder build = Json.createObjectBuilder();
+		build.add("status", "Invalid Request");
+		build.add("message",
+				"The request submitted returned an error: " + message);
 		return Response.status(400).entity(build.build()).build();
 	}
 }

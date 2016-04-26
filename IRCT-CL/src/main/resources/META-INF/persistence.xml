@@ -41,12 +41,13 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.result.DataConverterImplementation</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- Properties for Hibernate -->
          <property name="hibernate.hbm2ddl.auto" value="update" />
-         <property name="hibernate.show_sql" value="true" />
-         <property name="hibernate.format_sql" value="true" />
+         <property name="hibernate.show_sql" value="false" />
+         <property name="hibernate.format_sql" value="false" />
          <property name="hibernate.connection.autocommit" value="false" />
       </properties>
    </persistence-unit>
