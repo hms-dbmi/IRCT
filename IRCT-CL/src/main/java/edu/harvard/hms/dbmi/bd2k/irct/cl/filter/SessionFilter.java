@@ -44,6 +44,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 public class SessionFilter implements Filter {
 	private String clientId;
 	private String clientSecret;
+	private String userField;
 
 	@Inject
 	private ServletContext context;
@@ -55,6 +56,7 @@ public class SessionFilter implements Filter {
 	public void init(FilterConfig fliterConfig) throws ServletException {
 		this.clientSecret = context.getInitParameter("client_secret");
 		this.clientId = context.getInitParameter("client_id");
+		this.userField = context.getInitParameter("userField");
 	}
 
 	@Override
@@ -85,7 +87,7 @@ public class SessionFilter implements Filter {
 				}
 				
 				user = sc.getUser(email);
-				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer");
+				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer", this.clientId);
 				SecureSession secureSession = new SecureSession();
 				secureSession.setToken(token);
 				secureSession.setUser(user);
@@ -102,7 +104,7 @@ public class SessionFilter implements Filter {
 				HttpSession session = ((HttpServletRequest) req).getSession();
 				
 				User user = sc.getUser(name);
-				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer");
+				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer", this.clientId);
 				SecureSession secureSession = new SecureSession();
 				secureSession.setToken(token);
 				secureSession.setUser(user);
@@ -113,16 +115,6 @@ public class SessionFilter implements Filter {
 			}
 
 		}
-		// FOR DEBUGGING PURPOSES ONLY
-//		HttpSession session = ((HttpServletRequest) req).getSession();
-//		User user = sc.getUser("Jeremy_Easton-Marks@hms.harvard.edu");
-//		Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer");
-//		SecureSession secureSession = new SecureSession();
-//		secureSession.setToken(token);
-//		secureSession.setUser(user);
-//		session.setAttribute("user", user);
-//		session.setAttribute("token", token);
-//		session.setAttribute("secureSession", secureSession);
 		
 		fc.doFilter(req, res);
 	}
@@ -152,12 +144,12 @@ public class SessionFilter implements Filter {
 				Map<String, Object> decodedPayload = new JWTVerifier(secret,
 						this.clientId).verify(token);
 
-				return (String) decodedPayload.get("email");
+				return (String) decodedPayload.get(this.userField);
 
 			} catch (InvalidKeyException | NoSuchAlgorithmException
 					| IllegalStateException | SignatureException | IOException
 					| JWTVerifyException e) {
-				e.printStackTrace();
+				System.out.println("TOKEN VALIDATION FAILED: " + e.getMessage());
 			}
 		}
 		return null;

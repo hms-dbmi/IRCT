@@ -132,6 +132,9 @@ public class SystemService {
 		}
 
 		// TODO: BUILD OUT
-		return null;
+		JsonObjectBuilder build = Json.createObjectBuilder();
+		build.add("status", "Not Implemented");
+		build.add("message", "This feature has not been implemented");
+		return Response.status(400).entity(build.build()).build();
 	}
 }

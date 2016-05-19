@@ -32,6 +32,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
+/**
+ * Creates a REST interface for the resource service
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 @Path("/resourceService")
 @RequestScoped
 public class ResourceService {
@@ -50,9 +56,11 @@ public class ResourceService {
 
 	/**
 	 * Returns a list of all resources. If a type is chosen then only resources
-	 * of that type will be returned.
+	 * of that type will be returned. Type of resources to return can also be
+	 * specified using the type field.
 	 * 
-	 * 
+	 * @param type
+	 *            Type
 	 * @return Response
 	 */
 	@GET
@@ -96,6 +104,11 @@ public class ResourceService {
 				.build();
 	}
 
+	/**
+	 * Returns a list of categories that can be searched for
+	 * 
+	 * @return Category list
+	 */
 	@GET
 	@Path("/searchCategories")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -113,6 +126,13 @@ public class ResourceService {
 				.build();
 	}
 
+	/**
+	 * Searches the resources for ones that match a category
+	 * 
+	 * @param info
+	 *            URI information
+	 * @return List of resources that match that category
+	 */
 	@GET
 	@Path("/search")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -142,6 +162,22 @@ public class ResourceService {
 				.build();
 	}
 
+	/**
+	 * Returns a list of entities. This could be from traversing the paths, or
+	 * through searching for a term or an ontology.
+	 * 
+	 * @param path
+	 *            Path
+	 * @param relationshipString
+	 *            Relationship
+	 * @param searchTerm
+	 *            Search Term
+	 * @param ontologyType
+	 *            Ontology Type
+	 * @param ontologyTerm
+	 *            Ontology Term
+	 * @return List of entities
+	 */
 	@GET
 	@Path("/path{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -150,8 +186,7 @@ public class ResourceService {
 			@QueryParam("searchTerm") String searchTerm,
 			@QueryParam("searchOntologyType") String ontologyType,
 			@QueryParam("searchOntologyTerm") String ontologyTerm) {
-		
-		
+
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Entity> entities = null;
 
@@ -166,16 +201,15 @@ public class ResourceService {
 			resourcePath = new Entity(path);
 		}
 
-		if (resource != null && searchTerm == null && ontologyType == null && ontologyTerm == null) {
+		if (resource != null && searchTerm == null && ontologyType == null
+				&& ontologyTerm == null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
 			try {
-				entities = pc
-						.traversePath(resource, resourcePath, resource
-								.getRelationshipByName(relationshipString),
-								(SecureSession) session
-										.getAttribute("secureSession"));
+				entities = pc.traversePath(resource, resourcePath,
+						resource.getRelationshipByName(relationshipString),
+						(SecureSession) session.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
 				log.log(Level.INFO,
 						"Error in /resourceService/path/" + path
@@ -185,34 +219,30 @@ public class ResourceService {
 			}
 		} else if (searchTerm != null) {
 			try {
-				entities = pc
-						.searchForTerm(resource, resourcePath, searchTerm,
-								(SecureSession) session
-										.getAttribute("secureSession"));
+				entities = pc.searchForTerm(resource, resourcePath, searchTerm,
+						(SecureSession) session.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
 				log.log(Level.INFO, "Error in /resourceService/path/" + path
 						+ "?searchTerm=" + searchTerm + " : " + e.getMessage());
-				return invalidRequest();
+				return invalidRequest(null);
 			}
 		} else if (ontologyType != null && ontologyTerm != null) {
 			try {
-				entities = pc
-						.searchForOntology(resource, resourcePath,
-								ontologyType, ontologyTerm,
-								(SecureSession) session
-										.getAttribute("secureSession"));
+				entities = pc.searchForOntology(resource, resourcePath,
+						ontologyType, ontologyTerm,
+						(SecureSession) session.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
 				log.log(Level.INFO,
 						"Error in /resourceService/path/" + path
 								+ "?searchOntologyType=" + ontologyType
 								+ "&searchOntologyTerm" + ontologyTerm + " : "
 								+ e.getMessage());
-				return invalidRequest();
+				return invalidRequest(null);
 			}
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();
 		} else {
-			return invalidRequest();
+			return invalidRequest(null);
 		}
 
 		if (entities != null) {
@@ -224,20 +254,16 @@ public class ResourceService {
 				.build();
 
 	}
-	
-	private Response invalidRequest() {
-		JsonObjectBuilder build = Json.createObjectBuilder();
-		build.add("status", "Invalid Request");
-		build.add("message",
-				"The request submitted returned an error");
-		return Response.status(400).entity(build.build()).build();
-	}
 
 	private Response invalidRequest(String message) {
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		build.add("status", "Invalid Request");
-		build.add("message",
-				"The request submitted returned an error: " + message);
+		if (message == null) {
+			build.add("message", "The request submitted returned an error");
+		} else {
+			build.add("message", "The request submitted returned an error: "
+					+ message);
+		}
 		return Response.status(400).entity(build.build()).build();
 	}
 }

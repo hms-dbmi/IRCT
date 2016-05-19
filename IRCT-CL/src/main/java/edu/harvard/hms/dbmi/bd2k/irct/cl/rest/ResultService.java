@@ -25,6 +25,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
+/**
+ * Creates a REST interface for the result service
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 @Path("/resultService")
 @RequestScoped
 public class ResultService {
@@ -34,6 +40,11 @@ public class ResultService {
 	@Inject
 	private HttpSession session;
 
+	/**
+	 * Returns a list of available results for that user
+	 * 
+	 * @return Result List
+	 */
 	@GET
 	@Path("/available")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -53,6 +64,13 @@ public class ResultService {
 				.build();
 	}
 
+	/**
+	 * Returns the status of a result if it is available
+	 * 
+	 * @param resultId
+	 *            Id of the result
+	 * @return Status of the result
+	 */
 	@GET
 	@Path("/resultStatus/{resultId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -72,6 +90,13 @@ public class ResultService {
 				.build();
 	}
 
+	/**
+	 * Returns the list of available formats for a result if available
+	 * 
+	 * @param resultId
+	 *            Result Id
+	 * @return Array of formats
+	 */
 	@GET
 	@Path("/availableFormats/{resultId}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -88,7 +113,7 @@ public class ResultService {
 			return Response.ok(notFoundResponse.build(),
 					MediaType.APPLICATION_JSON).build();
 		}
-		
+
 		for (String availableFormat : availableFormats) {
 			response.add(availableFormat);
 		}
@@ -97,6 +122,19 @@ public class ResultService {
 				.build();
 	}
 
+	/**
+	 * Returns a result in the desired format if available. If download is set to
+	 * Yes then the file is returned with Content-Disposition set as attachment
+	 * and a file name.
+	 * 
+	 * @param resultId
+	 *            Result Id
+	 * @param format
+	 *            Format
+	 * @param download
+	 *            Download
+	 * @return Results in desired format
+	 */
 	@GET
 	@Path("/result/{resultId}/{format}")
 	public Response download(@PathParam("resultId") Long resultId,
@@ -117,8 +155,8 @@ public class ResultService {
 			return Response
 					.ok(rds.getResult(), rds.getMediaType())
 					.header("Content-Disposition",
-							"attachment; filename=IRCT-" + resultId + rds.getFileExtension())
-					.build();
+							"attachment; filename=IRCT-" + resultId
+									+ rds.getFileExtension()).build();
 		}
 
 		return Response.ok(rds.getResult(), rds.getMediaType()).build();

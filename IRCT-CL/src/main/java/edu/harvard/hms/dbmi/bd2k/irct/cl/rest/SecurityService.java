@@ -73,11 +73,17 @@ public class SecurityService implements Serializable {
 	private User user;
 	private Token token;
 
+	/**
+	 * Creates the initial security service
+	 */
 	public SecurityService() {
 		this.state = null;
 
 	}
 
+	/**
+	 * Following construction retrieves parameters from web.xml
+	 */
 	@PostConstruct
 	public void init() {
 		this.tokenUri = "https://" + context.getInitParameter("domain")
@@ -190,7 +196,7 @@ public class SecurityService implements Serializable {
 
 		return new JWT((String) tokenInfo.get("id_token"),
 				(String) tokenInfo.get("access_token"),
-				(String) tokenInfo.get("token_type"));
+				(String) tokenInfo.get("token_type"), this.clientId);
 	}
 
 	private User fetchUser(String accessToken) throws IOException,
