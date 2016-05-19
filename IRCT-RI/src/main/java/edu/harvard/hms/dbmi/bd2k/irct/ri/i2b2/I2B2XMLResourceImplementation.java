@@ -4,12 +4,18 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
@@ -17,7 +23,15 @@ import javax.xml.datatype.DatatypeFactory;
 import org.apache.http.Header;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -40,6 +54,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.security.SecurityUtility;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
@@ -64,7 +79,6 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptsType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifierType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.XmlValueType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
@@ -80,18 +94,22 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 public class I2B2XMLResourceImplementation implements
 		QueryResourceImplementationInterface,
 		PathResourceImplementationInterface {
-	private String resourceName;
-	private String resourceURL;
-	private String domain;
-	private boolean useProxy;
-	private String proxyURL;
-	private String userName;
-	private String password;
-	private CRCCell crcCell;
-	private PMCell pmCell;
-	private ONTCell ontCell;
 
-	private ResourceState resourceState;
+	protected String resourceName;
+	protected String resourceURL;
+	protected String domain;
+	protected String clientId;
+	protected String namespace;
+	protected boolean useProxy;
+	protected boolean ignoreCertificate;
+	protected String proxyURL;
+	protected String userName;
+	protected String password;
+	protected CRCCell crcCell;
+	protected PMCell pmCell;
+	protected ONTCell ontCell;
+
+	protected ResourceState resourceState;
 
 	@Override
 	public void setup(Map<String, String> parameters)
@@ -100,10 +118,14 @@ public class I2B2XMLResourceImplementation implements
 		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
 			throw new ResourceInterfaceException("Missing parameters");
 		}
+		
 		this.resourceName = parameters.get("resourceName");
 		this.resourceURL = parameters.get("resourceURL");
 		this.domain = parameters.get("domain");
+		this.clientId = parameters.get("clientId");
+		this.namespace = parameters.get("namespace");
 		this.proxyURL = parameters.get("proxyURL");
+		String certificateString = parameters.get("ignoreCertificate");
 
 		if (this.proxyURL == null) {
 			this.useProxy = false;
@@ -112,8 +134,14 @@ public class I2B2XMLResourceImplementation implements
 		} else {
 			this.useProxy = true;
 		}
+		
+		if (certificateString != null && certificateString.equals("true")) {
+			this.ignoreCertificate = true;
+		} else {
+			this.ignoreCertificate = false;
+		}
 
-		//Setup Cells
+		// Setup Cells
 		try {
 			crcCell = new CRCCell();
 			ontCell = new ONTCell();
@@ -121,12 +149,11 @@ public class I2B2XMLResourceImplementation implements
 			crcCell.setup();
 			ontCell.setup();
 			pmCell.setup();
-			
+
 		} catch (JAXBException e) {
 			throw new ResourceInterfaceException(e);
 		}
-		
-		
+
 		resourceState = ResourceState.READY;
 	}
 
@@ -140,13 +167,11 @@ public class I2B2XMLResourceImplementation implements
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
 		List<Entity> entities = new ArrayList<Entity>();
-
 		// Build
 		HttpClient client = createClient(session);
 		String basePath = path.getPui();
 		String[] pathComponents = basePath.split("/");
-		
-		
+
 		try {
 			if (relationship == I2B2OntologyRelationship.CHILD) {
 				// If first then get projects
@@ -156,7 +181,11 @@ public class I2B2XMLResourceImplementation implements
 							client, null, new String[] { "undefined" });
 					for (ProjectType pt : configureType.getUser().getProject()) {
 						Entity entity = new Entity();
-						entity.setPui(path.getPui() + pt.getPath());
+						if(pt.getPath() == null) {
+							entity.setPui(path.getPui() + "/" + pt.getName());
+						} else {
+							entity.setPui(path.getPui() + pt.getPath());
+						}
 						entity.setDisplayName(pt.getName());
 						entity.setName(pt.getId());
 						entity.setDescription(pt.getDescription());
@@ -193,40 +222,41 @@ public class I2B2XMLResourceImplementation implements
 
 			} else if (relationship == I2B2OntologyRelationship.MODIFIER) {
 				String resourcePath = getResourcePathFromPUI(basePath);
-				
-				if(resourcePath == null) {
+
+				if (resourcePath == null) {
 					return entities;
 				}
-				
+
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
 				ontCell = createOntCell(pathComponents[2]);
-				ModifiersType modifiersType = ontCell.getModifiers(client, false, false, null, -1, resourcePath, false, null);
-				entities = convertModifiersTypeToEntities(basePath, modifiersType);
+				ModifiersType modifiersType = ontCell.getModifiers(client,
+						false, false, null, -1, resourcePath, false, null);
+				entities = convertModifiersTypeToEntities(basePath,
+						modifiersType);
 			} else if (relationship == I2B2OntologyRelationship.TERM) {
 				String resourcePath = getResourcePathFromPUI(basePath);
-				
-				if(resourcePath == null) {
+
+				if (resourcePath == null) {
 					return entities;
 				}
-				
+
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
 				ontCell = createOntCell(pathComponents[2]);
-				
-				
+
 				ConceptsType conceptsType = null;
-				
-				conceptsType = ontCell.getTermInfo(client, true, resourcePath, true, -1, true, "core");
+
+				conceptsType = ontCell.getTermInfo(client, true, resourcePath,
+						true, -1, true, "core");
 				entities = convertConceptsTypeToEntities(basePath, conceptsType);
 			} else {
 				throw new ResourceInterfaceException(relationship.toString()
 						+ " not supported by this resource");
 			}
-		} catch (JAXBException | UnsupportedOperationException
-				| I2B2InterfaceException | IOException e) {
+		} catch (Exception e) {
 			throw new ResourceInterfaceException(e.getMessage());
 		}
 
@@ -297,6 +327,7 @@ public class I2B2XMLResourceImplementation implements
 		return entities;
 	}
 
+	@Override
 	public List<Entity> searchOntology(Entity path, String ontologyType,
 			String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
@@ -339,7 +370,7 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query qep, Result result)
+	public Result runQuery(SecureSession session, Query query, Result result)
 			throws ResourceInterfaceException {
 		// Initial setup
 		HttpClient client = createClient(session);
@@ -353,7 +384,7 @@ public class I2B2XMLResourceImplementation implements
 		try {
 			PanelType currentPanel = createPanel(panelCount);
 
-			for (ClauseAbstract clause : qep.getClauses().values()) {
+			for (ClauseAbstract clause : query.getClauses().values()) {
 				if (clause instanceof WhereClause) {
 					// Get the projectId if it isn't already set
 					if (projectId.equals("")) {
@@ -362,7 +393,7 @@ public class I2B2XMLResourceImplementation implements
 						projectId = pathComponents[2];
 					}
 					WhereClause whereClause = (WhereClause) clause;
-					ItemType itemType = createItemTypeFromWhereClause((WhereClause) clause);
+					ItemType itemType = createItemTypeFromWhereClause(whereClause);
 
 					// FIRST
 					if (panels.isEmpty() && currentPanel.getItem().isEmpty()) {
@@ -398,8 +429,7 @@ public class I2B2XMLResourceImplementation implements
 		roolt.getResultOutput().add(root);
 
 		try {
-			crcCell = createCRCCell(projectId, session.getUser()
-					.getName());
+			crcCell = createCRCCell(projectId, session.getUser().getName());
 			MasterInstanceResultResponseType mirrt = crcCell
 					.runQueryInstanceFromQueryDefinition(client, null, null,
 							"IRCT", null, "ANY", 0, roolt,
@@ -421,16 +451,51 @@ public class I2B2XMLResourceImplementation implements
 	@Override
 	public Result getResults(SecureSession session, Result result)
 			throws ResourceInterfaceException {
+
+		try {
+			result = checkForResult(session, result);
+			
+			if(result.getResultStatus() != ResultStatus.COMPLETE) {
+				return result;
+			}
+			result.setResultStatus(ResultStatus.RUNNING);
+			
+			HttpClient client = createClient(session);
+			String resultInstanceId = result.getResourceActionId();
+			String resultId = resultInstanceId.split("\\|")[2];
+
+			// Get PDO List
+			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
+					resultId, 0, 100000, false, false, false,
+					OutputOptionSelectType.USING_INPUT_LIST);
+
+			result = convertPatientSetToResultSet(pdrt, result);
+			result.setResultStatus(ResultStatus.COMPLETE);
+		} catch (JAXBException | I2B2InterfaceException | IOException
+				| ResultSetException | PersistableException e) {
+			result.setMessage(e.getLocalizedMessage());
+			result.setResultStatus(ResultStatus.ERROR);
+		}
+
+		return result;
+	}
+	
+	/**
+	 * Checks to see if the result is available
+	 * 
+	 * @param session Current Session
+	 * @param result Result
+	 * @return Result
+	 */
+	protected Result checkForResult(SecureSession session, Result result) {
 		HttpClient client = createClient(session);
 
 		String resultInstanceId = result.getResourceActionId();
 		String projectId = resultInstanceId.split("\\|")[0];
 		String queryId = resultInstanceId.split("\\|")[1];
-		String resultId = resultInstanceId.split("\\|")[2];
 
 		try {
-			crcCell = createCRCCell(projectId, session.getUser()
-					.getName());
+			CRCCell crcCell = createCRCCell(projectId, session.getUser().getName());
 
 			// Is Query Master List Complete?
 
@@ -466,21 +531,14 @@ public class I2B2XMLResourceImplementation implements
 				result.setResultStatus(ResultStatus.ERROR);
 				return result;
 			}
-
-			// Get PDO List
-			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
-					resultId, 0, 100000, false, false, false,
-					OutputOptionSelectType.USING_INPUT_LIST);
-
-			result = convertPatientSetToResultSet(pdrt, result);
 			result.setResultStatus(ResultStatus.COMPLETE);
-		} catch (JAXBException | I2B2InterfaceException | IOException
-				| ResultSetException | PersistableException e) {
+		} catch (JAXBException | I2B2InterfaceException | IOException e) {
 			result.setMessage(e.getLocalizedMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
-
+		
 		return result;
+		
 	}
 
 	@Override
@@ -489,7 +547,7 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public ResultDataType getQueryDataType() {
+	public ResultDataType getQueryDataType(Query query) {
 		return ResultDataType.TABULAR;
 	}
 
@@ -513,7 +571,8 @@ public class I2B2XMLResourceImplementation implements
 			} else if (whereClause.getPredicateType().getName()
 					.equals("CONSTRAIN_VALUE")) {
 				item.getConstrainByValue().add(
-						createConstrainByValue(whereClause, whereClause.getField().getDataType()));
+						createConstrainByValue(whereClause, whereClause
+								.getField().getDataType()));
 			} else if (whereClause.getPredicateType().getName()
 					.equals("CONSTRAIN_DATE")) {
 				item.getConstrainByDate().add(
@@ -530,15 +589,15 @@ public class I2B2XMLResourceImplementation implements
 		cbv.setValueOperator(ConstrainOperatorType.fromValue(whereClause
 				.getStringValues().get("OPERATOR")));
 		// value_constraint
-		cbv.setValueConstraint(whereClause.getStringValues().get(
-				"CONSTRAINT"));
+		cbv.setValueConstraint(whereClause.getStringValues().get("CONSTRAINT"));
 		// value_unit_of_measure
 		cbv.setValueUnitOfMeasure(whereClause.getStringValues().get(
 				"UNIT_OF_MEASURE"));
 		// value_type
-		if((dataType.toString().equals("INTEGER")) || (dataType.toString().equals("LONG"))) {
+		if ((dataType.toString().equals("INTEGER"))
+				|| (dataType.toString().equals("LONG"))) {
 			cbv.setValueType(ConstrainValueType.NUMBER);
-		} else if(dataType.toString().equals("STRING")) {
+		} else if (dataType.toString().equals("STRING")) {
 			cbv.setValueType(ConstrainValueType.TEXT);
 		}
 
@@ -547,7 +606,8 @@ public class I2B2XMLResourceImplementation implements
 
 	private ItemType.ConstrainByModifier createConstrainByModifier(
 			WhereClause whereClause) {
-		String modifierPath = getPathFromString(whereClause.getStringValues().get("MODIFIER_KEY"));
+		String modifierPath = getPathFromString(whereClause.getStringValues()
+				.get("MODIFIER_KEY"));
 		ItemType.ConstrainByModifier cbm = new ItemType.ConstrainByModifier();
 		cbm.setModifierKey(modifierPath);
 		return cbm;
@@ -633,13 +693,16 @@ public class I2B2XMLResourceImplementation implements
 	private String getPathFromField(Entity field) {
 		return getPathFromString(field.getPui());
 	}
-	
+
 	private String getPathFromString(String pathString) {
 		String[] pathComponents = pathString.split("/");
 		String myPath = "\\";
 		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3,
 				pathComponents.length)) {
 			myPath += "\\" + pathComponent;
+		}
+		if(pathString.endsWith("/")) {
+			myPath += "\\";
 		}
 
 		return myPath;
@@ -672,7 +735,14 @@ public class I2B2XMLResourceImplementation implements
 			}
 
 			returnEntity.setDisplayName(concept.getName());
-			;
+
+			if (concept.getBasecode() != null) {
+				String[] baseCode = concept.getBasecode().split(":");
+				if (baseCode.length == 2) {
+					returnEntity.setOntology(baseCode[0]);
+					returnEntity.setOntologyId(baseCode[1]);
+				}
+			}
 
 			Map<String, String> attributes = new HashMap<String, String>();
 			attributes.put("level", Integer.toString(concept.getLevel()));
@@ -684,8 +754,7 @@ public class I2B2XMLResourceImplementation implements
 			if (concept.getTotalnum() != null) {
 				attributes.put("totalnum", concept.getTotalnum().toString());
 			}
-			attributes.put("basecode", concept.getBasecode());
-			// attributes.put("metadataxml", concept.getMetadataxml().
+
 			attributes.put("facttablecolumn", concept.getFacttablecolumn());
 			attributes.put("tablename", concept.getTablename());
 			attributes.put("columnname", concept.getColumnname());
@@ -694,12 +763,8 @@ public class I2B2XMLResourceImplementation implements
 			attributes.put("dimcode", concept.getDimcode());
 			attributes.put("comment", concept.getComment());
 			attributes.put("tooltip", concept.getTooltip());
-			// attributes.put("updateDate", concept.getU
-			// attributes.put("downloadDate", concept.getDownloadDate());
-			// attributes.put("importDate", concept.getDownloadDate());
 			attributes.put("sourcesystemCd", concept.getSourcesystemCd());
 			attributes.put("valuetypeCd", concept.getValuetypeCd());
-			// attributes.put("modifier", concept.getModifier().
 			ModifierType modifier = concept.getModifier();
 			if (modifier != null) {
 				attributes.put("modifier.level",
@@ -715,8 +780,6 @@ public class I2B2XMLResourceImplementation implements
 				attributes.put("modifier.totalnum", modifier.getTotalnum()
 						.toString());
 				attributes.put("modifier.basecode", modifier.getBasecode());
-				// attributes.put("modifier.metadataxml",
-				// modifier.getMetadataxml());
 				attributes.put("modifier.facttablecolumn",
 						modifier.getFacttablecolumn());
 				attributes.put("modifier.tablename", modifier.getTablename());
@@ -727,28 +790,19 @@ public class I2B2XMLResourceImplementation implements
 				attributes.put("modifier.dimcode", modifier.getDimcode());
 				attributes.put("modifier.comment", modifier.getComment());
 				attributes.put("modifier.tooltip", modifier.getTooltip());
-				// attributes.put("modifier.updateDate",
-				// modifier.getUpdateDate());
-				// attributes.put("modifier.downloadDate",
-				// modifier.getDownloadDate());
-				// attributes.put("modifier.importDate",
-				// modifier.getImportDate());
 				attributes.put("modifier.sourcesystemCd",
 						modifier.getSourcesystemCd());
 			}
 
-			XmlValueType metadata = concept.getMetadataxml();
-			if (metadata != null) {
-				// TODO IMPLEMENT
-			}
 			returnEntity.setAttributes(attributes);
 			returns.add(returnEntity);
 		}
 
 		return returns;
 	}
-	
-	private List<Entity> convertModifiersTypeToEntities(String basePath, ModifiersType modifiersType) {
+
+	private List<Entity> convertModifiersTypeToEntities(String basePath,
+			ModifiersType modifiersType) {
 		List<Entity> returns = new ArrayList<Entity>();
 		if (modifiersType == null) {
 			return returns;
@@ -758,8 +812,7 @@ public class I2B2XMLResourceImplementation implements
 			returnEntity.setName(modifier.getName());
 			String appendPath = converti2b2Path(modifier.getKey());
 			returnEntity.setPui(basePath + appendPath);
-			
-			
+
 			if (modifier.getColumndatatype().equals("T")) {
 				returnEntity.setDataType(PrimitiveDataType.STRING);
 			}
@@ -828,31 +881,37 @@ public class I2B2XMLResourceImplementation implements
 	private CRCCell createCRCCell(String projectId, String userName)
 			throws JAXBException {
 		if (this.useProxy) {
-			crcCell.setupConnection(this.resourceURL, this.domain, userName, "",
-					projectId, this.useProxy, this.proxyURL
+			crcCell.setupConnection(this.resourceURL, this.domain, userName,
+					"", projectId, this.useProxy, this.proxyURL
 							+ "/QueryToolService");
 		} else {
-			crcCell.setupConnection(this.resourceURL, this.domain, this.userName,
-					this.password, projectId, false, null);
+			crcCell.setupConnection(this.resourceURL + "QueryToolService/",
+					this.domain, this.userName, this.password, projectId,
+					false, null);
 		}
 		return crcCell;
 	}
 
 	private ONTCell createOntCell(String projectId) throws JAXBException {
 		if (this.useProxy) {
-			ontCell.setupConnection(this.resourceURL, this.domain, "", "", projectId, this.useProxy, this.proxyURL + "/OntologyService");
+			ontCell.setupConnection(this.resourceURL, this.domain, "", "",
+					projectId, this.useProxy, this.proxyURL
+							+ "/OntologyService");
 		} else {
-			ontCell.setupConnection(this.resourceURL, this.domain, this.userName,
-					this.password, projectId, false, null);
+			ontCell.setupConnection(this.resourceURL + "OntologyService/",
+					this.domain, this.userName, this.password, projectId,
+					false, null);
 		}
 		return ontCell;
 	}
 
 	private PMCell createPMCell() throws JAXBException {
 		if (this.useProxy) {
-			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "", this.useProxy, this.proxyURL + "/PMService");
+			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "",
+					this.useProxy, this.proxyURL + "/PMService");
 		} else {
-			pmCell.setupConnection(this.resourceURL, this.domain, this.userName, this.password, "", false, null);
+			pmCell.setupConnection(this.resourceURL + "PMService/",
+					this.domain, this.userName, this.password, "", false, null);
 		}
 		return pmCell;
 	}
@@ -863,12 +922,31 @@ public class I2B2XMLResourceImplementation implements
 	 * @param token
 	 * @return
 	 */
-	private HttpClient createClient(SecureSession session) {
-		HttpClientBuilder returns = HttpClientBuilder.create();
+	protected HttpClient createClient(SecureSession session) {
+		// SSL WRAPAROUND
+		HttpClientBuilder returns = null;
+		
+		if (ignoreCertificate) {
+			try {
+				// CLIENT CONNECTION
+				returns = ignoreCertificate();
+			} catch (NoSuchAlgorithmException | KeyManagementException e) {
+				e.printStackTrace();
+			}
+		} else {
+			returns = HttpClientBuilder.create();
+		}
+
 		List<Header> defaultHeaders = new ArrayList<Header>();
+		
+		String token = session.getToken().toString();
+		if (this.clientId != null) {
+			token = SecurityUtility.delegateToken(this.namespace,
+					this.clientId, session);
+		}
+		
 		if (session != null) {
-			defaultHeaders.add(new BasicHeader("Authorization", session
-					.getToken().toString()));
+			defaultHeaders.add(new BasicHeader("Authorization", token));
 		}
 		defaultHeaders.add(new BasicHeader("Content-Type",
 				"application/x-www-form-urlencoded"));
@@ -876,4 +954,47 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns.build();
 	}
+	
+	private HttpClientBuilder ignoreCertificate() throws NoSuchAlgorithmException, KeyManagementException {
+		System.setProperty("jsse.enableSNIExtension", "false");
+
+		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+
+			public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+				return null;
+			}
+
+			public void checkClientTrusted(
+					java.security.cert.X509Certificate[] certs,
+					String authType) {
+			}
+
+			public void checkServerTrusted(
+					java.security.cert.X509Certificate[] certs,
+					String authType) {
+			}
+		} };
+
+		SSLContext sslContext;
+
+		sslContext = SSLContext.getInstance("SSL");
+		sslContext.init(null, trustAllCerts,
+				new java.security.SecureRandom());
+
+		HttpsURLConnection.setDefaultSSLSocketFactory(sslContext
+				.getSocketFactory());
+
+		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+				sslContext, NoopHostnameVerifier.INSTANCE);
+
+		Registry<ConnectionSocketFactory> r = RegistryBuilder
+				.<ConnectionSocketFactory> create()
+				.register("https", sslsf).build();
+
+		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
+				r);
+		
+		return HttpClients.custom().setConnectionManager(cm);
+	}
+	
 }

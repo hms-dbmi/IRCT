@@ -5,33 +5,31 @@ package edu.harvard.hms.dbmi.bd2k.irct.ri.exac;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonStructure;
 import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.LaxRedirectStrategy;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -39,404 +37,417 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 public class EXACResourceImplementation implements
 		QueryResourceImplementationInterface,
 		PathResourceImplementationInterface,
 		ProcessResourceImplementationInterface {
-	private String serverURL;
-	private HttpClient client;
+
+	private ResourceState resourceState;
+	private String resourceName;
+	private String resourceURL;
+	private String[] exacColumns = { "allele_count", "allele_freq", "allele_num",
+			"alt", "chrom", "filter", "hom_count", "pop_acs.African",
+			"pop_acs.East Asian", "pop_acs.European (Finnish)",
+			"pop_acs.European (Non-Finnish)", "pop_acs.Latino",
+			"pop_acs.Other", "pop_acs.South Asian", "pop_ans.African",
+			"pop_ans.East Asian", "pop_ans.European (Finnish)",
+			"pop_ans.European (Non-Finnish)", "pop_ans.Latino",
+			"pop_ans.Other", "pop_ans.South Asian", "pop_homs.African",
+			"pop_homs.East Asian", "pop_homs.European (Finnish)",
+			"pop_homs.European (Non-Finnish)", "pop_homs.Latino",
+			"pop_homs.Other", "pop_homs.South Asian", "pos",
+			"quality_metrics.BaseQRankSum",
+			"quality_metrics.ClippingRankSum", "quality_metrics.DP",
+			"quality_metrics.FS", "quality_metrics.InbreedingCoeff",
+			"quality_metrics.MQ", "quality_metrics.MQRankSum",
+			"quality_metrics.QD", "quality_metrics.ReadPosRankSum",
+			"quality_metrics.VQSLOD", "ref", "rsid", "site_quality",
+			"variant_id", "xpos", "xstart", "xstop" };
 
 	@Override
-	public void setup(Map<String, String> parameters) {
-		setClient(HttpClientBuilder.create()
-				.setRedirectStrategy(new LaxRedirectStrategy()).build());
-		setServerURL(parameters.get("serverURL"));
-	}
-
-	@Override
-	public String getType() {
-		return "exAC";
-	}
-
-	@Override
-	public JsonObject toJson() {
-		return toJson(1);
-	}
-
-	@Override
-	public JsonObject toJson(int depth) {
-		depth--;
-		JsonObjectBuilder returnJSON = Json.createObjectBuilder();
-		returnJSON.add("type", this.getType());
-
-		JsonArrayBuilder returnEntityArray = Json.createArrayBuilder();
-		for (Entity rePath : getReturnEntity()) {
-			returnEntityArray.add(rePath.toJson(depth));
+	public void setup(Map<String, String> parameters)
+			throws ResourceInterfaceException {
+		String[] strArray = { "resourceName", "resourceURL" };
+		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
+			throw new ResourceInterfaceException("Missing parameters");
 		}
-		returnJSON.add("returnEntity", returnEntityArray.build());
-		returnJSON.add("editableReturnEntity", this.editableReturnEntity());
-
-		return returnJSON.build();
+		this.resourceName = parameters.get("resourceName");
+		this.resourceURL = parameters.get("resourceURL");
+		this.resourceState = ResourceState.READY;
 	}
-
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
+		String resourcePath = getResourcePathFromPUI(path.getPui());
 
-		if (path.getPui().equals("variant")) {
-			
-//			/rest/variant/variant/<variant_str>
-			Entity variant = new Entity();
-			variant.setName("Variant");
-			variant.setPui("variant/variant");
-			variant.setDataType(EXACDataType.VARIANT);
-			returns.add(variant);
-			
-//			/rest/variant/base_coverage/<variant_str>
-			Entity baseCoverage = new Entity();
-			baseCoverage.setName("Base Coverage");
-			baseCoverage.setPui("variant/base_coverage");
-			baseCoverage.setDataType(EXACDataType.VARIANT);
-			returns.add(baseCoverage);
-			
-//			/rest/variant/consequences/<variant_str>
-			Entity consequences = new Entity();
-			consequences.setName("Consequences");
-			consequences.setPui("variant/consequences");
-			consequences.setDataType(EXACDataType.VARIANT);
-			returns.add(consequences);
-			
-//			/rest/variant/any_covered/<variant_str>
-			Entity anyCovered = new Entity();
-			anyCovered.setName("Any Covered");
-			anyCovered.setPui("variant/any_covered");
-			anyCovered.setDataType(EXACDataType.VARIANT);
-			returns.add(anyCovered);
-			
-//			/rest/variant/ordered_csqs/<variant_str>
-			Entity orderedCSQS = new Entity();
-			orderedCSQS.setName("Ordered CSQS");
-			orderedCSQS.setPui("variant/ordered_csqs");
-			orderedCSQS.setDataType(EXACDataType.VARIANT);
-			returns.add(orderedCSQS);
-			
-//			/rest/variant/metrics/<variant_str>
-			Entity metrics = new Entity();
-			metrics.setName("Metrics");
-			metrics.setPui("variant/metrics");
-			metrics.setDataType(EXACDataType.VARIANT);
-			returns.add(metrics);
-			
-		} else if (path.getPui().equals("gene")) {
-			Entity transcript = new Entity();
-			transcript.setName("Transcripts");
-			transcript.setPui("gene/transcript");
-			transcript.setDataType(EXACDataType.GENE);
-			returns.add(transcript);
-
-			Entity geneVariants = new Entity();
-			geneVariants.setName("Variants in Gene");
-			geneVariants.setPui("gene/variants_in_gene");
-			geneVariants.setDataType(EXACDataType.GENE);
-			returns.add(geneVariants);
-
-			Entity transcriptVariants = new Entity();
-			transcriptVariants.setName("Variants in Transcript");
-			transcriptVariants.setPui("gene/variants_in_transcript");
-			transcriptVariants.setDataType(EXACDataType.GENE);
-			returns.add(transcriptVariants);
-
-			Entity transcriptGenes = new Entity();
-			transcriptGenes.setName("Transcripts in Gene");
-			transcriptGenes.setPui("gene/transcripts_in_gene");
-			transcriptGenes.setDataType(EXACDataType.GENE);
-			returns.add(transcriptGenes);
-
-			Entity coverageStats = new Entity();
-			coverageStats.setName("Coverage Stats");
-			coverageStats.setPui("gene/coverage_stats");
-			coverageStats.setDataType(EXACDataType.GENE);
-			returns.add(coverageStats);
-		} else if (path.getPui().equals("transcript")) {
-//			/rest/transcript/transcript/<transcript_id>
-			Entity transcript = new Entity();
-			transcript.setName("Transcript");
-			transcript.setPui("transcript/transcript");
-			transcript.setDataType(EXACDataType.TRANSCRIPT);
-			returns.add(transcript);
-			
-//			/rest/transcript/variants_in_transcript/<transcript_id>
-			Entity variantsInTranscript = new Entity();
-			variantsInTranscript.setName("Variants in Transcript");
-			variantsInTranscript.setPui("transcript/variants_in_transcript");
-			variantsInTranscript.setDataType(EXACDataType.TRANSCRIPT);
-			returns.add(variantsInTranscript);
-			
-//			/rest/transcript/coverage_stats/<transcript_id>
-			Entity coverageStats = new Entity();
-			coverageStats.setName("Coverage Stats");
-			coverageStats.setPui("transcript/coverage_stats");
-			coverageStats.setDataType(EXACDataType.TRANSCRIPT);
-			returns.add(coverageStats);
-			
-//			/rest/transcript/gene/<transcript_id>
-			Entity gene = new Entity();
-			gene.setName("Gene");
-			gene.setPui("transcript/gene");
-			gene.setDataType(EXACDataType.VARIANT);
-			returns.add(gene);
-		} else if (path.getPui().equals("region")) {
-//			/rest/region/genes_in_region/<region_id>
-			Entity genesInRegion = new Entity();
-			genesInRegion.setName("Genes in region");
-			genesInRegion.setPui("region/genes_in_region");
-			genesInRegion.setDataType(EXACDataType.REGION);
-			returns.add(genesInRegion);
-			
-//			/rest/region/variants_in_region/<region_id>
-			Entity variantsInRegion = new Entity();
-			variantsInRegion.setName("Variants in region");
-			variantsInRegion.setPui("region/variants_in_region");
-			variantsInRegion.setDataType(EXACDataType.REGION);
-			returns.add(variantsInRegion);
-			
-//			/rest/region/coverage_array/<region_id>
-			Entity coverageArray = new Entity();
-			coverageArray.setName("Coverage Array");
-			coverageArray.setPui("region/coverage_array");
-			coverageArray.setDataType(EXACDataType.REGION);
-			returns.add(coverageArray);
+		if (resourcePath.equals("/")) {
+			// Variant
+			returns.add(createEntity("Variant", "/variant",
+					EXACDataType.VARIANT));
+			// Gene
+			returns.add(createEntity("Gene", "/gene", EXACDataType.GENE));
+			// Transcript
+			returns.add(createEntity("Transcript", "/transcript",
+					EXACDataType.TRANSCRIPT));
+			// Region
+			returns.add(createEntity("Region", "/region", EXACDataType.REGION));
+		} else if (resourcePath.equals("/variant")) {
+			// Base Coverage
+			returns.add(createEntity("Base Coverage", resourcePath + "/"
+					+ "base_coverage", EXACDataType.VARIANT));
+			// Consequences
+			returns.add(createEntity("Consequences", resourcePath + "/"
+					+ "consequences", EXACDataType.VARIANT));
+			// Any Covered
+			returns.add(createEntity("Any Covered", resourcePath + "/"
+					+ "any_covered", EXACDataType.VARIANT));
+			// Ordered CSQS
+			returns.add(createEntity("Ordered CSQS", resourcePath + "/"
+					+ "ordered_csqs", EXACDataType.VARIANT));
+			// Metrics
+			returns.add(createEntity("Metrics", resourcePath + "/" + "metrics",
+					EXACDataType.VARIANT));
+		} else if (resourcePath.equals("/gene")) {
+			returns.add(createEntity("Transcripts", resourcePath + "/"
+					+ "transcript", EXACDataType.GENE));
+			returns.add(createEntity("Variants in Gene", resourcePath + "/"
+					+ "variants_in_gene", EXACDataType.GENE));
+			returns.add(createEntity("Variants in Transcript", resourcePath
+					+ "/" + "variants_in_transcript", EXACDataType.GENE));
+			returns.add(createEntity("Transcripts in Gene", resourcePath + "/"
+					+ "transcripts_in_gene", EXACDataType.GENE));
+			returns.add(createEntity("Coverage Stats", resourcePath + "/"
+					+ "coverage_stats", EXACDataType.GENE));
+		} else if (resourcePath.equals("/transcript")) {
+			returns.add(createEntity("Variants in Transcript", resourcePath
+					+ "/" + "variants_in_transcript", EXACDataType.TRANSCRIPT));
+			returns.add(createEntity("Coverage Stats", resourcePath + "/"
+					+ "coverage_stats", EXACDataType.TRANSCRIPT));
+			returns.add(createEntity("Gene", resourcePath + "/" + "gene",
+					EXACDataType.TRANSCRIPT));
+		} else if (resourcePath.equals("/region")) {
+			returns.add(createEntity("Genes in region", resourcePath + "/"
+					+ "genes_in_region", EXACDataType.REGION));
+			returns.add(createEntity("Variants in region", resourcePath + "/"
+					+ "variants_in_region", EXACDataType.REGION));
+			returns.add(createEntity("Coverage Array", resourcePath + "/"
+					+ "coverage_array", EXACDataType.REGION));
 		}
 
 		return returns;
 	}
 
-
 	@Override
-	public ActionState runQuery(Query qep) throws ResourceInterfaceException {
-		ActionState actionState = new ActionState();
-		
-		
-		WhereClause whereClause = (WhereClause) qep.getClauses()
-				.values().iterator().next();
-
-		if (whereClause.getPredicateType().getName().equals("BYQUERY")) {
-			String service = whereClause.getField().getPui().split("/")[1];
-			HttpGet get = new HttpGet(getServerURL() + "/rest/awesome?query="
-					+ whereClause.getValues().get("query") + "&service="
-					+ service);
-
-			try {
-				HttpResponse response = client.execute(get);
-				JsonReader reader = Json.createReader(response.getEntity()
-						.getContent());
-				JsonArray results = reader.readArray();
-				
-				actionState.setResults(convertJsonArrayToResultSet(results));
-				actionState.setComplete(true);
-				reader.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else if (whereClause.getPredicateType().getName().equals("BYENSEMBL")) {
-			HttpGet get = new HttpGet(getServerURL() + "/rest/" + whereClause.getField().getPui() + "/" + whereClause.getValues().get("ensembl"));
-
-			try {
-				HttpResponse response = client.execute(get);
-				JsonReader reader = Json.createReader(response.getEntity()
-						.getContent());
-				JsonArray results = reader.readArray();
-				
-				actionState.setResults(convertJsonArrayToResultSet(results));
-				actionState.setComplete(true);
-				reader.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else if (whereClause.getPredicateType().getName().equals("BYREGION")) {
-			String service = getServerURL() + "/rest/region/" + whereClause.getValues().get("chromosome") + "-" + whereClause.getValues().get("start");
-			if (whereClause.getValues().containsKey("stop")) {
-				service += "-" + whereClause.getValues().get("stop");
-			}
-			HttpGet get = new HttpGet(service);
-			
-			try {
-				HttpResponse response = client.execute(get);
-				JsonReader reader = Json.createReader(response.getEntity()
-						.getContent());
-				JsonArray results = reader.readArray();
-				
-				actionState.setResults(convertJsonArrayToResultSet(results));
-				actionState.setComplete(true);
-				reader.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-		return actionState;
-	}
-	
-	@Override
-	public ActionState runProcess(IRCTProcess pep) {
-		ActionState actionState = new ActionState();
-		
-		ResultSet rs = pep.getResultSets().get("ResultSet");
-		String chromColumn = pep.getValues().get("Chromosome");
-		String startColumn = pep.getValues().get("Start");
-		String refColumn = pep.getValues().get("Reference");
-		String altColumn = pep.getValues().get("Alternative");
-		
-		
-		
-		try {
-			Set<String> columns = new HashSet<String>();
-			for(Column col : rs.getColumns()) {
-				columns.add(col.getName());
-			}
-			
-			List<Map<String, String>> rawData = new ArrayList<Map<String, String>>();
-			
-			rs.beforeFirst();
-			while(rs.next()) {
-				Map<String, String> entry = new HashMap<String, String>();
-				
-				String chrom = rs.getString(chromColumn);
-				String start = rs.getString(startColumn);
-				String ref = rs.getString(refColumn);
-				String alt = rs.getString(altColumn);
-				
-				
-				for(Column column : rs.getColumns()) {
-					entry.put(column.getName(), rs.getString(column.getName()));
-				}
-
-				if(!alt.equals("-") && !ref.equals("-")) {
-					String url = getServerURL() + "/rest/variant/variant/" + chrom + "-" + start + "-" + ref + "-" + alt;
-					System.out.println(url);
-				
-					HttpGet get = new HttpGet(url);
-				
-					HttpResponse response = client.execute(get);
-					JsonReader reader = Json.createReader(response.getEntity().getContent());
-					JsonObject varObj = reader.readObject();
-					
-					List<String> fields = getNames("", varObj);
-					columns.addAll(fields);
-					
-					
-					for(String field : fields) {
-						entry.put(field, getValue(varObj, field));
-					}
-					rawData.add(entry);
-					
-					reader.close();
-				}
-			}
-			
-			FileResultSet mrs = new FileResultSet();
-			for(String field : columns) {
-				Column column = new Column();
-				column.setName(field);
-				column.setDataType(PrimitiveDataType.STRING);
-				mrs.appendColumn(column);
-			}
-			
-			for(Map<String, String> entry : rawData) {
-				mrs.appendRow();
-				for(String field : columns) {
-					String value = entry.get(field);
-					if(value == null) {
-						value = "";
-					}
-					mrs.updateString(field, value);
-				}
-			}
-			actionState.setResults(mrs);
-			actionState.setComplete(true);
-			
-		} catch (ResultSetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PersistableException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return actionState;
-	}
-
-	@Override
-	public ResultSet getResults(ActionState actionState) throws ResourceInterfaceException {
-		return null;
-	}
-	
-	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm, SecureSession session)
+	public Result runQuery(SecureSession session, Query qep, Result result)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
-		return null;
+		HttpClient client = createClient(session);
+		result.setResultStatus(ResultStatus.CREATED);
+
+		// Check Clause
+		if (qep.getClauses().size() != 1) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("Wrong number of clauses");
+			return result;
+		}
+		ClauseAbstract clause = qep.getClauses().values().iterator().next();
+
+		if (!(clause instanceof WhereClause)) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("Clause is not a where Clause");
+			return result;
+		}
+
+		WhereClause whereClause = (WhereClause) clause;
+		// Create Query
+		String urlString = null;
+
+		// BY ENSEMBL
+		if (whereClause.getPredicateType().getName().equals("ENSEMBL")) {
+			urlString = resourceURL + "/rest"
+					+ getResourcePathFromPUI(whereClause.getField().getPui())
+					+ "/" + whereClause.getStringValues().get("ENSEMBLID");
+
+		} else if (whereClause.getPredicateType().getName().equals("QUERY")) {
+			// BY QUERY
+			String[] resourcePath = getResourcePathFromPUI(
+					whereClause.getField().getPui()).split("/");
+			String service = "";
+			if (resourcePath.length >= 3) {
+				service = "&service=" + resourcePath[2];
+			}
+
+			urlString = resourceURL + "/rest/awesome?query="
+					+ whereClause.getStringValues().get("QUERY") + service;
+		} else if (whereClause.getPredicateType().getName().equals("REGION")) {
+			// BY REGION
+			urlString = resourceURL + "/rest"
+					+ getResourcePathFromPUI(whereClause.getField().getPui())
+					+ "/" + whereClause.getStringValues().get("CHROMOSOME")
+					+ "-" + whereClause.getStringValues().get("START");
+			if (whereClause.getStringValues().containsKey("STOP")) {
+				urlString += "-" + whereClause.getStringValues().get("STOP");
+			}
+
+		} else if (whereClause.getPredicateType().getName().equals("VARIANT")) {
+			// BY VARIANT
+			urlString = resourceURL + "/rest"
+					+ getResourcePathFromPUI(whereClause.getField().getPui())
+					+ "/" + whereClause.getStringValues().get("CHROMOSOME")
+					+ "-" + whereClause.getStringValues().get("POSITION") + "-"
+					+ whereClause.getStringValues().get("REFERENCE") + "-"
+					+ whereClause.getStringValues().get("VARIANT");
+		}
+		// Run Query
+		if (urlString == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("Unknown predicate");
+			return result;
+		}
+
+		HttpGet get = new HttpGet(urlString);
+		try {
+			HttpResponse response = client.execute(get);
+			JsonReader reader = Json.createReader(response.getEntity()
+					.getContent());
+			JsonStructure results = reader.read();
+			if (results.getValueType().equals(ValueType.ARRAY)) {
+				result = convertJsonArrayToResultSet((JsonArray) results,
+						result);
+			} else {
+				result = convertJsonObjectToResultSet((JsonObject) results,
+						result);
+			}
+			reader.close();
+			result.setResultStatus(ResultStatus.COMPLETE);
+		} catch (IOException e) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage(e.getMessage());
+		}
+
+		// Format Results
+
+		return result;
+	}
+
+	@Override
+	public Result runProcess(SecureSession session, IRCTProcess process,
+			Result result) throws ResourceInterfaceException {
+		HttpClient client = createClient(session);
+		try {
+			ResultSet resultSetField = (ResultSet) process.getObjectValues()
+					.get("RESULTSET");
+			String chromosomeColumn = process.getStringValues().get(
+					"CHROMOSOME");
+			String positionColumn = process.getStringValues().get("POSITION");
+			String referenceColumn = process.getStringValues().get("REFERENCE");
+			String variantColumn = process.getStringValues().get("VARIANT");
+
+			ResultSet rs = createResultSet(result, resultSetField);
+			
+			// Move to First
+			resultSetField.first();
+			// Loop through all rows and get the data needed for the bulk
+			// request
+			resultSetField.beforeFirst();
+			JsonArrayBuilder jsonArray = Json.createArrayBuilder();
+			while (resultSetField.next()) {
+
+				String queryString = resultSetField.getString(chromosomeColumn);
+				queryString += "-" + resultSetField.getString(positionColumn);
+				queryString += "-" + resultSetField.getString(referenceColumn);
+				queryString += "-" + resultSetField.getString(variantColumn);
+
+				// Run the Bulk request(s)
+				jsonArray.add(queryString);
+
+			}
+
+			HttpPost post = new HttpPost(this.resourceURL + "/rest/bulk/variant");
+
+			// Set Header
+			try {
+				post.setEntity(new StringEntity(jsonArray.build().toString()));
+				HttpResponse response = client.execute(post);
+				JsonReader reader = Json.createReader(response.getEntity()
+						.getContent());
+				JsonObject responseObject = reader.readObject();
+				
+				//Merge the results back into the result set
+				resultSetField.beforeFirst();
+				rs.first();
+				while (resultSetField.next()) {
+					rs.appendRow();
+					//Copy the original data over
+					for(Column column : resultSetField.getColumns()) {
+						rs.updateString(column.getName(), resultSetField.getString(column.getName()));
+					}
+					//Add the new data if it exists
+					String queryString = resultSetField.getString(chromosomeColumn);
+					queryString += "-" + resultSetField.getString(positionColumn);
+					queryString += "-" + resultSetField.getString(referenceColumn);
+					queryString += "-" + resultSetField.getString(variantColumn);
+					
+					if(responseObject.containsKey(queryString)) {
+						JsonObject varObject = responseObject.getJsonObject(queryString).getJsonObject("variant");
+						for(String newColumnString : this.exacColumns) {
+							String value = getValue(varObject, newColumnString);
+							if(value != null) {
+								rs.updateString(newColumnString, value.toString());
+							}
+						}
+					}
+				}
+				
+				result.setData(rs);
+				result.setResultStatus(ResultStatus.COMPLETE);
+			} catch (IOException | PersistableException e) {
+				e.printStackTrace();
+				result.setResultStatus(ResultStatus.ERROR);
+				result.setMessage(e.getMessage());
+			}
+
+		} catch (ResultSetException e) {
+			e.printStackTrace();
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage(e.getMessage());
+		}
+
+		return result;
+	}
+
+//	private JsonValue getValueFromJson(JsonObject varObject, String newColumnString) {
+////		String[] columnPath = newColumnString.split("\\.");
+//		
+//		if(!newColumnString.contains(".") && (varObject.containsKey(newColumnString))) {
+//			return varObject.get(newColumnString);
+//		}
+//		return null;
+//	}
+	
+	
+
+	private ResultSet createResultSet(Result result, ResultSet resultSetField) throws ResultSetException {
+		ResultSet rs = (ResultSet) result.getData();
+		
+		for(Column column : resultSetField.getColumns()) {
+			rs.appendColumn(column);
+		}
+		
+		for(String newColumnString : this.exacColumns) {
+			Column newColumn = new Column();
+			newColumn.setName(newColumnString);
+			newColumn.setDataType(PrimitiveDataType.STRING);
+			rs.appendColumn(newColumn);
+		}
+		
+		return rs;
+	}
+
+	@Override
+	public Result getResults(SecureSession session, Result result)
+			throws ResourceInterfaceException {
+		if (result.getResultStatus() != ResultStatus.COMPLETE) {
+			result.setResultStatus(ResultStatus.ERROR);
+		}
+		return result;
+	}
+
+	@Override
+	public List<Entity> searchPaths(Entity path, String searchTerm,
+			SecureSession session) throws ResourceInterfaceException {
+		return new ArrayList<Entity>();
 	}
 
 	@Override
 	public List<Entity> searchOntology(Entity path, String ontologyType,
-			String ontologyTerm, SecureSession session) throws ResourceInterfaceException {
-		// TODO Auto-generated method stub
-		return null;
+			String ontologyTerm, SecureSession session)
+			throws ResourceInterfaceException {
+		return new ArrayList<Entity>();
 	}
-	
-	private ResultSet convertJsonArrayToResultSet(JsonArray results) {
-		FileResultSet mrs = new FileResultSet();
 
+	@Override
+	public String getType() {
+		return "exac";
+	}
+
+	@Override
+	public ResourceState getState() {
+		return this.resourceState;
+	}
+
+	@Override
+	public ResultDataType getQueryDataType(Query query) {
+		// Check Clause
+		if (query.getClauses().size() != 1) {
+			return null;
+		}
+		ClauseAbstract clause = query.getClauses().values().iterator().next();
+
+		if (!(clause instanceof WhereClause)) {
+			return null;
+		}
+
+		WhereClause whereClause = (WhereClause) clause;
+		String resourcePath = getResourcePathFromPUI(whereClause.getField()
+				.getPui());
+
+		if (resourcePath.split("/").length >= 2) {
+			return ResultDataType.TABULAR;
+		}
+
+		return ResultDataType.JSON;
+	}
+
+	@Override
+	public ResultDataType getProcessDataType(IRCTProcess pep) {
+		return ResultDataType.TABULAR;
+	}
+
+	private Result convertJsonObjectToResultSet(JsonObject exacJSONResults,
+			Result result) {
+		// TODO: BUILD OUT
+		return result;
+	}
+
+	private Result convertJsonArrayToResultSet(JsonArray exacJSONResults,
+			Result result) {
+
+		FileResultSet mrs = (FileResultSet) result.getData();
 		try {
-			if (results.size() == 0) {
-				return mrs;
+			if (exacJSONResults.size() == 0) {
+				result.setData(mrs);
+				return result;
 			}
 			// Setup columns
-			JsonObject columnObject = (JsonObject) results.get(0);
-			
+			JsonObject columnObject = (JsonObject) exacJSONResults.get(0);
+
 			List<String> fields = getNames("", columnObject);
-			for(String field : fields) {
+			for (String field : fields) {
 				Column column = new Column();
 				column.setName(field);
 				column.setDataType(PrimitiveDataType.STRING);
 				mrs.appendColumn(column);
 			}
-			
+
 			// Add data
-			for(JsonValue val : results) {
+			for (JsonValue val : exacJSONResults) {
 				JsonObject obj = (JsonObject) val;
 				mrs.appendRow();
-				for(String field : fields) {
-//					JsonValue jv = getValue(obj, field);
-//					if(jv == null) {
-//						mrs.updateString(field, "");
-//					} else if(jv.getValueType() == ValueType.NUMBER) {
-//						mrs.updateLong(field, ((JsonNumber) jv).longValue());
-//					} else if(jv.getValueType() == ValueType.STRING) {
-//						mrs.updateString(field, ((JsonString) jv).getString());
-//					} else {
-//						mrs.updateString(field, jv.toString());
-//					}
+				for (String field : fields) {
 					mrs.updateString(field, getValue(obj, field));
 				}
 			}
@@ -444,90 +455,82 @@ public class EXACResourceImplementation implements
 			e.printStackTrace();
 		}
 
-		return mrs;
+		result.setData(mrs);
+		return result;
 	}
-	
+
 	private String getValue(JsonObject obj, String field) {
-		if(field.contains(".")) {
+		if (field.contains(".")) {
 			String thisField = field.split("\\.")[0];
 			String remaining = field.replaceFirst(thisField + ".", "");
 			return getValue(obj.getJsonObject(thisField), remaining);
 		}
-		if(obj.containsKey(field)) {
+		if (obj.containsKey(field)) {
 			ValueType vt = obj.get(field).getValueType();
-			if(vt == ValueType.NUMBER) {
+			if (vt == ValueType.NUMBER) {
 				return obj.getJsonNumber(field).toString();
+			} else if (vt == ValueType.TRUE) {
+				return "TRUE";
+			} else if (vt == ValueType.FALSE) {
+				return "FALSE";
 			}
 			return obj.getString(field);
-//			return obj.get(field);
 		}
 		return "";
 	}
 
 	private List<String> getNames(String prefix, JsonObject obj) {
 		List<String> returns = new ArrayList<String>();
-		for(String field : obj.keySet()) {
-			if(obj.get(field).getValueType() == ValueType.OBJECT) {
-				if(prefix.equals("")) {
+		for (String field : obj.keySet()) {
+			if (obj.get(field).getValueType() == ValueType.OBJECT) {
+				if (prefix.equals("")) {
 					returns.addAll(getNames(field, obj.getJsonObject(field)));
 				} else {
-					returns.addAll(getNames(prefix + "." + field, obj.getJsonObject(field)));
+					returns.addAll(getNames(prefix + "." + field,
+							obj.getJsonObject(field)));
 				}
-			} else if(obj.get(field).getValueType() != ValueType.ARRAY){
-				if(prefix.equals("")) {
+			} else if (obj.get(field).getValueType() != ValueType.ARRAY) {
+				if (prefix.equals("")) {
 					returns.add(field);
 				} else {
 					returns.add(prefix + "." + field);
 				}
 			}
 		}
-		
+
 		return returns;
 	}
 
-	@Override
-	public ResourceState getState() {
-		// TODO Auto-generated method stub
-		return null;
+	private String getResourcePathFromPUI(String pui) {
+		String[] pathComponents = pui.split("/");
+
+		if (pathComponents.length <= 2) {
+			return "/";
+		}
+		String myPath = "";
+
+		for (String pathComponent : Arrays.copyOfRange(pathComponents, 2,
+				pathComponents.length)) {
+			myPath += "/" + pathComponent;
+		}
+
+		return myPath;
 	}
 
-	@Override
-	public List<Entity> getReturnEntity() {
-		return new ArrayList<Entity>();
-	}
+	private HttpClient createClient(SecureSession session) {
+		HttpClientBuilder returns = HttpClientBuilder.create();
+		return returns.build();
+	};
 
-	@Override
-	public Boolean editableReturnEntity() {
-		return false;
-	}
+	private Entity createEntity(String name, String resourceString,
+			EXACDataType type) {
 
-	/**
-	 * @return the client
-	 */
-	public HttpClient getClient() {
-		return client;
-	}
+		Entity newEntity = new Entity();
+		newEntity.setName(name);
+		newEntity.setDisplayName(name);
+		newEntity.setPui("/" + this.resourceName + resourceString);
+		newEntity.setDataType(type);
 
-	/**
-	 * @param client
-	 *            the client to set
-	 */
-	public void setClient(HttpClient client) {
-		this.client = client;
-	}
-
-	/**
-	 * @return the serverURL
-	 */
-	public String getServerURL() {
-		return serverURL;
-	}
-
-	/**
-	 * @param serverURL
-	 *            the serverURL to set
-	 */
-	public void setServerURL(String serverURL) {
-		this.serverURL = serverURL;
+		return newEntity;
 	}
 }
