@@ -5,57 +5,43 @@ package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Column;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
 
 /**
@@ -65,18 +51,278 @@ import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
  */
 public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
-	private String tranSMARTuserName;
-	private String tranSMARTpassword;
-	private String baseURL;
-
+	private String transmartURL;
+	
 	@Override
-	public void setup(Map<String, String> parameters) {
-		this.tranSMARTuserName = parameters.get("tranSMARTusername");
-		this.tranSMARTpassword = parameters.get("tranSMARTpassword");
-		this.baseURL = parameters.get("baseURL");
+	public void setup(Map<String, String> parameters)
+			throws ResourceInterfaceException {
+		String[] strArray = { "resourceName", "resourceURL", "transmartURL",
+				"domain" };
+		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
+			throw new ResourceInterfaceException("Missing parameters");
+		}
+
+		this.transmartURL = parameters.get("transmartURL");
 
 		super.setup(parameters);
+	}
 
+	@Override
+	public List<Entity> getPathRelationship(Entity path,
+			OntologyRelationship relationship, SecureSession session)
+			throws ResourceInterfaceException {
+		List<Entity> returns = super.getPathRelationship(path, relationship,
+				session);
+
+		// Get the counts from the tranSMART server
+		try {
+			HttpClient client = createClient(session);
+			String basePath = path.getPui();
+			String[] pathComponents = basePath.split("/");
+
+			if (pathComponents.length > 3) {
+				String myPath = "\\";
+				for (String pathComponent : Arrays.copyOfRange(pathComponents,
+						3, pathComponents.length)) {
+					myPath += "\\" + pathComponent;
+				}
+				basePath = pathComponents[0] + "/" + pathComponents[1] + "/"
+						+ pathComponents[2];
+
+				HttpPost post = new HttpPost(this.transmartURL
+						+ "/chart/childConceptPatientCounts");
+				List<NameValuePair> formParameters = new ArrayList<NameValuePair>();
+				formParameters.add(new BasicNameValuePair("charttype",
+						"childconceptpatientcounts"));
+				formParameters
+						.add(new BasicNameValuePair("concept_key", myPath + "\\"));
+				formParameters.add(new BasicNameValuePair("concept_level", ""));
+
+				post.setEntity(new UrlEncodedFormEntity(formParameters));
+
+				HttpResponse response = client.execute(post);
+
+				JsonReader jsonReader = Json.createReader(response.getEntity().getContent());
+				
+				JsonObject counts = jsonReader.readObject().getJsonObject(
+						"counts");
+
+				for (Entity singleReturn : returns) {
+					String singleReturnMyPath = convertPUItoI2B2Path(singleReturn.getPui());
+					
+					if (counts.containsKey(singleReturnMyPath)) {
+						singleReturn.getCounts().put("count",
+								counts.getInt(singleReturnMyPath));
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return returns;
+	}
+	
+	@Override
+	public Result runQuery(SecureSession session, Query query, Result result)
+			throws ResourceInterfaceException {
+		result = super.runQuery(session, query, result);
+
+		if (result.getResultStatus() != ResultStatus.ERROR) {
+			String resultInstanceId = result.getResourceActionId();
+			String resultId = resultInstanceId.split("\\|")[2];
+			try {
+				// Wait for it to be either ready or fail
+				result = checkForResult(session, result);
+				while((result.getResultStatus() != ResultStatus.ERROR) && (result.getResultStatus() != ResultStatus.COMPLETE)) {
+					Thread.sleep(3000);
+					result = checkForResult(session, result);
+				}
+				if(result.getResultStatus() == ResultStatus.ERROR) {
+					return result;
+				}
+				result.setResultStatus(ResultStatus.RUNNING);
+				// Loop through the select clauses to build up the select string
+				String gatherAllEncounterFacts = "false";
+				Map<String, String> aliasMap = new HashMap<String, String>();
+				
+				for (ClauseAbstract clause : query.getClauses().values()) {
+					if (clause instanceof SelectClause) {
+						SelectClause selectClause = (SelectClause) clause;
+						String pui = convertPUItoI2B2Path(selectClause.getParameter().getPui());
+						aliasMap.put(pui, selectClause.getAlias());
+						
+						
+					} else if (clause instanceof WhereClause) {
+						WhereClause whereClause = (WhereClause) clause;
+						String encounter = whereClause.getStringValues().get("encounter");
+						if((encounter != null) && (encounter.equalsIgnoreCase("yes"))) {
+							gatherAllEncounterFacts = "true";
+						}
+					}
+					
+				}
+				
+				
+				if (!aliasMap.isEmpty()) {
+					//Loop through the columns submitting and appending to the rows every 10 
+					List<String> parameterList = new ArrayList<String>();
+					int counter = 0;
+					String parameters = "";
+					for(String param : aliasMap.keySet()) {
+						if(counter == 10) {
+							parameterList.add(parameters);
+							counter = 0;
+							parameters = "";
+						}
+						if (!parameters.equals("")) {
+							parameters += "|";
+						}
+						parameters += param;
+					}
+					if(!parameters.equals("")) {
+						parameterList.add(parameters);
+					}
+					
+					for(String parameter : parameterList) {
+						// Call the tranSMART API to get the dataset
+						String url = this.transmartURL
+								+ "/ClinicalData/retrieveClinicalData?rid="
+								+ resultId + "&conceptPaths="
+								+ URLEncoder.encode(parameter, "UTF-8") 
+								+ "&gatherAllEncounterFacts=" + gatherAllEncounterFacts;
+						HttpClient client = createClient(session);
+					
+						HttpGet get = new HttpGet(url);
+						HttpResponse response = client.execute(get);
+						JsonReader reader = Json.createReader(response.getEntity().getContent());
+						JsonArray arrayResults = reader.readArray();
+						//Convert the dataset to Tabular format
+						result = convertJsonToResultSet(result, arrayResults, aliasMap, gatherAllEncounterFacts);
+					}
+				
+				}				
+				// Set the status to complete
+				result.setResultStatus(ResultStatus.COMPLETE);
+			} catch (InterruptedException | UnsupportedOperationException | IOException | ResultSetException | PersistableException e) {
+				result.setResultStatus(ResultStatus.ERROR);
+				result.setMessage(e.getMessage());
+			}
+		}
+		return result;
+	}
+	
+	private ResultSet createInitialDataset(Result result, Map<String, String> aliasMap, String gatherAllEncounterFacts) throws ResultSetException {
+		ResultSet rs = (ResultSet) result.getData();
+
+		//Set up the columns
+		Column idColumn = new Column();
+		idColumn.setName("PATIENT_NUM");
+		idColumn.setDataType(PrimitiveDataType.STRING);
+		rs.appendColumn(idColumn);
+		
+		if(gatherAllEncounterFacts.equalsIgnoreCase("true")) {
+			Column encounterColumn = new Column();
+			encounterColumn.setName("ENCOUNTER_NUM");
+			encounterColumn.setDataType(PrimitiveDataType.STRING);
+			rs.appendColumn(encounterColumn);
+		}
+		
+		for(String aliasKey : aliasMap.keySet()) {
+			Column newColumn = new Column();
+			if(aliasMap.get(aliasKey) == null) {
+				newColumn.setName(aliasKey);
+			} else {
+				newColumn.setName(aliasMap.get(aliasKey));
+			}
+			newColumn.setDataType(PrimitiveDataType.STRING);
+			
+			rs.appendColumn(newColumn);
+		}
+		
+		return rs;
+	}
+
+	private Result convertJsonToResultSet(Result result,
+			JsonArray arrayResults, Map<String, String> aliasMap,
+			String gatherAllEncounterFacts) throws ResultSetException, PersistableException {
+		// If the resultset is empty create the initial result set
+		ResultSet rs = (ResultSet) result.getData();
+		if(rs.getSize() == 0) {
+			rs = createInitialDataset(result, aliasMap, gatherAllEncounterFacts);
+		}
+		//Create the initial Matrix
+		Map<String, Map<String, String>> dataMatrix = new HashMap<String, Map<String, String>>();
+		
+		String pivot = "PATIENT_NUM";
+		if(gatherAllEncounterFacts.equalsIgnoreCase("true")) {
+			pivot = "ENCOUNTER_NUM";
+		}
+		
+		for (JsonValue val : arrayResults) {
+			JsonObject obj = (JsonObject) val;
+			String rowId = obj.getString(pivot);
+			
+			if(!dataMatrix.containsKey(rowId)) {
+				dataMatrix.put(rowId, new HashMap<String, String>());
+			}
+			
+			dataMatrix.get(rowId).put(obj.getString("CONCEPT_PATH"), obj.getString("VALUE"));
+		}
+		
+		//Loop through the result set and add the information in the matrix to the result set
+		rs.first();
+		while (rs.next()) {
+			String rsRowId = rs.getString(pivot);
+			if(dataMatrix.containsKey(rsRowId)) {
+				Map<String, String> newRowData = dataMatrix.get(rsRowId);
+				for(String colKeySet : newRowData.keySet()) {
+					// Check to see if an alias exists
+					if(aliasMap.get(colKeySet) != null) {
+						rs.updateString(aliasMap.get(colKeySet), newRowData.get(colKeySet));
+					} else {
+						rs.updateString(colKeySet, newRowData.get(colKeySet));
+					}
+				}
+				dataMatrix.remove(rsRowId);
+			}
+		}
+		//If the information is still in the matrix add it to the result set at the end
+		for(String rowId : dataMatrix.keySet()) {
+			rs.appendRow();
+			rs.updateString(pivot, rowId);
+			
+			Map<String, String> newRowData = dataMatrix.get(rowId);
+			for(String colKeySet : newRowData.keySet()) {
+				// Check to see if an alias exists
+				if(aliasMap.get(colKeySet) != null) {
+					rs.updateString(aliasMap.get(colKeySet), newRowData.get(colKeySet));
+				} else {
+					rs.updateString(colKeySet, newRowData.get(colKeySet));
+				}
+			}
+		}
+
+		//Add results back
+		result.setData(rs);
+		return result;
+	}
+
+	@Override
+	public Result getResults(SecureSession session, Result result)
+			throws ResourceInterfaceException {
+		// This method only exists so the results for i2b2XML do not get called
+		return result;
+	}
+
+	@Override
+	public ResourceState getState() {
+		return resourceState;
+	}
+
+	@Override
+	public ResultDataType getQueryDataType(Query query) {
+		return ResultDataType.TABULAR;
 	}
 
 	@Override
@@ -84,242 +330,18 @@ public class I2B2TranSMARTResourceImplementation extends
 		return "i2b2/tranSMART";
 	}
 
-	@Override
-	public List<Path> getPathRelationship(Path path,
-			OntologyRelationship relationship)
-			throws ResourceInterfaceException {
-		try {
-			HttpClient client = login();
-			super.setClient(client);
-			List<Path> paths = super.getPathRelationship(path, relationship);
-			String self = path.getPui()
-					.replaceAll(super.getServerName() + "/", "")
-					.replace('/', '\\');
-			if (!self.equals(getServerName())) {
-				HttpPost post = new HttpPost(this.baseURL
-						+ "/chart/childConceptPatientCounts");
-				List<NameValuePair> formParameters = new ArrayList<NameValuePair>();
-				formParameters.add(new BasicNameValuePair("charttype",
-						"childconceptpatientcounts"));
-				formParameters.add(new BasicNameValuePair("concept_key", self));
-				formParameters.add(new BasicNameValuePair("concept_level", ""));
-				post.setEntity(new UrlEncodedFormEntity(formParameters));
-				HttpResponse response = client.execute(post);
 
-				JsonReader jsonReader = Json.createReader(response.getEntity()
-						.getContent());
-				JsonObject counts = jsonReader.readObject().getJsonObject(
-						"counts");
-
-				for (Path singlePath : paths) {
-					String i2b2Path = singlePath.getPui()
-							.replaceAll(getServerName() + "/", "")
-							.replace('/', '\\').substring(2);
-					i2b2Path = i2b2Path.substring(i2b2Path.indexOf("\\"));
-					if (counts.containsKey(i2b2Path)) {
-						singlePath.getCounts().put("count",
-								counts.getInt(i2b2Path));
-					}
-				}
-				jsonReader.close();
-			}
-			return paths;
-		} catch (KeyManagementException | NoSuchAlgorithmException
-				| IOException e) {
-			throw new ResourceInterfaceException(
-					"Error logging into tranSMART server");
-		}
-	}
-
-	@Override
-	public ResultSet getResults(ActionState as)
-			throws ResourceInterfaceException {
-		return null;
-	}
-
-	@Override
-	public ActionState runQuery(Query query) throws ResourceInterfaceException {
-		String gatherAllEncounterFacts = "false";
-		try {
-			super.setClient(login());
-			ActionState actionState = super.runQuery(query);
-			// Get results and save them locally
-			Map<String, String> selects = new HashMap<String, String>();
-			String parameters = "";
-			for (ClauseAbstract clause : query.getClauses().values()) {
-				if (clause instanceof SelectClause) {
-					SelectClause selectClaues = (SelectClause) clause;
-					String pui = selectClaues.getParameter().getPui()
-							.replaceAll(getServerName() + "/", "");
-					pui = pui.substring(pui.indexOf("/", 3));
-					if (!parameters.equals("")) {
-						parameters += "|";
-					}
-					parameters += pui;
-					selects.put(pui, selectClaues.getParameter().getName());
-				}
-				if (clause instanceof WhereClause) {
-					WhereClause whereClause = (WhereClause) clause;
-					String encounter = whereClause.getValues().get("encounter");
-					if((encounter != null) && (encounter.equalsIgnoreCase("yes"))) {
-						gatherAllEncounterFacts = "true";
-					}
-				}
-			}
-
-			if (parameters.equals("")) {
-				actionState.setResults(super.getResults(actionState));
-				actionState.setComplete(true);
-			} else {
-				System.out.println(this.baseURL
-						+ "/ClinicalData/retrieveClinicalData?rid="
-						+ actionState.getResourceId() + "&conceptPaths="
-						+ URLEncoder.encode(parameters, "UTF-8") + "&gatherAllEncounterFacts=" + gatherAllEncounterFacts);
-				HttpGet get = new HttpGet(this.baseURL
-						+ "/ClinicalData/retrieveClinicalData?rid="
-						+ actionState.getResourceId() + "&conceptPaths="
-						+ URLEncoder.encode(parameters, "UTF-8") + "&gatherAllEncounterFacts=" + gatherAllEncounterFacts);
-				HttpResponse response = super.getClient().execute(get);
-				JsonReader reader = Json.createReader(response.getEntity()
-						.getContent());
-				JsonArray results = reader.readArray();
-				if(gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-					actionState.setResults(convertJsonToPivotResultSetonEncounter(results, true));	
-				} else {
-					actionState.setResults(convertJsonToPivotResultSetonEncounter(results, false));
-				}
-				reader.close();
-				actionState.setComplete(true);
-			}
-
-			return actionState;
-		} catch (KeyManagementException | NoSuchAlgorithmException
-				| IOException e) {
-			throw new ResourceInterfaceException(
-					"Error logging into tranSMART server");
-		}
-	}
-
-	private ResultSet convertJsonToPivotResultSetonEncounter(JsonArray results, boolean onEncounter) {
-		FileResultSet mrs = new FileResultSet();
-
-		Set<String> columns = new HashSet<String>();
-		columns.add("PATIENT_NUM");
-		if(onEncounter) {
-			columns.add("ENCOUNTER_NUM");
+	private String convertPUItoI2B2Path(String pui) {
+		String[] singleReturnPathComponents = pui.split("/");
+		String singleReturnMyPath = "";
+		for (String pathComponent : Arrays.copyOfRange(
+				singleReturnPathComponents, 4,
+				singleReturnPathComponents.length)) {
+			singleReturnMyPath += "\\" + pathComponent;
 		}
 		
-		Map<String, Map<String, String>> rawData = new HashMap<String, Map<String, String>>();
-
-		if (results.size() == 0) {
-			return mrs;
-		}
-
-		for (JsonValue val : results) {
-			JsonObject obj = (JsonObject) val;
-			String pivotString = obj.getString("PATIENT_NUM");
-			if(onEncounter) {
-				pivotString = obj.getString("ENCOUNTER_NUM");
-			}
-			if(!rawData.containsKey(pivotString)) {
-				Map<String, String> entryMap = new HashMap<String, String>();
-				entryMap.put("PATIENT_NUM", obj.getString("PATIENT_NUM"));
-				if(onEncounter) {
-					entryMap.put("ENCOUNTER_NUM", obj.getString("ENCOUNTER_NUM"));
-				}
-				rawData.put(pivotString, entryMap);
-			}
-			
-			rawData.get(pivotString).put(obj.getString("CONCEPT_PATH"), obj.getString("VALUE"));
-			columns.add(obj.getString("CONCEPT_PATH"));
-		}
+		singleReturnMyPath += "\\";
 		
-		try {
-		
-			for(String column : columns) {
-				Column field = new Column();
-				field.setName(column);
-				field.setDataType(PrimitiveDataType.STRING);
-				mrs.appendColumn(field);
-			}
-			
-			for(String encounterId : rawData.keySet()) {
-				mrs.appendRow();
-				Map<String, String> pivotTable = rawData.get(encounterId);
-				
-				for(String column : columns) {
-					String value = "";
-					if(pivotTable.containsKey(column)) {
-						value = pivotTable.get(column);	
-					}
-					mrs.updateString(column, value);
-				}
-			}
-			
-		} catch (ResultSetException | PersistableException e) {
-			e.printStackTrace();
-		}
-		
-		
-		return mrs;
-	}
-
-	private HttpClient login() throws NoSuchAlgorithmException,
-			KeyManagementException, ClientProtocolException, IOException {
-		// SSL WRAPAROUND
-		System.setProperty("jsse.enableSNIExtension", "false");
-
-		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-
-			public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-				return null;
-			}
-
-			public void checkClientTrusted(
-					java.security.cert.X509Certificate[] certs, String authType) {
-			}
-
-			public void checkServerTrusted(
-					java.security.cert.X509Certificate[] certs, String authType) {
-			}
-		} };
-
-		SSLContext sslContext = SSLContext.getInstance("SSL");
-		sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-		HttpsURLConnection.setDefaultSSLSocketFactory(sslContext
-				.getSocketFactory());
-
-		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-				sslContext, NoopHostnameVerifier.INSTANCE);
-
-		Registry<ConnectionSocketFactory> r = RegistryBuilder
-				.<ConnectionSocketFactory> create().register("https", sslsf)
-				.build();
-
-		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
-				r);
-
-		// CLIENT CONNECTION
-		BasicCookieStore cookieStore = new BasicCookieStore();
-		HttpClient client = HttpClients.custom().setConnectionManager(cm)
-				.setDefaultCookieStore(cookieStore).build();
-
-		HttpPost loginHost = new HttpPost(baseURL + "/j_spring_security_check");
-
-		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
-		urlParameters.add(new BasicNameValuePair("j_username",
-				this.tranSMARTuserName));
-		urlParameters.add(new BasicNameValuePair("j_password",
-				this.tranSMARTpassword));
-		loginHost.setEntity(new UrlEncodedFormEntity(urlParameters));
-
-		client.execute(loginHost);
-
-		return client;
-	}
-
-	@Override
-	public Boolean editableReturnEntity() {
-		return true;
+		return singleReturnMyPath;
 	}
 }

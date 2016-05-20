@@ -3,74 +3,70 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.openCPU;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
 
-import javax.json.JsonObject;
-
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.action.ActionState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Path;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultSet;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
  * An implementation of a resource that communicates with an open CPU instance.
  * 
- * NOTE: Still in active development
  * 
  * @author Jeremy R. Easton-Marks
  *
  */
 public class OpenCPUResourceImplementation implements
 		ProcessResourceImplementationInterface {
-	String baseURL;
+	private String resourceName;
+	private String resourceURL;
+	private ResourceState resourceState;
 
 	@Override
-	public void setup(Map<String, String> parameters) {
+	public void setup(Map<String, String> parameters)
+			throws ResourceInterfaceException {
+		String[] strArray = { "resourceName", "resourceURL" };
+		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
+			throw new ResourceInterfaceException("Missing parameters");
+		}
+		
+		this.resourceName = parameters.get("resourceName");
+		this.resourceURL = parameters.get("resourceURL");
+		
+		resourceState = ResourceState.READY;		
+	}
 
+	@Override
+	public Result runProcess(SecureSession session, IRCTProcess pep,
+			Result result) throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Result getResults(SecureSession session, Result result)
+			throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public String getType() {
-		return "openCPU";
-	}
-
-	@Override
-	public List<Path> getReturnEntity() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ActionState runProcess(IRCTProcess pep) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ResultSet getResults(ActionState actionState) throws ResourceInterfaceException {
-		// TODO Auto-generated method stub
-		return null;
+		 return "elasticSearch";
 	}
 
 	@Override
 	public ResourceState getState() {
-		// TODO Auto-generated method stub
-		return null;
+		return resourceState;
 	}
 
 	@Override
-	public JsonObject toJson() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public JsonObject toJson(int depth) {
-		// TODO Auto-generated method stub
-		return null;
+	public ResultDataType getProcessDataType(IRCTProcess process) {
+		return ResultDataType.TABULAR;
 	}
 }
