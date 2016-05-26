@@ -7,14 +7,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
-import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -57,18 +55,23 @@ public class SecurityService implements Serializable {
 	@Inject
 	private SecurityController sc;
 
-	@Inject
-	private ServletContext context;
 
 	@Inject
 	private HttpSession session;
 
 	private final NonceGenerator nonceGenerator = new NonceGenerator();
 	private String state;
+	
+	@javax.annotation.Resource(mappedName ="java:global/redirect_on_success")
 	private String redirectOnSuccess;
-	private String tokenUri;
-	private String userInfoUri;
+	
+	@javax.annotation.Resource(mappedName ="java:global/domain")
+	private String domain;
+	
+	@javax.annotation.Resource(mappedName ="java:global/client_id")
 	private String clientId;
+	
+	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientSecret;
 	private User user;
 	private Token token;
@@ -79,21 +82,6 @@ public class SecurityService implements Serializable {
 	public SecurityService() {
 		this.state = null;
 
-	}
-
-	/**
-	 * Following construction retrieves parameters from web.xml
-	 */
-	@PostConstruct
-	public void init() {
-		this.tokenUri = "https://" + context.getInitParameter("domain")
-				+ "/oauth/token";
-		this.userInfoUri = String.format("https://%s%s",
-				context.getInitParameter("domain"), "/userinfo");
-		this.clientId = context.getInitParameter("client_id");
-		this.clientSecret = context.getInitParameter("client_secret");
-		this.redirectOnSuccess = context
-				.getInitParameter("redirect_on_success");
 	}
 
 	/**
@@ -192,7 +180,8 @@ public class SecurityService implements Serializable {
 		json.put("grant_type", "authorization_code");
 		json.put("code", authorizationCode);
 
-		JSONObject tokenInfo = resty.json(tokenUri, content(json)).toObject();
+		JSONObject tokenInfo = resty.json(String.format("https://%s%s",
+				domain, "/userinfo"), content(json)).toObject();
 
 		return new JWT((String) tokenInfo.get("id_token"),
 				(String) tokenInfo.get("access_token"),
@@ -203,8 +192,8 @@ public class SecurityService implements Serializable {
 			JSONException {
 		Resty resty = new Resty();
 
-		JSONObject userInfo = resty.json(
-				this.userInfoUri + "?access_token=" + accessToken).toObject();
+		JSONObject userInfo = resty.json(String.format("https://%s%s",
+				domain, "/userinfo?access_token=") + accessToken).toObject();
 
 		String userEmail = userInfo.getString("email");
 
