@@ -14,7 +14,7 @@ import javax.inject.Inject;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
+//import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -42,21 +42,25 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
  */
 @WebFilter(filterName = "session-filter", urlPatterns = { "/*" })
 public class SessionFilter implements Filter {
+	
+	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientId;
+	@javax.annotation.Resource(mappedName ="java:global/client_id")
 	private String clientSecret;
+	@javax.annotation.Resource(mappedName ="java:global/userField")
 	private String userField;
 
-	@Inject
-	private ServletContext context;
+//	@Inject
+//	private ServletContext context;
 
 	@Inject
 	private SecurityController sc;
 
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
-		this.clientSecret = context.getInitParameter("client_secret");
-		this.clientId = context.getInitParameter("client_id");
-		this.userField = context.getInitParameter("userField");
+//		this.clientSecret = context.getInitParameter("client_secret");
+//		this.clientId = context.getInitParameter("client_id");
+//		this.userField = context.getInitParameter("userField");
 	}
 
 	@Override
@@ -115,6 +119,18 @@ public class SessionFilter implements Filter {
 			}
 
 		}
+		
+//		HttpSession session = ((HttpServletRequest) req).getSession();
+//		
+//		User user = sc.getUser("Jeremy_Easton-Marks@hms.harvard.edu");
+//		Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer", this.clientId);
+//		SecureSession secureSession = new SecureSession();
+//		secureSession.setToken(token);
+//		secureSession.setUser(user);
+//		
+//		session.setAttribute("user", user);
+//		session.setAttribute("token", token);
+//		session.setAttribute("secureSession", secureSession);
 		
 		fc.doFilter(req, res);
 	}

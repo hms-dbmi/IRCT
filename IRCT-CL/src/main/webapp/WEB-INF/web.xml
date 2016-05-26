@@ -6,12 +6,4 @@
 	<session-config>
 		<session-timeout>120</session-timeout>
 	</session-config>
-
-	<!-- Auth0 Configuration -->
-	<context-param>
-		<param-name>redirect_on_success</param-name>
-		<param-value>/IRCT-UI/token.html</param-value>
-	</context-param>
-	
-	
 </web-app>
