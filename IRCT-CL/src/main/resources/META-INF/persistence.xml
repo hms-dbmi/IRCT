@@ -22,7 +22,7 @@
         http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
    
    <persistence-unit name="primary">
-      <jta-data-source>java:jboss/datasources/irct-cl-dev-DS</jta-data-source>
+      <jta-data-source>java:jboss/datasources/irct-cl-DS</jta-data-source>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessType</class>
