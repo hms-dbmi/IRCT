@@ -43,24 +43,19 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 @WebFilter(filterName = "session-filter", urlPatterns = { "/*" })
 public class SessionFilter implements Filter {
 	
-	@javax.annotation.Resource(mappedName ="java:global/client_secret")
-	private String clientId;
 	@javax.annotation.Resource(mappedName ="java:global/client_id")
+	private String clientId;
+	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName ="java:global/userField")
 	private String userField;
 
-//	@Inject
-//	private ServletContext context;
 
 	@Inject
 	private SecurityController sc;
 
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
-//		this.clientSecret = context.getInitParameter("client_secret");
-//		this.clientId = context.getInitParameter("client_id");
-//		this.userField = context.getInitParameter("userField");
 	}
 
 	@Override
