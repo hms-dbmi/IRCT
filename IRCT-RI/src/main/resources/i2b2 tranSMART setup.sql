@@ -1,10 +1,10 @@
 -- Set the resource parameters
-set @resourceName = '{{transmartresourcename.msg}}';
-set @transmartURL = '{{transmartresourceurl.msg}}';
-set @resourceURL = '{{i2b2resourceurl.msg}}';
-set @domain = '{{i2b2domain.msg}}';
-set @userName = '{{i2b2username.msg}}';
-set @password = '{{i2b2password.msg}}';
+set @resourceName = '{{transmartresourcename}}';
+set @transmartURL = '{{transmartresourceurl}}';
+set @resourceURL = '{{i2b2resourceurl}}';
+set @domain = '{{i2b2domain}}';
+set @userName = '{{i2b2username}}';
+set @password = '{{i2b2password}}';
 --set @ignoreCertificate = 'true';
 set @auth0ClientId = '{{auth0clientid.msg}}';
 set @auth0Domain = '{{auth0domain.msg}}';
@@ -70,9 +70,9 @@ insert into Resource_relationships(Resource_id, relationships) values(@resourceI
 insert into Resource_relationships(Resource_id, relationships) values(@resourceId, 'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship:TERM');
 
 -- INSERT RESOURCE LogicalOperators
-insert into Resource_logicalOperator(id, logicalOperator) values(@resourceId, 'AND');
-insert into Resource_logicalOperator(id, logicalOperator) values(@resourceId, 'OR');
-insert into Resource_logicalOperator(id, logicalOperator) values(@resourceId, 'NOT');
+insert into Resource_LogicalOperator(id, logicalOperator) values(@resourceId, 'AND');
+insert into Resource_LogicalOperator(id, logicalOperator) values(@resourceId, 'OR');
+insert into Resource_LogicalOperator(id, logicalOperator) values(@resourceId, 'NOT');
 
 -- CONTAINS PREDICATE
 insert into PredicateType(id, defaultPredicate, description, displayName, name) values(@containsId, 1, 'Contains value', 'Contains', 'CONTAINS');
