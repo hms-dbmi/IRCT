@@ -156,7 +156,7 @@ public class I2B2TranSMARTResourceImplementation extends
 						
 					} else if (clause instanceof WhereClause) {
 						WhereClause whereClause = (WhereClause) clause;
-						String encounter = whereClause.getStringValues().get("encounter");
+						String encounter = whereClause.getStringValues().get("ENCOUNTER");
 						if((encounter != null) && (encounter.equalsIgnoreCase("yes"))) {
 							gatherAllEncounterFacts = "true";
 						}
