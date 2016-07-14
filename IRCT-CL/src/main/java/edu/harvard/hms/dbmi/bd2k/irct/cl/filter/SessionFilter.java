@@ -115,18 +115,6 @@ public class SessionFilter implements Filter {
 
 		}
 		
-//		HttpSession session = ((HttpServletRequest) req).getSession();
-//		
-//		User user = sc.getUser("Jeremy_Easton-Marks@hms.harvard.edu");
-//		Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer", this.clientId);
-//		SecureSession secureSession = new SecureSession();
-//		secureSession.setToken(token);
-//		secureSession.setUser(user);
-//		
-//		session.setAttribute("user", user);
-//		session.setAttribute("token", token);
-//		session.setAttribute("secureSession", secureSession);
-		
 		fc.doFilter(req, res);
 	}
 
