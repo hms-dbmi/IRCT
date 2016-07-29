@@ -10,19 +10,20 @@ public class S3BeforeGetResult implements BeforeGetResult {
 
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void init() {
-		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public void fire(User user, Long resultId) {
 		// TODO Auto-generated method stub
+		
+		// Check to see if the result is available locally
+		// Copy the result from S3
 
 	}
 

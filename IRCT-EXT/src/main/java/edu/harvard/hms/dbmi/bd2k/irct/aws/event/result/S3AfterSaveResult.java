@@ -10,19 +10,16 @@ public class S3AfterSaveResult implements AfterSaveResult {
 
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void init() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void fire(Result result) {
-		// TODO Auto-generated method stub
+		// Copy the result into S3 if bucketName is not empty or null
 
 	}
 
