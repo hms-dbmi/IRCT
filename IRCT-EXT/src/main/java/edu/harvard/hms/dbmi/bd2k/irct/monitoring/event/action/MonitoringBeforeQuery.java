@@ -9,7 +9,6 @@ import javax.naming.NamingException;
 
 import org.apache.commons.logging.Log;
 
-import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
 import edu.harvard.hms.dbmi.bd2k.irct.event.action.BeforeQuery;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -35,8 +34,7 @@ public class MonitoringBeforeQuery implements BeforeQuery {
 	}
 
 	public void fire(SecureSession session, Resource resource, Query query) {
-		System.out.println("QUERY: " + session.getUser().getName() + " : " + resource.getName() + " : " + query.toString());
-		System.out.println(log == null);
+		log.info("QUERY: " + session.getUser().getName() + " : " + resource.getName() + " : " + query.toString());
 	}
 	
 	
