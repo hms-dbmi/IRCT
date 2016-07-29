@@ -36,6 +36,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -206,7 +207,7 @@ public class QueryService implements Serializable {
 		MultivaluedMap<String, String> queryParameters = info
 				.getQueryParameters();
 
-		String path = queryParameters.getFirst("path");
+		String path = queryParameters.getFirst("field");
 		Entity field = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
@@ -215,6 +216,11 @@ public class QueryService implements Serializable {
 			resource = rc.getResource(path.split("/")[1]);
 			field = new Entity(path);
 		}
+		String dataType = queryParameters.getFirst("dataType"); 
+		if((dataType != null) && (field != null)) {
+			field.setDataType(resource.getDataTypeByName(dataType));
+		}
+		
 		if ((resource == null) || (field == null)) {
 			response.add("status", "Invalid Request");
 			response.add("message", "Invalid Path");
@@ -245,9 +251,23 @@ public class QueryService implements Serializable {
 						predicateName, logicalOperatorName, fields);
 
 			} else if (type.equals("select")) {
-
+				String alias = queryParameters.getFirst("alias");
+				clauseId = validateSelectClause(clauseId, resource, field, alias);
+				
 			} else if (type.equals("join")) {
-
+				String joinType = queryParameters.getFirst("joinType");
+				
+				Map<String, String> fields = new HashMap<String, String>();
+				for (String key : queryParameters.keySet()) {
+					if (key.startsWith("data-")) {
+						fields.put(key.substring(5),
+								queryParameters.getFirst(key));
+					}
+				}
+				
+				clauseId = validateJoinClause(clauseId, resource, joinType, fields);
+			} else {
+				throw new QueryException("No type set");
 			}
 		} catch (QueryException e) {
 			response.add("status", "Invalid Request");
@@ -368,6 +388,21 @@ public class QueryService implements Serializable {
 
 		return qc.addWhereClause(clauseId, resource, field, predicateType,
 				logicalOperator, fields);
+	}
+	
+	private Long validateJoinClause(Long clauseId, Resource resource, String joinName,
+			Map<String, String> fields) throws QueryException {
+		JoinType joinType = resource.getSupportedJoinByName(joinName);
+		if(joinType == null) {
+			throw new QueryException("Unknown join type");
+		}
+		return qc.addJoinClause(clauseId, resource, joinType, fields);
+	}
+
+	private Long validateSelectClause(Long clauseId, Resource resource,
+			Entity field, String alias) throws QueryException {
+		
+		return qc.addSelectClause(clauseId, resource, field, alias);
 	}
 
 	private Long addJsonWhereClauseToQuery(JsonObject whereClause)
