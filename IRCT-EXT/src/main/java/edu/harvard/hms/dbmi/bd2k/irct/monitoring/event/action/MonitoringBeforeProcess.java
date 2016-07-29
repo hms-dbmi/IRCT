@@ -3,18 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.monitoring.event.action;
 
-import java.util.logging.Logger;
-
-import javax.inject.Inject;
-
 import edu.harvard.hms.dbmi.bd2k.irct.event.action.BeforeProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 public class MonitoringBeforeProcess implements BeforeProcess {
-	@Inject
-	Logger log;
-	
 	public String getName() {
 		return null;
 	}
@@ -24,7 +17,7 @@ public class MonitoringBeforeProcess implements BeforeProcess {
 
 	@Override
 	public void fire(SecureSession session, IRCTProcess process) {
-		log.info(session.getUser().getName() + " : " + process.toString());
+		System.out.println(session.getUser().getName() + " : " + process.toString());
 		
 	}
 	
