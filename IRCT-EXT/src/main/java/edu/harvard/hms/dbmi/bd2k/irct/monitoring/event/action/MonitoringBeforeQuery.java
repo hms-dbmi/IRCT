@@ -19,7 +19,7 @@ public class MonitoringBeforeQuery implements BeforeQuery {
 	}
 
 	public void fire(SecureSession session, Resource resource, Query query) {
-		System.out.println(session.getUser().getName() + " : " + resource.getName() + " : " + query.toString());
+		System.out.println("QUERY: " + session.getUser().getName() + " : " + resource.getName() + " : " + query.toString());
 	}
 	
 	

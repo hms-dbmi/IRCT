@@ -17,7 +17,7 @@ public class MonitoringBeforeProcess implements BeforeProcess {
 
 	@Override
 	public void fire(SecureSession session, IRCTProcess process) {
-		System.out.println(session.getUser().getName() + " : " + process.toString());
+		System.out.println("PROCESS: " + session.getUser().getName() + " : " + process.toString());
 		
 	}
 	
