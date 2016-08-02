@@ -14,48 +14,63 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
-import edu.harvard.hms.dbmi.bd2k.irct.event.action.AfterExecutionPlan;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
-import edu.harvard.hms.dbmi.bd2k.irct.executable.ExecutableStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.event.result.AfterGetResult;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
-public class S3AfterSaveResult implements AfterExecutionPlan {
+public class S3AfterGetResult implements AfterGetResult {
+
 	private AmazonS3 s3client;
-	private Log log;
 	private String bucketName;
+	private Log log;
+	private String irctSaveLocation;
 
 	@Override
 	public void init(Map<String, String> parameters) {
 		log = LogFactory.getLog("AWS S3 Monitoring");
 		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 		bucketName = parameters.get("Bucket Name");
+		irctSaveLocation = parameters.get("resultDataFolder");
 	}
 
 	@Override
-	public void fire(SecureSession session, Executable executable) {
-		
-		
-		try {
-			if(executable.getStatus() != ExecutableStatus.COMPLETED) {
+	public void fire(Result result) {
+		if (!result.getResultSetLocation().startsWith("S3://")) {
+			File temp = new File(result.getResultSetLocation());
+			if(temp.exists()) {
 				return;
+			} else {
+				result.setResultSetLocation("S3://result" + result.getResultSetLocation().replaceAll(irctSaveLocation, ""));
 			}
+		}
+		String location = result.getResultSetLocation().substring(5);
+		// List the files in that bucket path
+		try {
 			
-			Result result = executable.getResults();
-			for (File resultFile : result.getData().getFileList()) {
-				String keyName = "IRCT/result/" + result.getId() + "/" + resultFile.getName();
-				// Copy the result into S3 if bucketName is not empty or null
-				s3client.putObject(new PutObjectRequest(bucketName, keyName, resultFile));
-				log.info("Moved " + result.getResultSetLocation() + " to " + bucketName + "/" + keyName);
-				// Delete File
-				resultFile.delete();
-				log.info("Deleted " + resultFile.getName());
-			}
-			result.setResultSetLocation("S3://result/" + result.getId());
+
+			final ListObjectsV2Request req = new ListObjectsV2Request()
+					.withBucketName(bucketName).withPrefix("IRCT/" + location);
 			
+			//Loop Through all the files
+			ListObjectsV2Result s3Files;
+			do {
+				s3Files = s3client.listObjectsV2(req);
+				for (S3ObjectSummary objectSummary : s3Files.getObjectSummaries()) {
+					//Download the files to the directory specified
+					String keyName = objectSummary.getKey();
+					String fileName = irctSaveLocation + keyName.replace("IRCT/" + location, "");
+					log.info("Downloading: " + keyName + " --> " + fileName); 
+					s3client.getObject(new GetObjectRequest(bucketName, keyName), new File(fileName));
+				}
+				req.setContinuationToken(s3Files.getNextContinuationToken());
+			} while (s3Files.isTruncated() == true);
+
+			// Update the result set id
+			result.setResultSetLocation(irctSaveLocation + location.replace("result", ""));
 		} catch (AmazonServiceException ase) {
 			log.warn("Caught an AmazonServiceException, which "
 					+ "means your request made it "
@@ -73,8 +88,6 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 					+ "communicate with S3, "
 					+ "such as not being able to access the network.");
 			log.warn("Error Message: " + ace.getMessage());
-		} catch (ResourceInterfaceException e) {
-			log.warn("Error Message: " + e.getMessage());
 		}
 	}
 
