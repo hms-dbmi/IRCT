@@ -42,10 +42,9 @@ public class S3AfterGetResult implements AfterGetResult {
 		// parameters.get("accessKey"));
 		// s3client = new AmazonS3Client(awsCreds);
 		// s3client = new AmazonS3Client();
-		// s3client = new AmazonS3Client(new
-		// InstanceProfileCredentialsProvider());
+		 s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
 
-		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
+//		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 	}
 
 	@Override

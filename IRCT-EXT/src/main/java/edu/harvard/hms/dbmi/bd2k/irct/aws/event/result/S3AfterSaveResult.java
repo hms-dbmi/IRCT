@@ -48,8 +48,8 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 		// parameters.get("accessKey"));
 		// s3client = new AmazonS3Client(awsCreds);
 		// s3client = new AmazonS3Client();
-		// s3client = new AmazonS3Client(new
-		// InstanceProfileCredentialsProvider());
+		 s3client = new AmazonS3Client(new
+		 InstanceProfileCredentialsProvider());
 
 		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 	}
