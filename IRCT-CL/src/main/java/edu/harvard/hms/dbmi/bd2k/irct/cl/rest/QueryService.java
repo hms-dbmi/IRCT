@@ -111,7 +111,7 @@ public class QueryService implements Serializable {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
-
+	
 	/**
 	 * Loads a saved Query
 	 * 
@@ -275,6 +275,71 @@ public class QueryService implements Serializable {
 			return Response.status(400).entity(response.build()).build();
 		}
 		response.add("clauseId", clauseId);
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+				.build();
+	}
+	
+	/**
+	 * Saves a query
+	 * 
+     * @param payload JSON
+	 * @return Query Id
+	 */
+	@POST
+	@Path("/saveQuery")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response saveQuery(String payload) {
+		JsonObjectBuilder response = Json.createObjectBuilder();
+
+		JsonReader jsonReader = Json.createReader(new StringReader(payload));
+		JsonObject query = jsonReader.readObject();
+		jsonReader.close();
+
+		// Create the query
+		qc.createQuery();
+
+		try {
+			// Convert JSON Selects to Query
+			if (query.containsKey("select")) {
+				JsonArray selectClauses = query.getJsonArray("select");
+				Iterator<JsonValue> selectIterator = selectClauses.iterator();
+				while (selectIterator.hasNext()) {
+					addJsonSelectClauseToQuery((JsonObject) selectIterator
+							.next());
+				}
+
+			}
+			// Convert JSON Where to Query
+			if (query.containsKey("where")) {
+				JsonArray whereClauses = query.getJsonArray("where");
+				Iterator<JsonValue> whereIterator = whereClauses.iterator();
+				while (whereIterator.hasNext()) {
+					addJsonWhereClauseToQuery((JsonObject) whereIterator.next());
+				}
+			}
+			// Convert JSON Join to Query
+			if (query.containsKey("join")) {
+				JsonArray joinClauses = query.getJsonArray("join");
+				Iterator<JsonValue> joinIterator = joinClauses.iterator();
+				while (joinIterator.hasNext()) {
+					addJsonJoinClauseToQuery((JsonObject) joinIterator.next());
+				}
+			}
+		} catch (QueryException e) {
+			response.add("status", "Invalid Request");
+			response.add("message", e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+		
+		try {
+			qc.saveQuery();
+		} catch (QueryException e) {
+			response.add("status", "Invalid Request");
+			response.add("message", e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+
+		response.add("queryId", qc.getQuery().getId());
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
