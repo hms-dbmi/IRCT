@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -38,7 +39,8 @@ public class S3AfterGetResult implements AfterGetResult {
 		
 //		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
 //		s3client = new AmazonS3Client(awsCreds);
-		s3client = new AmazonS3Client();
+//		s3client = new AmazonS3Client();
+		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
 //		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 		
 	}
