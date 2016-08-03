@@ -5,6 +5,11 @@ package edu.harvard.hms.dbmi.bd2k.irct.monitoring.event.action;
 
 
 
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import edu.harvard.hms.dbmi.bd2k.irct.event.action.BeforeQuery;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -12,16 +17,15 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 public class MonitoringBeforeQuery implements BeforeQuery {
 	
+	private Log log;
 	
-	public String getName() {
-		return null;
-	}
 
-	public void init() {
+	public void init(Map<String, String> parameters) {
+		log = LogFactory.getLog("Action Monitoring");
 	}
 
 	public void fire(SecureSession session, Resource resource, Query query) {
-		System.out.println("QUERY: " + session.getUser().getName() + " : " + resource.getName() + " : " + query.toString());
+		log.info(("QUERY: " + session.getUser().getName() + " : " + resource.getName() + " : " + query.toString()));
 	}
 	
 	
