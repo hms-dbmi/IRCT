@@ -36,49 +36,58 @@ public class S3AfterGetResult implements AfterGetResult {
 		log = LogFactory.getLog("AWS S3 Monitoring");
 		bucketName = parameters.get("Bucket Name");
 		irctSaveLocation = parameters.get("resultDataFolder");
-		
-//		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
-//		s3client = new AmazonS3Client(awsCreds);
-//		s3client = new AmazonS3Client();
-		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
-//		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
-		
+
+		// BasicAWSCredentials awsCreds = new
+		// BasicAWSCredentials(parameters.get("accessId"),
+		// parameters.get("accessKey"));
+		// s3client = new AmazonS3Client(awsCreds);
+		// s3client = new AmazonS3Client();
+		// s3client = new AmazonS3Client(new
+		// InstanceProfileCredentialsProvider());
+
+		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 	}
 
 	@Override
 	public void fire(Result result) {
 		if (!result.getResultSetLocation().startsWith("S3://")) {
 			File temp = new File(result.getResultSetLocation());
-			if(temp.exists()) {
+			if (temp.exists()) {
 				return;
 			} else {
-				result.setResultSetLocation("S3://result" + result.getResultSetLocation().replaceAll(irctSaveLocation, ""));
+				result.setResultSetLocation("S3://result"
+						+ result.getResultSetLocation().replaceAll(
+								irctSaveLocation, ""));
 			}
 		}
 		String location = result.getResultSetLocation().substring(5);
 		// List the files in that bucket path
 		try {
-			
 
 			final ListObjectsV2Request req = new ListObjectsV2Request()
-					.withBucketName(bucketName).withPrefix("IRCT/" + location);
-			
-			//Loop Through all the files
+					.withBucketName(bucketName).withPrefix("tmp/IRCT/" + location);
+
+			// Loop Through all the files
 			ListObjectsV2Result s3Files;
 			do {
 				s3Files = s3client.listObjectsV2(req);
-				for (S3ObjectSummary objectSummary : s3Files.getObjectSummaries()) {
-					//Download the files to the directory specified
+				for (S3ObjectSummary objectSummary : s3Files
+						.getObjectSummaries()) {
+					// Download the files to the directory specified
 					String keyName = objectSummary.getKey();
-					String fileName = irctSaveLocation + keyName.replace("IRCT/" + location, "");
-					log.info("Downloading: " + keyName + " --> " + fileName); 
-					s3client.getObject(new GetObjectRequest(bucketName, keyName), new File(fileName));
+					String fileName = irctSaveLocation
+							+ keyName.replace("IRCT/" + location, "");
+					log.info("Downloading: " + keyName + " --> " + fileName);
+					s3client.getObject(
+							new GetObjectRequest(bucketName, keyName),
+							new File(fileName));
 				}
 				req.setContinuationToken(s3Files.getNextContinuationToken());
 			} while (s3Files.isTruncated() == true);
 
 			// Update the result set id
-			result.setResultSetLocation(irctSaveLocation + location.replace("result", ""));
+			result.setResultSetLocation(irctSaveLocation
+					+ location.replace("result", ""));
 		} catch (AmazonServiceException ase) {
 			log.warn("Caught an AmazonServiceException, which "
 					+ "means your request made it "

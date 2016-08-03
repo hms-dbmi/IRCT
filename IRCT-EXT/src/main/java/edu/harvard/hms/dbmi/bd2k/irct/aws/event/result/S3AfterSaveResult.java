@@ -25,6 +25,14 @@ import edu.harvard.hms.dbmi.bd2k.irct.executable.ExecutableStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
+/**
+ * Copies the results of an execution plan to an AWS S3 bucket. The bucket is
+ * name is set by the Bucket Name parameter. The Executable Status must be set
+ * to COMPLETED in order for the result to be saved remotely.
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class S3AfterSaveResult implements AfterExecutionPlan {
 	private AmazonS3 s3client;
 	private Log log;
@@ -34,36 +42,41 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 	public void init(Map<String, String> parameters) {
 		log = LogFactory.getLog("AWS S3 Monitoring");
 		bucketName = parameters.get("Bucket Name");
-		
-//		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
-//		s3client = new AmazonS3Client(awsCreds);
-//		s3client = new AmazonS3Client();
-		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
-//		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
-		
+
+		// BasicAWSCredentials awsCreds = new
+		// BasicAWSCredentials(parameters.get("accessId"),
+		// parameters.get("accessKey"));
+		// s3client = new AmazonS3Client(awsCreds);
+		// s3client = new AmazonS3Client();
+		// s3client = new AmazonS3Client(new
+		// InstanceProfileCredentialsProvider());
+
+		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 	}
 
 	@Override
 	public void fire(SecureSession session, Executable executable) {
-		
-		
+
 		try {
-			if(executable.getStatus() != ExecutableStatus.COMPLETED) {
+			if (executable.getStatus() != ExecutableStatus.COMPLETED) {
 				return;
 			}
-			
+
 			Result result = executable.getResults();
 			for (File resultFile : result.getData().getFileList()) {
-				String keyName = "IRCT/result/" + result.getId() + "/" + resultFile.getName();
+				String keyName = "tmp/IRCT/result/" + result.getId() + "/"
+						+ resultFile.getName();
 				// Copy the result into S3 if bucketName is not empty or null
-				s3client.putObject(new PutObjectRequest(bucketName, keyName, resultFile));
-				log.info("Moved " + result.getResultSetLocation() + " to " + bucketName + "/" + keyName);
+				s3client.putObject(new PutObjectRequest(bucketName, keyName,
+						resultFile));
+				log.info("Moved " + result.getResultSetLocation() + " to "
+						+ bucketName + "/" + keyName);
 				// Delete File
 				resultFile.delete();
 				log.info("Deleted " + resultFile.getName());
 			}
 			result.setResultSetLocation("S3://result/" + result.getId());
-			
+
 		} catch (AmazonServiceException ase) {
 			log.warn("Caught an AmazonServiceException, which "
 					+ "means your request made it "
