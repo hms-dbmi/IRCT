@@ -9,3 +9,9 @@ insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 'Buck
 
 insert into event_parameters(id, name, value) values(@S3BeforeGetResultId, 'resultDataFolder', 'dbmi-avillachlab-data');
 insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 'resultDataFolder', 'dbmi-avillachlab-data');
+
+insert into event_parameters(id, name, value) values(@S3BeforeGetResultId, 'accessId', '{{aws_build_access_id.msg}}');
+insert into event_parameters(id, name, value) values(@S3BeforeGetResultId, 'accessKey', '{{aws_build_secret.msg}}');
+
+insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 'accessId', '{{aws_build_access_id.msg}}');
+insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 'accessKey', '{{aws_build_secret.msg}}');

@@ -36,8 +36,9 @@ public class S3AfterGetResult implements AfterGetResult {
 		bucketName = parameters.get("Bucket Name");
 		irctSaveLocation = parameters.get("resultDataFolder");
 		
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
-		s3client = new AmazonS3Client(awsCreds);
+//		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
+//		s3client = new AmazonS3Client(awsCreds);
+		s3client = new AmazonS3Client();
 //		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 		
 	}

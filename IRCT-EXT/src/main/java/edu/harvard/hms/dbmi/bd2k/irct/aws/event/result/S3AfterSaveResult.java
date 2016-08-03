@@ -34,10 +34,9 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 		log = LogFactory.getLog("AWS S3 Monitoring");
 		bucketName = parameters.get("Bucket Name");
 		
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
-		s3client = new AmazonS3Client(awsCreds);
-		
-		
+//		BasicAWSCredentials awsCreds = new BasicAWSCredentials(parameters.get("accessId"), parameters.get("accessKey"));
+//		s3client = new AmazonS3Client(awsCreds);
+		s3client = new AmazonS3Client();
 //		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 		
 	}
