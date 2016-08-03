@@ -75,7 +75,7 @@ public class S3AfterGetResult implements AfterGetResult {
 					// Download the files to the directory specified
 					String keyName = objectSummary.getKey();
 					String fileName = irctSaveLocation
-							+ keyName.replace("IRCT/" + location, "");
+							+ keyName.replace("tmp/IRCT/" + location, "");
 					log.info("Downloading: " + keyName + " --> " + fileName);
 					s3client.getObject(
 							new GetObjectRequest(bucketName, keyName),
