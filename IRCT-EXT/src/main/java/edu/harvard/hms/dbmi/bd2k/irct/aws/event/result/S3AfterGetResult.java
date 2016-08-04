@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -28,14 +29,17 @@ public class S3AfterGetResult implements AfterGetResult {
 	private String bucketName;
 	private Log log;
 	private String irctSaveLocation;
+	private String s3Folder;
 
 	@Override
 	public void init(Map<String, String> parameters) {
 		log = LogFactory.getLog("AWS S3 Monitoring");
 		bucketName = parameters.get("Bucket Name");
 		irctSaveLocation = parameters.get("resultDataFolder");
+		s3Folder = parameters.get("s3Folder");
 
-		 s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
+//		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
+		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 
 	}
 
@@ -46,7 +50,8 @@ public class S3AfterGetResult implements AfterGetResult {
 			if (temp.exists()) {
 				return;
 			} else {
-				result.setResultSetLocation("S3://result"
+				result.setResultSetLocation("S3://"
+						+ s3Folder
 						+ result.getResultSetLocation().replaceAll(
 								irctSaveLocation, ""));
 			}
@@ -56,7 +61,7 @@ public class S3AfterGetResult implements AfterGetResult {
 		try {
 
 			final ListObjectsV2Request req = new ListObjectsV2Request()
-					.withBucketName(bucketName).withPrefix("tmp/IRCT/" + location);
+					.withBucketName(bucketName).withPrefix(location);
 
 			// Loop Through all the files
 			ListObjectsV2Result s3Files;
@@ -67,7 +72,7 @@ public class S3AfterGetResult implements AfterGetResult {
 					// Download the files to the directory specified
 					String keyName = objectSummary.getKey();
 					String fileName = irctSaveLocation
-							+ keyName.replace("tmp/IRCT/" + location, "");
+							+ keyName.replace(location, "");
 					log.info("Downloading: " + keyName + " --> " + fileName);
 					s3client.getObject(
 							new GetObjectRequest(bucketName, keyName),
@@ -77,8 +82,8 @@ public class S3AfterGetResult implements AfterGetResult {
 			} while (s3Files.isTruncated() == true);
 
 			// Update the result set id
-			result.setResultSetLocation(irctSaveLocation
-					+ location.replace("result", ""));
+			result.setResultSetLocation(irctSaveLocation + "/"
+					+ location.replace(s3Folder, ""));
 		} catch (AmazonServiceException ase) {
 			log.warn("Caught an AmazonServiceException, which "
 					+ "means your request made it "

@@ -9,3 +9,6 @@ insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 'Buck
 
 insert into event_parameters(id, name, value) values(@S3BeforeGetResultId, 'resultDataFolder', 'dbmi-avillachlab-data');
 insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 'resultDataFolder', 'dbmi-avillachlab-data');
+
+insert into event_parameters(id, name, value) values(@S3BeforeGetResultId, 's3Folder', 'tmp/IRCT/je72Local/result/');
+insert into event_parameters(id, name, value) values(@S3AfterSaveResultId, 's3Folder', 'tmp/IRCT/je72Local/result/');

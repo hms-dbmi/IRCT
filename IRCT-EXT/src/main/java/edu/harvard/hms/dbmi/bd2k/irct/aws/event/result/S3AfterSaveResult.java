@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -35,13 +36,16 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 	private AmazonS3 s3client;
 	private Log log;
 	private String bucketName;
+	private String s3Folder;
 
 	@Override
 	public void init(Map<String, String> parameters) {
 		log = LogFactory.getLog("AWS S3 Monitoring");
 		bucketName = parameters.get("Bucket Name");
+		s3Folder = parameters.get("s3Folder");
 
-		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
+//		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
+		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
 	}
 
 	@Override
@@ -54,7 +58,7 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 
 			Result result = executable.getResults();
 			for (File resultFile : result.getData().getFileList()) {
-				String keyName = "tmp/IRCT/result/" + result.getId() + "/"
+				String keyName = s3Folder + result.getId() + "/"
 						+ resultFile.getName();
 				// Copy the result into S3 if bucketName is not empty or null
 				s3client.putObject(new PutObjectRequest(bucketName, keyName,
@@ -65,7 +69,7 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 				resultFile.delete();
 				log.info("Deleted " + resultFile.getName());
 			}
-			result.setResultSetLocation("S3://result/" + result.getId());
+			result.setResultSetLocation("S3://" + s3Folder + result.getId());
 
 		} catch (AmazonServiceException ase) {
 			log.warn("Caught an AmazonServiceException, which "
