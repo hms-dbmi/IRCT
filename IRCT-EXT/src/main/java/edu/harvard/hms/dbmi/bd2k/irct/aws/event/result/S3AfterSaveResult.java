@@ -12,7 +12,6 @@ import org.apache.commons.logging.LogFactory;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -44,8 +43,7 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 		bucketName = parameters.get("Bucket Name");
 		s3Folder = parameters.get("s3Folder");
 
-//		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
-		s3client = new AmazonS3Client(new ProfileCredentialsProvider());
+		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
 	}
 
 	@Override
