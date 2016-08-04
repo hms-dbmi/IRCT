@@ -35,6 +35,9 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
@@ -262,8 +265,25 @@ public class I2B2XMLResourceImplementation implements
 
 		return entities;
 	}
-
+	
+	
 	@Override
+	public List<Entity> find(Entity path, FindInformationInterface findInformation,
+			SecureSession session) throws ResourceInterfaceException {
+		List<Entity> returns = new ArrayList<Entity>();
+		
+		if(findInformation instanceof FindByPath) {
+			returns =  searchPaths(path, ((FindByPath) findInformation).getValues().get("term"), session);
+		} else if(findInformation instanceof FindByOntology) {
+			String ontologyTerm = ((FindByPath) findInformation).getValues().get("ontologyTerm");
+			String ontologyType = ((FindByPath) findInformation).getValues().get("ontologyType");
+			returns = searchOntology( path,  ontologyType, ontologyTerm,  session);
+		}
+		
+		return returns;
+	}
+	
+
 	public List<Entity> searchPaths(Entity path, String searchTerm,
 			SecureSession session) throws ResourceInterfaceException {
 		String strategy = "exact";
@@ -327,7 +347,6 @@ public class I2B2XMLResourceImplementation implements
 		return entities;
 	}
 
-	@Override
 	public List<Entity> searchOntology(Entity path, String ontologyType,
 			String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
@@ -997,5 +1016,4 @@ public class I2B2XMLResourceImplementation implements
 		
 		return HttpClients.custom().setConnectionManager(cm);
 	}
-	
 }

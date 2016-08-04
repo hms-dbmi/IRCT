@@ -31,6 +31,7 @@ import static org.elasticsearch.index.query.QueryBuilders.*;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
@@ -302,14 +303,8 @@ public class ElasticSearchResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm,
-			SecureSession session) throws ResourceInterfaceException {
-		return new ArrayList<Entity>();
-	}
-
-	@Override
-	public List<Entity> searchOntology(Entity path, String ontologyType,
-			String ontologyTerm, SecureSession session)
+	public List<Entity> find(Entity path,
+			FindInformationInterface findInformation, SecureSession session)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
