@@ -28,6 +28,9 @@ import javax.ws.rs.core.UriInfo;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
@@ -161,6 +164,57 @@ public class ResourceService {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
+	
+	@GET
+	@Path("/find{path : .*}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response find(@PathParam("path") String path, @Context UriInfo info) {
+		JsonArrayBuilder response = Json.createArrayBuilder();
+		List<Entity> entities = null;
+		FindInformationInterface findInformation;
+		
+		if(info.getQueryParameters().containsKey("term")) {
+			findInformation = new FindByPath();
+		} else if(info.getQueryParameters().containsKey("ontologyTerm") && info.getQueryParameters().containsKey("ontologyType")) {
+			findInformation = new FindByOntology();
+		} else {
+			return invalidRequest("Find is missing parameters");
+		}
+		
+		// Set up path information
+		Resource resource = null;
+		Entity resourcePath = null;
+
+		if (path != null && !path.isEmpty()) {
+			path = "/" + path;
+			path = path.substring(1);
+			resource = rc.getResource(path.split("/")[1]);
+
+			resourcePath = new Entity(path);
+		}
+		
+		// Load all values into find information object
+		for(String key : info.getQueryParameters().keySet()) {
+			findInformation.setValue(key, info.getQueryParameters().getFirst(key));
+		}
+		// Run find
+		try {
+			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) session.getAttribute("secureSession"));
+		} catch (ResourceInterfaceException e) {
+			log.log(Level.INFO,
+					"Error in /resourceService/find"
+							+ e.getMessage());
+			return invalidRequest(null);
+		}
+		
+		if (entities != null) {
+			for (Entity entity : entities) {
+				response.add(entity.toJson());
+			}
+		}
+		
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON).build();
+	}
 
 	/**
 	 * Returns a list of entities. This could be from traversing the paths, or
@@ -181,15 +235,10 @@ public class ResourceService {
 	@GET
 	@Path("/path{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response path(@PathParam("path") String path,
-			@QueryParam("relationship") String relationshipString,
-			@QueryParam("searchTerm") String searchTerm,
-			@QueryParam("searchOntologyType") String ontologyType,
-			@QueryParam("searchOntologyTerm") String ontologyTerm) {
-
+	public Response path(@PathParam("path") String path, @QueryParam("relationship") String relationshipString) {
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Entity> entities = null;
-
+		
 		Resource resource = null;
 		Entity resourcePath = null;
 
@@ -201,8 +250,7 @@ public class ResourceService {
 			resourcePath = new Entity(path);
 		}
 
-		if (resource != null && searchTerm == null && ontologyType == null
-				&& ontologyTerm == null) {
+		if (resource != null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
@@ -216,28 +264,6 @@ public class ResourceService {
 								+ "?relationship=" + relationshipString + " : "
 								+ e.getMessage());
 				return invalidRequest(e.getMessage());
-			}
-		} else if (searchTerm != null) {
-			try {
-				entities = pc.searchForTerm(resource, resourcePath, searchTerm,
-						(SecureSession) session.getAttribute("secureSession"));
-			} catch (ResourceInterfaceException e) {
-				log.log(Level.INFO, "Error in /resourceService/path/" + path
-						+ "?searchTerm=" + searchTerm + " : " + e.getMessage());
-				return invalidRequest(null);
-			}
-		} else if (ontologyType != null && ontologyTerm != null) {
-			try {
-				entities = pc.searchForOntology(resource, resourcePath,
-						ontologyType, ontologyTerm,
-						(SecureSession) session.getAttribute("secureSession"));
-			} catch (ResourceInterfaceException e) {
-				log.log(Level.INFO,
-						"Error in /resourceService/path/" + path
-								+ "?searchOntologyType=" + ontologyType
-								+ "&searchOntologyTerm" + ontologyTerm + " : "
-								+ e.getMessage());
-				return invalidRequest(null);
 			}
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();
