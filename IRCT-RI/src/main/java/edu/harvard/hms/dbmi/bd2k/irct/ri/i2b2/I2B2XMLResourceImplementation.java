@@ -273,7 +273,7 @@ public class I2B2XMLResourceImplementation implements
 		List<Entity> returns = new ArrayList<Entity>();
 		
 		if(findInformation instanceof FindByPath) {
-			returns =  searchPaths(path, ((FindByPath) findInformation).getValues().get("term"), session);
+			returns =  searchPaths(path, ((FindByPath) findInformation).getValues().get("term"), ((FindByPath) findInformation).getValues().get("strategy"), session);
 		} else if(findInformation instanceof FindByOntology) {
 			String ontologyTerm = ((FindByOntology) findInformation).getValues().get("ontologyTerm");
 			String ontologyType = ((FindByOntology) findInformation).getValues().get("ontologyType");
@@ -284,21 +284,8 @@ public class I2B2XMLResourceImplementation implements
 	}
 	
 
-	public List<Entity> searchPaths(Entity path, String searchTerm,
+	public List<Entity> searchPaths(Entity path, String searchTerm, String strategy,
 			SecureSession session) throws ResourceInterfaceException {
-		String strategy = "exact";
-		if (searchTerm.charAt(0) == '%') {
-			if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
-				searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
-				strategy = "contains";
-			} else {
-				searchTerm = searchTerm.substring(1);
-				strategy = "right";
-			}
-		} else if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
-			searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
-			strategy = "left";
-		}
 
 		List<Entity> entities = new ArrayList<Entity>();
 		HttpClient client = createClient(session);
