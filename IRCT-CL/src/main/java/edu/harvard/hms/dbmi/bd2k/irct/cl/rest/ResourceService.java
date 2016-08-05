@@ -197,6 +197,26 @@ public class ResourceService {
 		for(String key : info.getQueryParameters().keySet()) {
 			findInformation.setValue(key, info.getQueryParameters().getFirst(key));
 		}
+		
+		if(findInformation instanceof FindByPath) {
+			String searchTerm = info.getQueryParameters().getFirst("term");
+			String strategy = "exact";
+			if (searchTerm.charAt(0) == '%') {
+				if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
+					searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
+					strategy = "contains";
+				} else {
+					searchTerm = searchTerm.substring(1);
+					strategy = "right";
+				}
+			} else if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
+				searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
+				strategy = "left";
+			}
+			findInformation.setValue("term", searchTerm);
+			findInformation.setValue("strategy", strategy);
+		}
+		
 		// Run find
 		try {
 			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) session.getAttribute("secureSession"));
