@@ -275,8 +275,8 @@ public class I2B2XMLResourceImplementation implements
 		if(findInformation instanceof FindByPath) {
 			returns =  searchPaths(path, ((FindByPath) findInformation).getValues().get("term"), session);
 		} else if(findInformation instanceof FindByOntology) {
-			String ontologyTerm = ((FindByPath) findInformation).getValues().get("ontologyTerm");
-			String ontologyType = ((FindByPath) findInformation).getValues().get("ontologyType");
+			String ontologyTerm = ((FindByOntology) findInformation).getValues().get("ontologyTerm");
+			String ontologyType = ((FindByOntology) findInformation).getValues().get("ontologyType");
 			returns = searchOntology( path,  ontologyType, ontologyTerm,  session);
 		}
 		
@@ -311,10 +311,12 @@ public class I2B2XMLResourceImplementation implements
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					for (ConceptType category : getCategories(client,
 							pt.getId()).getConcept()) {
+						
 						String categoryName = converti2b2Path(category.getKey())
 								.split("/")[1];
+						
 						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName,
+								"/" + this.resourceName + "/" + pt.getId(),
 								runNameSearch(client, pt.getId(), categoryName,
 										strategy, searchTerm)));
 					}
@@ -328,14 +330,14 @@ public class I2B2XMLResourceImplementation implements
 						String categoryName = converti2b2Path(category.getKey())
 								.split("/")[1];
 						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName,
+								"/" + this.resourceName + "/" + pathComponents[2],
 								runNameSearch(client, pathComponents[2],
 										categoryName, strategy, searchTerm)));
 					}
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pathComponents[2],
 							runNameSearch(client, pathComponents[2],
 									pathComponents[3], strategy, searchTerm)));
 				}
@@ -360,7 +362,7 @@ public class I2B2XMLResourceImplementation implements
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pt.getId(),
 							runCategorySearch(client, pt.getId(), null,
 									ontologyType, ontologyTerm)));
 				}
@@ -369,13 +371,13 @@ public class I2B2XMLResourceImplementation implements
 				if (pathComponents.length == 3) {
 					// Get All Categories
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName  + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2], null,
 									ontologyType, ontologyTerm)));
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName  + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2],
 									pathComponents[3], ontologyType,
 									ontologyTerm)));
