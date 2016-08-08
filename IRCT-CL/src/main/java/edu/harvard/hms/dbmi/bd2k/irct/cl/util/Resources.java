@@ -5,8 +5,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
 import java.util.logging.Logger;
 
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.Dependent;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
