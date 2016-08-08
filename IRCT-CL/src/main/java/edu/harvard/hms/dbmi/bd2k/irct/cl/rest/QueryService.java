@@ -541,6 +541,9 @@ public class QueryService implements Serializable {
 			path = "/" + path;
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
+			if(resource == null) {
+				throw new QueryException("Invalid Path");
+			}
 			field = new Entity(path);
 			if (dataType != null) {
 				field.setDataType(resource.getDataTypeByName(dataType));
