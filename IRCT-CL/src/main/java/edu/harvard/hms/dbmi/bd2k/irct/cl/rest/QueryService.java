@@ -111,11 +111,12 @@ public class QueryService implements Serializable {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
-	
+
 	/**
 	 * Loads a saved Query
 	 * 
-	 * @param queryId Query Id
+	 * @param queryId
+	 *            Query Id
 	 * @return Conversation Id
 	 */
 	@GET
@@ -147,7 +148,8 @@ public class QueryService implements Serializable {
 	/**
 	 * Adds a clause through a JSON representation
 	 * 
-	 * @param payload JSON
+	 * @param payload
+	 *            JSON
 	 * @return Clause Id
 	 */
 	@POST
@@ -193,8 +195,10 @@ public class QueryService implements Serializable {
 	/**
 	 * Adds a clause through URI information
 	 * 
-	 * @param type Type of clause
-	 * @param info URI information
+	 * @param type
+	 *            Type of clause
+	 * @param info
+	 *            URI information
 	 * @return Clause Id
 	 */
 	@GET
@@ -216,11 +220,11 @@ public class QueryService implements Serializable {
 			resource = rc.getResource(path.split("/")[1]);
 			field = new Entity(path);
 		}
-		String dataType = queryParameters.getFirst("dataType"); 
-		if((dataType != null) && (field != null)) {
+		String dataType = queryParameters.getFirst("dataType");
+		if ((dataType != null) && (field != null)) {
 			field.setDataType(resource.getDataTypeByName(dataType));
 		}
-		
+
 		if ((resource == null) || (field == null)) {
 			response.add("status", "Invalid Request");
 			response.add("message", "Invalid Path");
@@ -252,11 +256,12 @@ public class QueryService implements Serializable {
 
 			} else if (type.equals("select")) {
 				String alias = queryParameters.getFirst("alias");
-				clauseId = validateSelectClause(clauseId, resource, field, alias);
-				
+				clauseId = validateSelectClause(clauseId, resource, field,
+						alias);
+
 			} else if (type.equals("join")) {
 				String joinType = queryParameters.getFirst("joinType");
-				
+
 				Map<String, String> fields = new HashMap<String, String>();
 				for (String key : queryParameters.keySet()) {
 					if (key.startsWith("data-")) {
@@ -264,8 +269,9 @@ public class QueryService implements Serializable {
 								queryParameters.getFirst(key));
 					}
 				}
-				
-				clauseId = validateJoinClause(clauseId, resource, joinType, fields);
+
+				clauseId = validateJoinClause(clauseId, resource, joinType,
+						fields);
 			} else {
 				throw new QueryException("No type set");
 			}
@@ -278,11 +284,12 @@ public class QueryService implements Serializable {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
-	
+
 	/**
 	 * Saves a query
 	 * 
-     * @param payload JSON
+	 * @param payload
+	 *            JSON
 	 * @return Query Id
 	 */
 	@POST
@@ -330,7 +337,7 @@ public class QueryService implements Serializable {
 			response.add("message", e.getMessage());
 			return Response.status(400).entity(response.build()).build();
 		}
-		
+
 		try {
 			qc.saveQuery();
 		} catch (QueryException e) {
@@ -347,7 +354,8 @@ public class QueryService implements Serializable {
 	/**
 	 * Runs a query using a JSON representation of the Query
 	 * 
-	 * @param payload JSON
+	 * @param payload
+	 *            JSON
 	 * @return Result Id
 	 */
 	@POST
@@ -454,11 +462,11 @@ public class QueryService implements Serializable {
 		return qc.addWhereClause(clauseId, resource, field, predicateType,
 				logicalOperator, fields);
 	}
-	
-	private Long validateJoinClause(Long clauseId, Resource resource, String joinName,
-			Map<String, String> fields) throws QueryException {
+
+	private Long validateJoinClause(Long clauseId, Resource resource,
+			String joinName, Map<String, String> fields) throws QueryException {
 		JoinType joinType = resource.getSupportedJoinByName(joinName);
-		if(joinType == null) {
+		if (joinType == null) {
 			throw new QueryException("Unknown join type");
 		}
 		return qc.addJoinClause(clauseId, resource, joinType, fields);
@@ -466,7 +474,7 @@ public class QueryService implements Serializable {
 
 	private Long validateSelectClause(Long clauseId, Resource resource,
 			Entity field, String alias) throws QueryException {
-		
+
 		return qc.addSelectClause(clauseId, resource, field, alias);
 	}
 
@@ -541,6 +549,9 @@ public class QueryService implements Serializable {
 			path = "/" + path;
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
+			if (resource == null) {
+				throw new QueryException("Invalid Resource");
+			}
 			field = new Entity(path);
 			if (dataType != null) {
 				field.setDataType(resource.getDataTypeByName(dataType));
