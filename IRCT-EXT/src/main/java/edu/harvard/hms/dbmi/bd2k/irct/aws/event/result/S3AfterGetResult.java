@@ -1,0 +1,105 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+package edu.harvard.hms.dbmi.bd2k.irct.aws.event.result;
+
+import java.io.File;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+
+import edu.harvard.hms.dbmi.bd2k.irct.event.result.AfterGetResult;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+
+public class S3AfterGetResult implements AfterGetResult {
+
+	private AmazonS3 s3client;
+	private String bucketName;
+	private Log log;
+	private String irctSaveLocation;
+	private String s3Folder;
+
+	@Override
+	public void init(Map<String, String> parameters) {
+		log = LogFactory.getLog("AWS S3 Monitoring");
+		bucketName = parameters.get("Bucket Name");
+		irctSaveLocation = parameters.get("resultDataFolder");
+		s3Folder = parameters.get("s3Folder");
+
+		s3client = new AmazonS3Client(new InstanceProfileCredentialsProvider());
+
+	}
+
+	@Override
+	public void fire(Result result) {
+		if (!result.getResultSetLocation().startsWith("S3://")) {
+			File temp = new File(result.getResultSetLocation());
+			if (temp.exists()) {
+				return;
+			} else {
+				result.setResultSetLocation("S3://"
+						+ s3Folder
+						+ result.getResultSetLocation().replaceAll(
+								irctSaveLocation, ""));
+			}
+		}
+		String location = result.getResultSetLocation().substring(5);
+		// List the files in that bucket path
+		try {
+
+			final ListObjectsV2Request req = new ListObjectsV2Request()
+					.withBucketName(bucketName).withPrefix(location);
+
+			// Loop Through all the files
+			ListObjectsV2Result s3Files;
+			do {
+				s3Files = s3client.listObjectsV2(req);
+				for (S3ObjectSummary objectSummary : s3Files
+						.getObjectSummaries()) {
+					// Download the files to the directory specified
+					String keyName = objectSummary.getKey();
+					String fileName = irctSaveLocation
+							+ keyName.replace(location, "");
+					log.info("Downloading: " + keyName + " --> " + fileName);
+					s3client.getObject(
+							new GetObjectRequest(bucketName, keyName),
+							new File(fileName));
+				}
+				req.setContinuationToken(s3Files.getNextContinuationToken());
+			} while (s3Files.isTruncated() == true);
+
+			// Update the result set id
+			result.setResultSetLocation(irctSaveLocation + "/"
+					+ location.replace(s3Folder, ""));
+		} catch (AmazonServiceException ase) {
+			log.warn("Caught an AmazonServiceException, which "
+					+ "means your request made it "
+					+ "to Amazon S3, but was rejected with an error response"
+					+ " for some reason.");
+			log.warn("Error Message:    " + ase.getMessage());
+			log.warn("HTTP Status Code: " + ase.getStatusCode());
+			log.warn("AWS Error Code:   " + ase.getErrorCode());
+			log.warn("Error Type:       " + ase.getErrorType());
+			log.warn("Request ID:       " + ase.getRequestId());
+		} catch (AmazonClientException ace) {
+			log.warn("Caught an AmazonClientException, which "
+					+ "means the client encountered "
+					+ "an internal error while trying to "
+					+ "communicate with S3, "
+					+ "such as not being able to access the network.");
+			log.warn("Error Message: " + ace.getMessage());
+		}
+	}
+
+}
