@@ -35,6 +35,9 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
@@ -262,23 +265,27 @@ public class I2B2XMLResourceImplementation implements
 
 		return entities;
 	}
-
+	
+	
 	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm,
+	public List<Entity> find(Entity path, FindInformationInterface findInformation,
 			SecureSession session) throws ResourceInterfaceException {
-		String strategy = "exact";
-		if (searchTerm.charAt(0) == '%') {
-			if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
-				searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
-				strategy = "contains";
-			} else {
-				searchTerm = searchTerm.substring(1);
-				strategy = "right";
-			}
-		} else if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
-			searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
-			strategy = "left";
+		List<Entity> returns = new ArrayList<Entity>();
+		
+		if(findInformation instanceof FindByPath) {
+			returns =  searchPaths(path, ((FindByPath) findInformation).getValues().get("term"), ((FindByPath) findInformation).getValues().get("strategy"), session);
+		} else if(findInformation instanceof FindByOntology) {
+			String ontologyTerm = ((FindByOntology) findInformation).getValues().get("ontologyTerm");
+			String ontologyType = ((FindByOntology) findInformation).getValues().get("ontologyType");
+			returns = searchOntology( path,  ontologyType, ontologyTerm,  session);
 		}
+		
+		return returns;
+	}
+	
+
+	public List<Entity> searchPaths(Entity path, String searchTerm, String strategy,
+			SecureSession session) throws ResourceInterfaceException {
 
 		List<Entity> entities = new ArrayList<Entity>();
 		HttpClient client = createClient(session);
@@ -291,10 +298,12 @@ public class I2B2XMLResourceImplementation implements
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					for (ConceptType category : getCategories(client,
 							pt.getId()).getConcept()) {
+						
 						String categoryName = converti2b2Path(category.getKey())
 								.split("/")[1];
+						
 						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName,
+								"/" + this.resourceName + "/" + pt.getId(),
 								runNameSearch(client, pt.getId(), categoryName,
 										strategy, searchTerm)));
 					}
@@ -308,14 +317,14 @@ public class I2B2XMLResourceImplementation implements
 						String categoryName = converti2b2Path(category.getKey())
 								.split("/")[1];
 						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName,
+								"/" + this.resourceName + "/" + pathComponents[2],
 								runNameSearch(client, pathComponents[2],
 										categoryName, strategy, searchTerm)));
 					}
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pathComponents[2],
 							runNameSearch(client, pathComponents[2],
 									pathComponents[3], strategy, searchTerm)));
 				}
@@ -327,7 +336,6 @@ public class I2B2XMLResourceImplementation implements
 		return entities;
 	}
 
-	@Override
 	public List<Entity> searchOntology(Entity path, String ontologyType,
 			String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
@@ -341,7 +349,7 @@ public class I2B2XMLResourceImplementation implements
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pt.getId(),
 							runCategorySearch(client, pt.getId(), null,
 									ontologyType, ontologyTerm)));
 				}
@@ -350,13 +358,13 @@ public class I2B2XMLResourceImplementation implements
 				if (pathComponents.length == 3) {
 					// Get All Categories
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName  + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2], null,
 									ontologyType, ontologyTerm)));
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName  + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2],
 									pathComponents[3], ontologyType,
 									ontologyTerm)));
@@ -997,5 +1005,4 @@ public class I2B2XMLResourceImplementation implements
 		
 		return HttpClients.custom().setConnectionManager(cm);
 	}
-	
 }

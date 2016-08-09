@@ -15,6 +15,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
@@ -141,16 +142,11 @@ public class FileServiceResourceImplementation implements
 			throws ResourceInterfaceException {
 		return result;
 	}
-
+	
+	
 	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm,
-			SecureSession session) throws ResourceInterfaceException {
-		return new ArrayList<Entity>();
-	}
-
-	@Override
-	public List<Entity> searchOntology(Entity path, String ontologyType,
-			String ontologyTerm, SecureSession session)
+	public List<Entity> find(Entity path,
+			FindInformationInterface findInformation, SecureSession session)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}

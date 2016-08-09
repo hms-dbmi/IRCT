@@ -26,6 +26,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
@@ -367,14 +368,8 @@ public class EXACResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm,
-			SecureSession session) throws ResourceInterfaceException {
-		return new ArrayList<Entity>();
-	}
-
-	@Override
-	public List<Entity> searchOntology(Entity path, String ontologyType,
-			String ontologyTerm, SecureSession session)
+	public List<Entity> find(Entity path,
+			FindInformationInterface findInformation, SecureSession session)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
