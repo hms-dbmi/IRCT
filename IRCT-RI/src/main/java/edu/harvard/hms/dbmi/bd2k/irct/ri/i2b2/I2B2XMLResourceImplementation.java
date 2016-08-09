@@ -444,6 +444,7 @@ public class I2B2XMLResourceImplementation implements
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage(e.getMessage());
 		}
 		return result;
 	}

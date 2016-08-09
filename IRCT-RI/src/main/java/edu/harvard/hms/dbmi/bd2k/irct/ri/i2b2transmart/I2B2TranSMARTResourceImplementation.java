@@ -13,6 +13,7 @@ import java.util.Map;
 
 import javax.json.Json;
 import javax.json.JsonArray;
+import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
@@ -155,7 +156,7 @@ public class I2B2TranSMARTResourceImplementation extends
 						
 					} else if (clause instanceof WhereClause) {
 						WhereClause whereClause = (WhereClause) clause;
-						String encounter = whereClause.getStringValues().get("encounter");
+						String encounter = whereClause.getStringValues().get("ENCOUNTER");
 						if((encounter != null) && (encounter.equalsIgnoreCase("yes"))) {
 							gatherAllEncounterFacts = "true";
 						}
@@ -165,6 +166,13 @@ public class I2B2TranSMARTResourceImplementation extends
 				
 				
 				if (!aliasMap.isEmpty()) {
+					
+					ResultSet rs = (ResultSet) result.getData();
+					if(rs.getSize() == 0) {
+						rs = createInitialDataset(result, aliasMap, gatherAllEncounterFacts);
+						result.setData(rs);
+					}
+
 					//Loop through the columns submitting and appending to the rows every 10 
 					List<String> parameterList = new ArrayList<String>();
 					int counter = 0;
@@ -192,13 +200,15 @@ public class I2B2TranSMARTResourceImplementation extends
 								+ URLEncoder.encode(parameter, "UTF-8") 
 								+ "&gatherAllEncounterFacts=" + gatherAllEncounterFacts;
 						HttpClient client = createClient(session);
-					
 						HttpGet get = new HttpGet(url);
-						HttpResponse response = client.execute(get);
-						JsonReader reader = Json.createReader(response.getEntity().getContent());
-						JsonArray arrayResults = reader.readArray();
-						//Convert the dataset to Tabular format
-						result = convertJsonToResultSet(result, arrayResults, aliasMap, gatherAllEncounterFacts);
+						try {
+							HttpResponse response = client.execute(get);
+							JsonReader reader = Json.createReader(response.getEntity().getContent());
+							JsonArray arrayResults = reader.readArray();
+							//Convert the dataset to Tabular format
+							result = convertJsonToResultSet(result, arrayResults, aliasMap, gatherAllEncounterFacts);
+						} catch(JsonException e) {
+						}
 					}
 				
 				}				
@@ -248,9 +258,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			String gatherAllEncounterFacts) throws ResultSetException, PersistableException {
 		// If the resultset is empty create the initial result set
 		ResultSet rs = (ResultSet) result.getData();
-		if(rs.getSize() == 0) {
-			rs = createInitialDataset(result, aliasMap, gatherAllEncounterFacts);
-		}
+
 		//Create the initial Matrix
 		Map<String, Map<String, String>> dataMatrix = new HashMap<String, Map<String, String>>();
 		
