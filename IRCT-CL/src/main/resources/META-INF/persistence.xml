@@ -42,6 +42,8 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.result.DataConverterImplementation</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- Properties for Hibernate -->

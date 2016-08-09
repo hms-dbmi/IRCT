@@ -34,6 +34,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 @Path("/resultService")
 @RequestScoped
 public class ResultService {
+	
 	@Inject
 	private ResultController rc;
 
@@ -145,7 +146,7 @@ public class ResultService {
 		ResultDataStream rds = rc.getResultDataStream(user, resultId, format);
 		if ((rds == null) || (rds.getMediaType() == null)) {
 			JsonObjectBuilder jsonResponse = Json.createObjectBuilder();
-			jsonResponse.add("message", "Unable to retrieve Result");
+			jsonResponse.add("message", "Unable to retrieve result");
 			return Response
 					.ok(jsonResponse.build(), MediaType.APPLICATION_JSON)
 					.build();

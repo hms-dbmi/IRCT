@@ -36,6 +36,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -114,7 +115,8 @@ public class QueryService implements Serializable {
 	/**
 	 * Loads a saved Query
 	 * 
-	 * @param queryId Query Id
+	 * @param queryId
+	 *            Query Id
 	 * @return Conversation Id
 	 */
 	@GET
@@ -146,7 +148,8 @@ public class QueryService implements Serializable {
 	/**
 	 * Adds a clause through a JSON representation
 	 * 
-	 * @param payload JSON
+	 * @param payload
+	 *            JSON
 	 * @return Clause Id
 	 */
 	@POST
@@ -192,8 +195,10 @@ public class QueryService implements Serializable {
 	/**
 	 * Adds a clause through URI information
 	 * 
-	 * @param type Type of clause
-	 * @param info URI information
+	 * @param type
+	 *            Type of clause
+	 * @param info
+	 *            URI information
 	 * @return Clause Id
 	 */
 	@GET
@@ -206,7 +211,7 @@ public class QueryService implements Serializable {
 		MultivaluedMap<String, String> queryParameters = info
 				.getQueryParameters();
 
-		String path = queryParameters.getFirst("path");
+		String path = queryParameters.getFirst("field");
 		Entity field = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
@@ -215,6 +220,11 @@ public class QueryService implements Serializable {
 			resource = rc.getResource(path.split("/")[1]);
 			field = new Entity(path);
 		}
+		String dataType = queryParameters.getFirst("dataType");
+		if ((dataType != null) && (field != null)) {
+			field.setDataType(resource.getDataTypeByName(dataType));
+		}
+
 		if ((resource == null) || (field == null)) {
 			response.add("status", "Invalid Request");
 			response.add("message", "Invalid Path");
@@ -245,9 +255,25 @@ public class QueryService implements Serializable {
 						predicateName, logicalOperatorName, fields);
 
 			} else if (type.equals("select")) {
+				String alias = queryParameters.getFirst("alias");
+				clauseId = validateSelectClause(clauseId, resource, field,
+						alias);
 
 			} else if (type.equals("join")) {
+				String joinType = queryParameters.getFirst("joinType");
 
+				Map<String, String> fields = new HashMap<String, String>();
+				for (String key : queryParameters.keySet()) {
+					if (key.startsWith("data-")) {
+						fields.put(key.substring(5),
+								queryParameters.getFirst(key));
+					}
+				}
+
+				clauseId = validateJoinClause(clauseId, resource, joinType,
+						fields);
+			} else {
+				throw new QueryException("No type set");
 			}
 		} catch (QueryException e) {
 			response.add("status", "Invalid Request");
@@ -260,9 +286,76 @@ public class QueryService implements Serializable {
 	}
 
 	/**
+	 * Saves a query
+	 * 
+	 * @param payload
+	 *            JSON
+	 * @return Query Id
+	 */
+	@POST
+	@Path("/saveQuery")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response saveQuery(String payload) {
+		JsonObjectBuilder response = Json.createObjectBuilder();
+
+		JsonReader jsonReader = Json.createReader(new StringReader(payload));
+		JsonObject query = jsonReader.readObject();
+		jsonReader.close();
+
+		// Create the query
+		qc.createQuery();
+
+		try {
+			// Convert JSON Selects to Query
+			if (query.containsKey("select")) {
+				JsonArray selectClauses = query.getJsonArray("select");
+				Iterator<JsonValue> selectIterator = selectClauses.iterator();
+				while (selectIterator.hasNext()) {
+					addJsonSelectClauseToQuery((JsonObject) selectIterator
+							.next());
+				}
+
+			}
+			// Convert JSON Where to Query
+			if (query.containsKey("where")) {
+				JsonArray whereClauses = query.getJsonArray("where");
+				Iterator<JsonValue> whereIterator = whereClauses.iterator();
+				while (whereIterator.hasNext()) {
+					addJsonWhereClauseToQuery((JsonObject) whereIterator.next());
+				}
+			}
+			// Convert JSON Join to Query
+			if (query.containsKey("join")) {
+				JsonArray joinClauses = query.getJsonArray("join");
+				Iterator<JsonValue> joinIterator = joinClauses.iterator();
+				while (joinIterator.hasNext()) {
+					addJsonJoinClauseToQuery((JsonObject) joinIterator.next());
+				}
+			}
+		} catch (QueryException e) {
+			response.add("status", "Invalid Request");
+			response.add("message", e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+
+		try {
+			qc.saveQuery();
+		} catch (QueryException e) {
+			response.add("status", "Invalid Request");
+			response.add("message", e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+
+		response.add("queryId", qc.getQuery().getId());
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+				.build();
+	}
+
+	/**
 	 * Runs a query using a JSON representation of the Query
 	 * 
-	 * @param payload JSON
+	 * @param payload
+	 *            JSON
 	 * @return Result Id
 	 */
 	@POST
@@ -370,6 +463,21 @@ public class QueryService implements Serializable {
 				logicalOperator, fields);
 	}
 
+	private Long validateJoinClause(Long clauseId, Resource resource,
+			String joinName, Map<String, String> fields) throws QueryException {
+		JoinType joinType = resource.getSupportedJoinByName(joinName);
+		if (joinType == null) {
+			throw new QueryException("Unknown join type");
+		}
+		return qc.addJoinClause(clauseId, resource, joinType, fields);
+	}
+
+	private Long validateSelectClause(Long clauseId, Resource resource,
+			Entity field, String alias) throws QueryException {
+
+		return qc.addSelectClause(clauseId, resource, field, alias);
+	}
+
 	private Long addJsonWhereClauseToQuery(JsonObject whereClause)
 			throws QueryException {
 		String path = null;
@@ -441,6 +549,9 @@ public class QueryService implements Serializable {
 			path = "/" + path;
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
+			if (resource == null) {
+				throw new QueryException("Invalid Resource");
+			}
 			field = new Entity(path);
 			if (dataType != null) {
 				field.setDataType(resource.getDataTypeByName(dataType));
