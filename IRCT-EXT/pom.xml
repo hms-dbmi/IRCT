@@ -7,6 +7,13 @@
 	<name>INTER-RESOURCE COMMUNICATION TOOL : EXTENSION</name>
 
 	<dependencies>
+		<!-- Oracle -->
+		<dependency>
+			<groupId>com.oracle.jdbc</groupId>
+			<artifactId>ojdbc6</artifactId>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/main/resources/ojdbc6.jar</systemPath>
+		</dependency>
 		<!-- AWS -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
