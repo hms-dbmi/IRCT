@@ -13,7 +13,9 @@
 			<artifactId>ojdbc6</artifactId>
 			<version>1.0</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/src/main/resources/ojdbc6.jar</systemPath>
+			<systemPath>${project.basedir}/src/main/resources/lib/ojdbc6.jar</systemPath>
+			
+			<!-- <systemPath>${project.build.directory}/lib/ojdbc6.jar</systemPath> -->
 		</dependency>
 		<!-- AWS -->
 		<dependency>
