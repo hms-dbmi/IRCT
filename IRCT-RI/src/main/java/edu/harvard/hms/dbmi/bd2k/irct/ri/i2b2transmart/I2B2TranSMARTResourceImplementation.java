@@ -368,8 +368,8 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		if ((findInformation instanceof FindByPath)
 				&& (findInformation.getValues()
-						.containsKey("tmObservationOnly") && findInformation
-						.getValues().get("i2b2ObservationOnly")
+						.containsKey("tmObservationOnly"))
+				&& (findInformation.getValues().get("tmObservationOnly")
 						.equalsIgnoreCase("true"))) {
 			returns = searchObservationOnly(((FindByPath) findInformation)
 					.getValues().get("term"), ((FindByPath) findInformation)
@@ -384,8 +384,8 @@ public class I2B2TranSMARTResourceImplementation extends
 			String strategy, SecureSession session) {
 		List<Entity> entities = new ArrayList<Entity>();
 
-		String url = this.transmartURL + "findPaths?obsOnly=TRUE&term="
-				+ searchTerm;
+		String url = this.transmartURL
+				+ "/textSearch/findPaths?obsOnly=TRUE&term=" + searchTerm;
 		HttpClient client = createClient(session);
 		HttpGet get = new HttpGet(url);
 		try {
