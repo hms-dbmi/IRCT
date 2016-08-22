@@ -13,6 +13,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.event.action.BeforeProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
+/**
+ * Before a query write the Process information to the Action Monitoring log
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class MonitoringBeforeProcess implements BeforeProcess {
 	
 	private Log log;

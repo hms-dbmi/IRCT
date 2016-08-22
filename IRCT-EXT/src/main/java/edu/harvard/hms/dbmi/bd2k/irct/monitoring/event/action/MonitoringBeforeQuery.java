@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.monitoring.event.action;
 
-
-
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -15,6 +13,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
+/**
+ * Before a query write the Query information to the Action Monitoring log
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class MonitoringBeforeQuery implements BeforeQuery {
 	
 	private Log log;
