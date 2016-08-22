@@ -385,7 +385,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		List<Entity> entities = new ArrayList<Entity>();
 
 		String url = this.transmartURL
-				+ "/textSearch/findPaths?obsOnly=TRUE&term=" + searchTerm;
+				+ "/textSearch/findPaths?onlyObs=TRUE&term=" + searchTerm;
 		HttpClient client = createClient(session);
 		HttpGet get = new HttpGet(url);
 		try {
