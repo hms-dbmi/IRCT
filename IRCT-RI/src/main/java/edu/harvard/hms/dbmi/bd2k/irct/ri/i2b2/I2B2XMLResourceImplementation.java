@@ -35,6 +35,9 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
@@ -118,7 +121,7 @@ public class I2B2XMLResourceImplementation implements
 		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
 			throw new ResourceInterfaceException("Missing parameters");
 		}
-		
+
 		this.resourceName = parameters.get("resourceName");
 		this.resourceURL = parameters.get("resourceURL");
 		this.domain = parameters.get("domain");
@@ -134,7 +137,7 @@ public class I2B2XMLResourceImplementation implements
 		} else {
 			this.useProxy = true;
 		}
-		
+
 		if (certificateString != null && certificateString.equals("true")) {
 			this.ignoreCertificate = true;
 		} else {
@@ -181,7 +184,7 @@ public class I2B2XMLResourceImplementation implements
 							client, null, new String[] { "undefined" });
 					for (ProjectType pt : configureType.getUser().getProject()) {
 						Entity entity = new Entity();
-						if(pt.getPath() == null) {
+						if (pt.getPath() == null) {
 							entity.setPui(path.getPui() + "/" + pt.getName());
 						} else {
 							entity.setPui(path.getPui() + pt.getPath());
@@ -264,21 +267,29 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm,
-			SecureSession session) throws ResourceInterfaceException {
-		String strategy = "exact";
-		if (searchTerm.charAt(0) == '%') {
-			if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
-				searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
-				strategy = "contains";
-			} else {
-				searchTerm = searchTerm.substring(1);
-				strategy = "right";
-			}
-		} else if (searchTerm.charAt(searchTerm.length() - 1) == '%') {
-			searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
-			strategy = "left";
+	public List<Entity> find(Entity path,
+			FindInformationInterface findInformation, SecureSession session)
+			throws ResourceInterfaceException {
+		List<Entity> returns = new ArrayList<Entity>();
+
+		if (findInformation instanceof FindByPath) {
+			returns = searchPaths(path, ((FindByPath) findInformation)
+					.getValues().get("term"), ((FindByPath) findInformation)
+					.getValues().get("strategy"), session);
+		} else if (findInformation instanceof FindByOntology) {
+			String ontologyTerm = ((FindByOntology) findInformation)
+					.getValues().get("ontologyTerm");
+			String ontologyType = ((FindByOntology) findInformation)
+					.getValues().get("ontologyType");
+			returns = searchOntology(path, ontologyType, ontologyTerm, session);
 		}
+
+		return returns;
+	}
+
+	public List<Entity> searchPaths(Entity path, String searchTerm,
+			String strategy, SecureSession session)
+			throws ResourceInterfaceException {
 
 		List<Entity> entities = new ArrayList<Entity>();
 		HttpClient client = createClient(session);
@@ -291,10 +302,12 @@ public class I2B2XMLResourceImplementation implements
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					for (ConceptType category : getCategories(client,
 							pt.getId()).getConcept()) {
+
 						String categoryName = converti2b2Path(category.getKey())
 								.split("/")[1];
+
 						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName,
+								"/" + this.resourceName + "/" + pt.getId(),
 								runNameSearch(client, pt.getId(), categoryName,
 										strategy, searchTerm)));
 					}
@@ -308,14 +321,15 @@ public class I2B2XMLResourceImplementation implements
 						String categoryName = converti2b2Path(category.getKey())
 								.split("/")[1];
 						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName,
+								"/" + this.resourceName + "/"
+										+ pathComponents[2],
 								runNameSearch(client, pathComponents[2],
 										categoryName, strategy, searchTerm)));
 					}
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pathComponents[2],
 							runNameSearch(client, pathComponents[2],
 									pathComponents[3], strategy, searchTerm)));
 				}
@@ -327,7 +341,6 @@ public class I2B2XMLResourceImplementation implements
 		return entities;
 	}
 
-	@Override
 	public List<Entity> searchOntology(Entity path, String ontologyType,
 			String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
@@ -341,7 +354,7 @@ public class I2B2XMLResourceImplementation implements
 						client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pt.getId(),
 							runCategorySearch(client, pt.getId(), null,
 									ontologyType, ontologyTerm)));
 				}
@@ -350,13 +363,13 @@ public class I2B2XMLResourceImplementation implements
 				if (pathComponents.length == 3) {
 					// Get All Categories
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2], null,
 									ontologyType, ontologyTerm)));
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName,
+							"/" + this.resourceName + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2],
 									pathComponents[3], ontologyType,
 									ontologyTerm)));
@@ -455,12 +468,12 @@ public class I2B2XMLResourceImplementation implements
 
 		try {
 			result = checkForResult(session, result);
-			
-			if(result.getResultStatus() != ResultStatus.COMPLETE) {
+
+			if (result.getResultStatus() != ResultStatus.COMPLETE) {
 				return result;
 			}
 			result.setResultStatus(ResultStatus.RUNNING);
-			
+
 			HttpClient client = createClient(session);
 			String resultInstanceId = result.getResourceActionId();
 			String resultId = resultInstanceId.split("\\|")[2];
@@ -480,12 +493,14 @@ public class I2B2XMLResourceImplementation implements
 
 		return result;
 	}
-	
+
 	/**
 	 * Checks to see if the result is available
 	 * 
-	 * @param session Current Session
-	 * @param result Result
+	 * @param session
+	 *            Current Session
+	 * @param result
+	 *            Result
 	 * @return Result
 	 */
 	protected Result checkForResult(SecureSession session, Result result) {
@@ -496,7 +511,8 @@ public class I2B2XMLResourceImplementation implements
 		String queryId = resultInstanceId.split("\\|")[1];
 
 		try {
-			CRCCell crcCell = createCRCCell(projectId, session.getUser().getName());
+			CRCCell crcCell = createCRCCell(projectId, session.getUser()
+					.getName());
 
 			// Is Query Master List Complete?
 
@@ -537,9 +553,9 @@ public class I2B2XMLResourceImplementation implements
 			result.setMessage(e.getLocalizedMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
-		
+
 		return result;
-		
+
 	}
 
 	@Override
@@ -702,7 +718,7 @@ public class I2B2XMLResourceImplementation implements
 				pathComponents.length)) {
 			myPath += "\\" + pathComponent;
 		}
-		if(pathString.endsWith("/")) {
+		if (pathString.endsWith("/")) {
 			myPath += "\\";
 		}
 
@@ -849,7 +865,7 @@ public class I2B2XMLResourceImplementation implements
 		return returns;
 	}
 
-	private String converti2b2Path(String i2b2Path) {
+	protected String converti2b2Path(String i2b2Path) {
 		return i2b2Path.replaceAll("\\\\\\\\", "/").replace('\\', '/');
 	}
 
@@ -926,7 +942,7 @@ public class I2B2XMLResourceImplementation implements
 	protected HttpClient createClient(SecureSession session) {
 		// SSL WRAPAROUND
 		HttpClientBuilder returns = null;
-		
+
 		if (ignoreCertificate) {
 			try {
 				// CLIENT CONNECTION
@@ -939,13 +955,13 @@ public class I2B2XMLResourceImplementation implements
 		}
 
 		List<Header> defaultHeaders = new ArrayList<Header>();
-		
+
 		String token = session.getToken().toString();
 		if (this.clientId != null) {
 			token = SecurityUtility.delegateToken(this.namespace,
 					this.clientId, session);
 		}
-		
+
 		if (session != null) {
 			defaultHeaders.add(new BasicHeader("Authorization", token));
 		}
@@ -955,8 +971,9 @@ public class I2B2XMLResourceImplementation implements
 
 		return returns.build();
 	}
-	
-	private HttpClientBuilder ignoreCertificate() throws NoSuchAlgorithmException, KeyManagementException {
+
+	private HttpClientBuilder ignoreCertificate()
+			throws NoSuchAlgorithmException, KeyManagementException {
 		System.setProperty("jsse.enableSNIExtension", "false");
 
 		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
@@ -966,21 +983,18 @@ public class I2B2XMLResourceImplementation implements
 			}
 
 			public void checkClientTrusted(
-					java.security.cert.X509Certificate[] certs,
-					String authType) {
+					java.security.cert.X509Certificate[] certs, String authType) {
 			}
 
 			public void checkServerTrusted(
-					java.security.cert.X509Certificate[] certs,
-					String authType) {
+					java.security.cert.X509Certificate[] certs, String authType) {
 			}
 		} };
 
 		SSLContext sslContext;
 
 		sslContext = SSLContext.getInstance("SSL");
-		sslContext.init(null, trustAllCerts,
-				new java.security.SecureRandom());
+		sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
 
 		HttpsURLConnection.setDefaultSSLSocketFactory(sslContext
 				.getSocketFactory());
@@ -989,13 +1003,12 @@ public class I2B2XMLResourceImplementation implements
 				sslContext, NoopHostnameVerifier.INSTANCE);
 
 		Registry<ConnectionSocketFactory> r = RegistryBuilder
-				.<ConnectionSocketFactory> create()
-				.register("https", sslsf).build();
+				.<ConnectionSocketFactory> create().register("https", sslsf)
+				.build();
 
 		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
 				r);
-		
+
 		return HttpClients.custom().setConnectionManager(cm);
 	}
-	
 }
