@@ -366,13 +366,17 @@ public class I2B2TranSMARTResourceImplementation extends
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
-		if ((findInformation instanceof FindByPath)
-				&& findInformation.getValues()
-						.containsKey("tmObservationOnly")) {
+		if (findInformation instanceof FindByPath) {
 			FindByPath findPath = (FindByPath) findInformation;
-			
-			returns = searchObservationOnly(findPath.getValues().get("term"), findPath
-					.getValues().get("strategy"), session, findPath.getValues().get("tmObservationOnly"));
+			if (findInformation.getValues().containsKey("tmObservationOnly")) {
+				returns = searchObservationOnly(findPath.getValues()
+						.get("term"), findPath.getValues().get("strategy"),
+						session, findPath.getValues().get("tmObservationOnly"));
+			} else {
+				returns = searchObservationOnly(findPath.getValues()
+						.get("term"), findPath.getValues().get("strategy"),
+						session, "FALSE");
+			}
 		} else {
 			returns = super.find(path, findInformation, session);
 		}
@@ -383,8 +387,8 @@ public class I2B2TranSMARTResourceImplementation extends
 			String strategy, SecureSession session, String onlObs) {
 		List<Entity> entities = new ArrayList<Entity>();
 
-		String url = this.transmartURL
-				+ "/textSearch/findPaths?onlyObs=" + onlObs + "&term=" + searchTerm;
+		String url = this.transmartURL + "/textSearch/findPaths?onlyObs="
+				+ onlObs + "&term=" + searchTerm;
 		HttpClient client = createClient(session);
 		HttpGet get = new HttpGet(url);
 		try {
