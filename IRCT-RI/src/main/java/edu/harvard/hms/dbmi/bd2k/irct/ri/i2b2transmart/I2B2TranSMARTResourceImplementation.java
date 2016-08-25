@@ -4,6 +4,8 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,7 +18,6 @@ import javax.json.JsonArray;
 import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
-import javax.json.JsonString;
 import javax.json.JsonValue;
 
 import org.apache.http.HttpResponse;
@@ -387,26 +388,38 @@ public class I2B2TranSMARTResourceImplementation extends
 			String strategy, SecureSession session, String onlObs) {
 		List<Entity> entities = new ArrayList<Entity>();
 
-		String url = this.transmartURL + "/textSearch/findPaths?onlyObs="
-				+ onlObs + "&term=" + searchTerm;
-		HttpClient client = createClient(session);
-		HttpGet get = new HttpGet(url);
 		try {
+			URI uri = new URI(this.transmartURL.split("://")[0],
+					this.transmartURL.split("://")[1].split("/")[0], "/" + this.transmartURL.split("://")[1].split("/")[1] + "/textSearch/findPaths",
+					"oblyObs=" + onlObs + "&term=" + searchTerm, null);
+
+			HttpClient client = createClient(session);
+			HttpGet get = new HttpGet(uri);
 			HttpResponse response = client.execute(get);
 			JsonReader reader = Json.createReader(response.getEntity()
 					.getContent());
 			JsonArray arrayResults = reader.readArray();
 
 			for (JsonValue val : arrayResults) {
-				JsonString returnPath = (JsonString) val;
+				JsonObject returnObject = (JsonObject) val;
 
 				Entity returnedEntity = new Entity();
-				returnedEntity.setPui("/" + this.resourceName
-						+ converti2b2Path(returnPath.getString()));
+				returnedEntity
+						.setPui("/"
+								+ this.resourceName
+								+ converti2b2Path(returnObject
+										.getString("conceptPath")));
+
+				if (!returnObject.isNull("text")) {
+					returnedEntity.getAttributes().put("text",
+							returnObject.getString("text"));
+				}
 				entities.add(returnedEntity);
 			}
 
-		} catch (JsonException | IOException e) {
+		} catch (URISyntaxException | JsonException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 		return entities;
