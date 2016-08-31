@@ -1,5 +1,4 @@
 /target/
-target/
 
 .classpath
 
@@ -8,12 +7,8 @@ target/
 .settings/org.eclipse.jdt.core.prefs
 
 .settings/org.eclipse.m2e.core.prefs
+
 *.class
 
 *.component
-
-*.class
-
-*.class
-
-*.xml
+.settings/org.eclipse.wst.common.project.facet.core.xml

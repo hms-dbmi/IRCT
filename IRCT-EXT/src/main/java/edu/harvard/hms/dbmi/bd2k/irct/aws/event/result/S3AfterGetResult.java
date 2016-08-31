@@ -22,6 +22,18 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import edu.harvard.hms.dbmi.bd2k.irct.event.result.AfterGetResult;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 
+/**
+ * The S3 After Get Result checks to see if a result is available localy and if
+ * it is not then retrieve it from the S3 server. This depends on the instance
+ * to be set up to support S3 permissions.
+ * 
+ * Configurable Database Parameters
+ * Bucket Name - Name of the bucket to save into
+ * resultDataFolder - Name of the local folder to save to
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class S3AfterGetResult implements AfterGetResult {
 
 	private AmazonS3 s3client;
