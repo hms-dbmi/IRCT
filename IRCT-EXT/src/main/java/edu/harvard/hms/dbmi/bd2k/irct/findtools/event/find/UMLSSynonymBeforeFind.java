@@ -94,12 +94,17 @@ public class UMLSSynonymBeforeFind implements BeforeFind {
 						cs.registerOutParameter(2, OracleTypes.CURSOR);
 						cs.execute();
 						umlsSynonyms = (ResultSet) cs.getObject(2);
+						
 					}
-
+					
+					
 					while (umlsSynonyms.next()) {
 						String tempTerm = umlsSynonyms.getString(newTermColumn);
 						newTerms.add(tempTerm);
 					}
+					
+					
+					cs.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -111,6 +116,7 @@ public class UMLSSynonymBeforeFind implements BeforeFind {
 						newFindInformation.add(synonymTerm);
 					}
 				}
+				
 			}
 		}
 

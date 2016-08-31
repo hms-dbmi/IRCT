@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 	<artifactId>IRCT-EXT</artifactId>
-	<version>1.2-QA</version>
+	<version>1.2</version>
 	<name>INTER-RESOURCE COMMUNICATION TOOL : EXTENSION</name>
 
 	<dependencies>
 		<!-- Oracle -->
- 		<dependency>
+		<dependency>
 			<groupId>com.oracle.jdbc</groupId>
 			<artifactId>ojdbc6</artifactId>
 			<version>1.0</version>
@@ -58,7 +58,7 @@
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-API</artifactId>
-			<version>1.2-QA</version>
+			<version>1.2</version>
 		</dependency>
 		<!-- JAVA EE -->
 		<dependency>
