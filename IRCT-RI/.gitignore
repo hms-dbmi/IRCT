@@ -11,3 +11,5 @@
 
 .settings/org.eclipse.wst.common.project.facet.core.xml
 .settings/org.eclipse.wst.validation.prefs
+
+src/main/java/edu/harvard/hms/dbmi/bd2k/irct/ri/.DS_Store

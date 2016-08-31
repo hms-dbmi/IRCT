@@ -1,19 +1,12 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.geoserver;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import javax.persistence.FlushModeType;
-import javax.persistence.LockModeType;
-import javax.persistence.Parameter;
-import javax.persistence.Query;
-import javax.persistence.TemporalType;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
@@ -53,21 +46,9 @@ public class GeoServerResourceInterface implements
 		
 		return null;
 	}
+	
+	
 
-	@Override
-	public List<Entity> searchPaths(Entity path, String searchTerm,
-			SecureSession session) throws ResourceInterfaceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Entity> searchOntology(Entity path, String ontologyType,
-			String ontologyTerm, SecureSession session)
-			throws ResourceInterfaceException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public Result runQuery(SecureSession session,
@@ -82,6 +63,13 @@ public class GeoServerResourceInterface implements
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	@Override
+	public List<Entity> find(Entity path,
+			FindInformationInterface findInformation, SecureSession session)
+			throws ResourceInterfaceException {
+		return new ArrayList<Entity>();
 	}
 
 	@Override
