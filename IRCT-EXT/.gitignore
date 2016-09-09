@@ -12,3 +12,4 @@
 
 *.component
 .settings/org.eclipse.wst.common.project.facet.core.xml
+/INTERNAL_pom.xml
