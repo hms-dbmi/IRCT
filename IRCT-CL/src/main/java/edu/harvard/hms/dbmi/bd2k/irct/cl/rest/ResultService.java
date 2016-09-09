@@ -5,6 +5,8 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.util.List;
 
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
@@ -33,6 +35,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
  */
 @Path("/resultService")
 @RequestScoped
+@TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
 public class ResultService {
 	
 	@Inject
