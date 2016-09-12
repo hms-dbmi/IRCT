@@ -5,12 +5,12 @@ package edu.harvard.hms.dbmi.bd2k.irct.ws.rs.resultconverter;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.logging.Logger;
 
-import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -33,8 +33,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
  */
 public class XSLXTabularDataConverter implements ResultDataConverter {
 
-	@Inject
-	Logger log;
+	private Log log;
+	
+	public XSLXTabularDataConverter() {
+		log = LogFactory.getLog("XSLX Tabular Data Converter");
+	}
 	
 	@Override
 	public ResultDataType getResultDataType() {
