@@ -63,7 +63,7 @@ public class S3AfterGetResult implements AfterGetResult {
 				result.setResultSetLocation("S3://"
 						+ s3Folder
 						+ result.getResultSetLocation().replaceAll(
-								irctSaveLocation, ""));
+								irctSaveLocation + "/", ""));
 			}
 		}
 		String location = result.getResultSetLocation().substring(5);
@@ -94,6 +94,8 @@ public class S3AfterGetResult implements AfterGetResult {
 			// Update the result set id
 			result.setResultSetLocation(irctSaveLocation + "/"
 					+ location.replace(s3Folder, ""));
+			
+			
 		} catch (AmazonServiceException ase) {
 			log.warn("Caught an AmazonServiceException, which "
 					+ "means your request made it "

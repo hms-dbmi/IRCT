@@ -7,15 +7,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
-import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonGeneratorFactory;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.StreamingOutput;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -33,8 +34,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
  */
 public class JSONTabularDataConverter implements ResultDataConverter {
 	
-	@Inject
-	Logger log;
+	private Log log;
+	
+	public JSONTabularDataConverter() {
+		log = LogFactory.getLog("JSON Tabular Data Converter");
+	}
 
 	@Override
 	public ResultDataType getResultDataType() {
