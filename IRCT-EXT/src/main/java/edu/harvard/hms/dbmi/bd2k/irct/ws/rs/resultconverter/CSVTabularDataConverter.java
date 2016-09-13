@@ -6,14 +6,14 @@ package edu.harvard.hms.dbmi.bd2k.irct.ws.rs.resultconverter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.logging.Logger;
 
-import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -30,8 +30,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
  */
 public class CSVTabularDataConverter implements ResultDataConverter {
 
-	@Inject
-	Logger log;
+	private Log log;
+	
+	public CSVTabularDataConverter() {
+		log = LogFactory.getLog("CSV Tabular Data Converter");
+	}
 	
 	@Override
 	public ResultDataType getResultDataType() {
