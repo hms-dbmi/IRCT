@@ -66,13 +66,15 @@ public class JSONTabularDataConverter implements ResultDataConverter {
 			@Override
 			public void write(OutputStream outputStream) throws IOException,
 					WebApplicationException {
+				JsonGenerator jg = null;
+				ResultSet rs = null;
 				try {
-					ResultSet rs = (ResultSet) result.getData();
+					rs = (ResultSet) result.getData();
 					rs.load(result.getResultSetLocation());
 					Map<String, Object> properties = new HashMap<String, Object>(
 							1);
 					JsonGeneratorFactory jgf = Json.createGeneratorFactory(properties);
-					JsonGenerator jg = jgf.createGenerator(outputStream);
+					jg = jgf.createGenerator(outputStream);
 
 					jg.writeStartObject(); //Start Object
 					jg.writeStartArray("columns");
@@ -102,11 +104,27 @@ public class JSONTabularDataConverter implements ResultDataConverter {
 					
 					jg.writeEnd(); //End data
 					jg.writeEnd(); //End Full Object
-					jg.close();
+					
 				} catch (ResultSetException | PersistableException e) {
 					log.info("Error creating JSON Stream: " + e.getMessage());
+				} finally {
+					
+					if(jg != null) {
+						jg.close();
+					}
+					if(rs != null) {
+						try {
+							rs.close();
+						} catch (ResultSetException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					if(outputStream != null) {
+						outputStream.close();
+					}
 				}
-				outputStream.close();
+				
 			}
 		};
 		return stream;
