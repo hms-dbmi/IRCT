@@ -1,0 +1,5 @@
+package edu.harvard.hms.dbmi.scidb;
+
+public enum SciDBListElement {
+	ARRAYS, DATASTORES, FUNCTIONS, INSTANCES, LIBRARIES, MACROS, NAMESPACES, OPERATORS, QUERIES, ROLES, TYPES, USERS
+}
