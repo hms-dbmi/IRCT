@@ -52,8 +52,8 @@ public class SciDB {
 	 * 
 	 * @param array
 	 *            Array
-	 * @param attributeExpression
-	 *            Attribtue Expression Arry
+	 * @param attributeExpressions
+	 *            Attribute Expression Array
 	 * @return SciDB Operation
 	 * @throws SciDBOperationException
 	 *             An exception occurred
@@ -279,8 +279,6 @@ public class SciDB {
 	 * @param newArray
 	 *            New Array
 	 * @return SciDB Operation
-	 * @throws NotConnectedException
-	 *             Not currently connected to the database it
 	 */
 	public SciDBOperation build(SciDBArray newArray) {
 		return build(newArray, null);
@@ -291,10 +289,8 @@ public class SciDB {
 	 * 
 	 * @param newArray
 	 *            New Array
-	 * @param expression
+	 * @param expression SciDB Expression
 	 * @return SciDB Operation
-	 * @throws NotConnectedException
-	 *             Not currently connected to the database it
 	 */
 	public SciDBOperation build(SciDBArray newArray, String expression) {
 		SciDBOperation buildOperation = new SciDBOperation("build");
@@ -385,7 +381,7 @@ public class SciDB {
 	/**
 	 * Create a new array
 	 * 
-	 * @param newArray
+	 * @param newArray Array to create
 	 * @return SciDB Operation
 	 */
 	public SciDBOperation create(SciDBArray newArray) {
@@ -634,12 +630,12 @@ public class SciDB {
 	 *            Array 2
 	 * @param array3
 	 *            Array 3
-	 * @param option
+	 * @param options
 	 *            Option
 	 * @return SciDB Operation
 	 */
 	public SciDBOperation gemm(SciDBArray array1, SciDBArray array2,
-			SciDBArray array3, String options) {
+			SciDBArray array3, String... options) {
 		SciDBOperation gemmOperation = new SciDBOperation("gemm");
 		gemmOperation.setCommandString(array1.getName());
 		String postFix = array2.getName() + "," + array3.getName();
@@ -878,7 +874,7 @@ public class SciDB {
 	 *            Array 1
 	 * @param array2
 	 *            Array 2
-	 * @return
+	 * @return SciDB Operation
 	 */
 	public SciDBOperation kendall(SciDBArray array1, SciDBArray array2) {
 		SciDBOperation insertOperation = new SciDBOperation("kendall");
@@ -939,13 +935,12 @@ public class SciDB {
 		return loadModuleOperation;
 	}
 
+	
 	/**
 	 * Creates a merge operation between two arrays
 	 * 
-	 * @param array1
-	 *            Array 1
-	 * @param array2
-	 *            Array 2
+	 * @param leftArray Left Array
+	 * @param rightArray Right Array
 	 * @return SciDB Operation
 	 */
 	public SciDBOperation merge(SciDBArray leftArray, SciDBArray rightArray) {
@@ -1049,7 +1044,7 @@ public class SciDB {
 	 * 
 	 * @param array
 	 *            Array
-	 * @param quantile
+	 * @param quantiles
 	 *            Quantile
 	 * @return SciDB Operation
 	 */
@@ -1062,7 +1057,7 @@ public class SciDB {
 	 * 
 	 * @param array
 	 *            Array
-	 * @param quantile
+	 * @param quantiles
 	 *            Quantile
 	 * @param attribute
 	 *            Attribute
@@ -1106,12 +1101,10 @@ public class SciDB {
 		return quantileOperation;
 	}
 	
-	//rank(array[, attribute][, dimension_1, dimension_2,...]]);
 	/**
 	 * Creates a rank operation
 	 * 
 	 * @param array Array 
-	 * @param attribute Attribute
 	 * @return SciDB Operation
 	 */
 	public SciDBOperation rank(SciDBArray array) {
@@ -1501,7 +1494,8 @@ public class SciDB {
 	 * Creates a sort operation on an array that will sorted by the first
 	 * attribute.
 	 * 
-	 * @param array
+	 * @param array Array
+	 * @return SciDB Operation
 	 */
 	public SciDBOperation sort(SciDBArray array) {
 		return sort(array, new String[] {});
@@ -1774,8 +1768,6 @@ public class SciDB {
 	 *            Array Transpose
 	 * @param n
 	 *            Singular Values
-	 * @param tolerance
-	 *            Tolerance
 	 * @return SciDB Operation
 	 */
 	public SciDBOperation tsvd(SciDBArray array, SciDBArray arrayTranspose,
@@ -1972,13 +1964,21 @@ public class SciDB {
 	/**
 	 * Connect to a SciDB instance at the given URL
 	 * 
-	 * @param url
+	 * @param url SciDB URL
+	 * @return Operation Status
 	 */
 	public boolean connect(String url) {
 		HttpClientBuilder cb = HttpClientBuilder.create();
 		return connect(cb.build(), url);
 	}
 	
+	/**
+	 * Connect to a SciDB instance at the given URL
+	 * 
+	 * @param client HTTP Client
+	 * @param url SciDB URL
+	 * @return Operation Status
+	 */
 	public boolean connect(HttpClient client, String url) {
 		this.client = client;
 		this.url = url;
@@ -2124,9 +2124,9 @@ public class SciDB {
 
 	/**
 	 * Close the connection to a SciDB instance
+	 * @return Operation Status
 	 */
 	public boolean close() {
-
 		try {
 			URI uri = new URIBuilder(this.url + "/release_session")
 					.addParameter("id", this.sessionId).build();
