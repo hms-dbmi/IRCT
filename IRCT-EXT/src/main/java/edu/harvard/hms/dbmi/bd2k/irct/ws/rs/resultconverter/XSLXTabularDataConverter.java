@@ -34,16 +34,16 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 public class XSLXTabularDataConverter implements ResultDataConverter {
 
 	private Log log;
-	
+
 	public XSLXTabularDataConverter() {
 		log = LogFactory.getLog("XSLX Tabular Data Converter");
 	}
-	
+
 	@Override
 	public ResultDataType getResultDataType() {
 		return ResultDataType.TABULAR;
 	}
-	
+
 	@Override
 	public String getFileExtension() {
 		return ".xlsx";
@@ -65,11 +65,13 @@ public class XSLXTabularDataConverter implements ResultDataConverter {
 			@Override
 			public void write(OutputStream outputStream) throws IOException,
 					WebApplicationException {
+				ResultSet rs = null;
+				SXSSFWorkbook wb = null;
 				try {
-					ResultSet rs = (ResultSet) result.getData();
+					rs = (ResultSet) result.getData();
 					rs.load(result.getResultSetLocation());
-					
-					SXSSFWorkbook wb = new SXSSFWorkbook(100);
+
+					wb = new SXSSFWorkbook(100);
 					// Create Sheet
 					Sheet sh = wb.createSheet("Results");
 
@@ -94,19 +96,31 @@ public class XSLXTabularDataConverter implements ResultDataConverter {
 						for (int i = 0; i < rs.getColumnSize(); i++) {
 							String value = rs.getString(i);
 							Cell cell = row.createCell(i);
-							if(value != null) {
+							if (value != null) {
 								cell.setCellValue(rs.getString(i));
 							}
 						}
 						rowNum++;
 					}
 					wb.write(outputStream);
-					wb.close();
-					
+
 				} catch (ResultSetException | PersistableException e) {
 					log.info("Error creating XSLX Stream: " + e.getMessage());
+				} finally {
+					if (wb != null) {
+						wb.close();
+					}
+					if (rs != null) {
+						try {
+							rs.close();
+						} catch (ResultSetException e) {
+							e.printStackTrace();
+						}
+					}
+					if (outputStream != null) {
+						outputStream.close();
+					}
 				}
-				outputStream.close();
 			}
 		};
 		return stream;

@@ -62,11 +62,13 @@ public class CSVTabularDataConverter implements ResultDataConverter {
 			@Override
 			public void write(OutputStream outputStream) throws IOException,
 					WebApplicationException {
+				ResultSet rs = null;
+				CSVPrinter printer = null;
 				try {
-					ResultSet rs = (ResultSet) result.getData();
+					rs = (ResultSet) result.getData();
 					rs.load(result.getResultSetLocation());
 					
-					CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(
+					printer = new CSVPrinter(new OutputStreamWriter(
 							outputStream), CSVFormat.DEFAULT);
 
 					String[] columnHeaders = new String[rs.getColumnSize()];
@@ -83,14 +85,27 @@ public class CSVTabularDataConverter implements ResultDataConverter {
 						}
 						printer.printRecord((Object[]) row);
 					}
-
 					printer.flush();
-					printer.close();
 					
 				} catch (ResultSetException | PersistableException e) {
 					log.info("Error creating CSV Stream: " + e.getMessage());
+				} finally {
+					if(printer != null) {
+						printer.close();
+					}
+					
+					if(rs != null) {
+						try {
+							rs.close();
+						} catch (ResultSetException e) {
+							e.printStackTrace();
+						}
+					}
+					if(outputStream != null) {
+						outputStream.close();
+					}
 				}
-				outputStream.close();
+				
 			}
 		};
 		return stream;
