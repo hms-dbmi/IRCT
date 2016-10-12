@@ -252,7 +252,7 @@
 					<resources>
 						<resource>
 							<targetPath>/</targetPath>
-							<directory>${project.build.directory}</directory>
+							<directory>${basedir}/src/main/resources/</directory>
 							<include>${project.build.finalName}.war</include>
 						</resource>
 					</resources>
