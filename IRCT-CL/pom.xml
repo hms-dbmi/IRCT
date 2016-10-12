@@ -241,23 +241,6 @@
 				<artifactId>wildfly-maven-plugin</artifactId>
 				<version>${version.wildfly.maven.plugin}</version>
 			</plugin>
-
-			<plugin>
-				<groupId>com.spotify</groupId>
-				<artifactId>docker-maven-plugin</artifactId>
-				<version>0.4.13</version>
-				<configuration>
-					<imageName>hms-dbmi/IRCT</imageName>
-					<dockerDirectory>${basedir}/src/main/resources/docker/</dockerDirectory>
-					<resources>
-						<resource>
-							<targetPath>/</targetPath>
-							<directory>${project.build.directory}</directory>
-							<include>IRCT-CL.war</include>
-						</resource>
-					</resources>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
 
