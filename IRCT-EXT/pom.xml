@@ -87,7 +87,7 @@
 							<artifactId>ojdbc6</artifactId>
 							<version>1.0</version>
 							<packaging>jar</packaging>
-							<file>src/main/resources/lib/ojdbc6.jar</file>
+							<file>${basedir}/src/main/resources/lib/ojdbc6.jar</file>
 						</configuration>
 					</execution>
 				</executions>
