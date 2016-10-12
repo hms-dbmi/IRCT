@@ -248,7 +248,7 @@
 				<version>0.4.13</version>
 				<configuration>
 					<imageName>example</imageName>
-					<dockerDirectory>docker</dockerDirectory>
+					<dockerDirectory>${basedir}/src/main/resources/</dockerDirectory>
 					<resources>
 						<resource>
 							<targetPath>/</targetPath>
