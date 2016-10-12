@@ -167,6 +167,7 @@ public class SciDBResourceImplementation implements
 
 				for (String attributeName : array.getAttributes().keySet()) {
 					Entity entity = new Entity();
+					entity.setPui(basePath + "/" + attributeName);
 					entity.setName(attributeName);
 					entity.setDisplayName(attributeName);
 					entity.setDataType(SciDBDataType.ATTRIBUTE);
@@ -184,6 +185,7 @@ public class SciDBResourceImplementation implements
 				}
 				for (String dimensionName : array.getDimensions().keySet()) {
 					Entity entity = new Entity();
+					entity.setPui(basePath + "/" + dimensionName);
 					entity.setName(dimensionName);
 					entity.setDisplayName(dimensionName);
 					entity.setDataType(SciDBDataType.DIMENSION);
