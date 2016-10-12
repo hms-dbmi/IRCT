@@ -245,18 +245,17 @@
 			<plugin>
 				<groupId>com.spotify</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<version>0.2.3</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-					</execution>
-				</executions>
+				<version>0.4.13</version>
 				<configuration>
-					<dockerDirectory>${project.basedir}/src/main/resources/</dockerDirectory>
-					<imageName>hms-dbmi/${project.artifactId}</imageName>
+					<imageName>example</imageName>
+					<dockerDirectory>docker</dockerDirectory>
+					<resources>
+						<resource>
+							<targetPath>/</targetPath>
+							<directory>${project.build.directory}</directory>
+							<include>${project.build.finalName}.war</include>
+						</resource>
+					</resources>
 				</configuration>
 			</plugin>
 		</plugins>
