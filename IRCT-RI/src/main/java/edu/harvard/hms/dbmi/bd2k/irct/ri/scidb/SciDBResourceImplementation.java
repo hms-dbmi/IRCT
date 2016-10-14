@@ -282,6 +282,7 @@ public class SciDBResourceImplementation implements
 				result.setResultStatus(ResultStatus.RUNNING);
 			}
 		} catch (NotConnectedException e) {
+			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage());
 			sciDB.close();
@@ -334,6 +335,7 @@ public class SciDBResourceImplementation implements
 
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (NotConnectedException | IOException | ResultSetException | PersistableException e) {
+			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage());
 		}
