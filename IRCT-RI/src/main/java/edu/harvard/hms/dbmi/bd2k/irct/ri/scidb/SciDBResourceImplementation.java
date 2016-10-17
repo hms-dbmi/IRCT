@@ -287,7 +287,6 @@ public class SciDBResourceImplementation implements
 			result.setMessage(e.getMessage());
 			sciDB.close();
 		}
-
 		return result;
 	}
 
@@ -302,6 +301,11 @@ public class SciDBResourceImplementation implements
 	@Override
 	public Result getResults(SecureSession session, Result result)
 			throws ResourceInterfaceException {
+		if (result.getResultStatus() == ResultStatus.COMPLETE
+				|| result.getResultStatus() == ResultStatus.ERROR) {
+			return result;
+		}
+		
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
