@@ -70,6 +70,7 @@ import edu.harvard.hms.dbmi.scidb.SciDBDimension;
 import edu.harvard.hms.dbmi.scidb.SciDBFilterFactory;
 import edu.harvard.hms.dbmi.scidb.SciDBFunction;
 import edu.harvard.hms.dbmi.scidb.SciDBListElement;
+import edu.harvard.hms.dbmi.scidb.SciDBOperation;
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 
 /**
@@ -270,9 +271,14 @@ public class SciDBResourceImplementation implements
 				}
 			}
 
-			String queryId = sciDB.executeQuery(
-					sciDB.project(whereOperation,
-							selects.toArray(new String[] {})), "dcsv");
+			String queryId = "";
+			if (selects.isEmpty()) {
+				queryId = sciDB.executeQuery((SciDBOperation) whereOperation);
+			} else {
+				queryId = sciDB.executeQuery(
+						sciDB.project(whereOperation,
+								selects.toArray(new String[] {})), "dcsv");
+			}
 			if (queryId.contains("Exception")) {
 				result.setResultStatus(ResultStatus.ERROR);
 				result.setMessage(queryId);
@@ -305,7 +311,7 @@ public class SciDBResourceImplementation implements
 				|| result.getResultStatus() == ResultStatus.ERROR) {
 			return result;
 		}
-		
+
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
@@ -329,7 +335,7 @@ public class SciDBResourceImplementation implements
 					for (int datai = 0; datai < lineData.length; datai++) {
 						rs.updateString(datai, lineData[datai]);
 					}
-					if(rs.getRow() % (rs.getMaxPending() - 1) == 0) {
+					if (rs.getRow() % (rs.getMaxPending() - 1) == 0) {
 						rs.merge();
 					}
 				}
@@ -338,7 +344,8 @@ public class SciDBResourceImplementation implements
 			result.setData(rs);
 
 			result.setResultStatus(ResultStatus.COMPLETE);
-		} catch (NotConnectedException | IOException | ResultSetException | PersistableException e) {
+		} catch (NotConnectedException | IOException | ResultSetException
+				| PersistableException e) {
 			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage());
@@ -385,6 +392,10 @@ public class SciDBResourceImplementation implements
 	private SciDBCommand createSciDBFilterOperation(WhereClause whereClause) {
 		String value = whereClause.getStringValues().get("VALUE");
 
+		if (!isNumeric(value)) {
+			value = "'" + value + "'";
+		}
+
 		String operator = whereClause.getStringValues().get("OPERATOR");
 
 		String[] pathComponents = whereClause.getField().getPui().split("/");
@@ -413,6 +424,10 @@ public class SciDBResourceImplementation implements
 
 		}
 		return returnFunction;
+	}
+
+	private boolean isNumeric(String s) {
+		return s.matches("[-+]?\\d*\\.?\\d+");
 	}
 
 	/**
