@@ -59,7 +59,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableExceptio
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.security.SecurityUtility;
 import edu.harvard.hms.dbmi.scidb.SciDB;
