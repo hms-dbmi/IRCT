@@ -21,6 +21,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.result.AfterGetResult;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 
 /**
  * The S3 After Get Result checks to see if a result is available localy and if
@@ -55,6 +56,9 @@ public class S3AfterGetResult implements AfterGetResult {
 
 	@Override
 	public void fire(Result result) {
+		if(result.getResultStatus() != ResultStatus.AVAILABLE) {
+			return;
+		}
 		if (!result.getResultSetLocation().startsWith("S3://")) {
 			File temp = new File(result.getResultSetLocation());
 			if (temp.exists()) {

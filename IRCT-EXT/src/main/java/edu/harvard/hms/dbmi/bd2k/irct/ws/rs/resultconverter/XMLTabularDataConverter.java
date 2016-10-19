@@ -64,11 +64,13 @@ public class XMLTabularDataConverter implements ResultDataConverter {
 			@Override
 			public void write(OutputStream outputStream) throws IOException,
 					WebApplicationException {
+				ResultSet rs = null;
+				XMLStreamWriter xtw = null;
 				try {
-					ResultSet rs = (ResultSet) result.getData();
+					rs = (ResultSet) result.getData();
 					rs.load(result.getResultSetLocation());
 					XMLOutputFactory xof = XMLOutputFactory.newInstance();
-					XMLStreamWriter xtw = xof.createXMLStreamWriter(new OutputStreamWriter(outputStream));
+					xtw = xof.createXMLStreamWriter(new OutputStreamWriter(outputStream));
 					xtw.writeStartDocument("utf-8", "1.0");
 					xtw.writeStartElement("results");
 					rs.beforeFirst();
@@ -85,11 +87,28 @@ public class XMLTabularDataConverter implements ResultDataConverter {
 					xtw.writeEndDocument();
 
 					xtw.flush();
-					xtw.close();
+					
 				} catch (ResultSetException | PersistableException | XMLStreamException e) {
 					log.info("Error creating XML Stream: " + e.getMessage());
+				} finally {
+					if(xtw != null) {
+						try {
+							xtw.close();
+						} catch (XMLStreamException e) {
+							e.printStackTrace();
+						}
+					}
+					if(rs != null) {
+						try {
+							rs.close();
+						} catch (ResultSetException e) {
+							e.printStackTrace();
+						}
+					} if(outputStream != null) {
+						outputStream.close();	
+					}
 				}
-				outputStream.close();
+				
 			}
 		};
 		return stream;
