@@ -2070,7 +2070,7 @@ public class SciDB {
 		return executeQuery(operation, null);
 	}
 
-	public String executeQuery(SciDBOperation operation, String save)
+	public String executeQuery(SciDBCommand operation, String save)
 			throws NotConnectedException {
 		if (!this.connected) {
 			throw new NotConnectedException();
