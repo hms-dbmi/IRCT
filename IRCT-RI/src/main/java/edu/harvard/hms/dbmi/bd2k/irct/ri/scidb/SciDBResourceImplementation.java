@@ -43,7 +43,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -69,7 +69,6 @@ import edu.harvard.hms.dbmi.scidb.SciDBDimension;
 import edu.harvard.hms.dbmi.scidb.SciDBFilterFactory;
 import edu.harvard.hms.dbmi.scidb.SciDBFunction;
 import edu.harvard.hms.dbmi.scidb.SciDBListElement;
-import edu.harvard.hms.dbmi.scidb.SciDBOperation;
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 
 /**
@@ -237,47 +236,14 @@ public class SciDBResourceImplementation implements
 	public Result runQuery(SecureSession session, Query query, Result result)
 			throws ResourceInterfaceException {
 		HttpClient client = createClient(session);
-		result.setResultStatus(ResultStatus.CREATED);
-
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
-		SciDBCommand whereOperation = null;
-		try {
-			List<String> selects = new ArrayList<String>();
-			String arrayName = "";
-			for (ClauseAbstract clause : query.getClauses().values()) {
-				if (clause instanceof WhereClause) {
-					if (((WhereClause) clause).getPredicateType().getName()
-							.equals("FILTER")) {
-						if (whereOperation == null) {
-							arrayName = ((WhereClause) clause).getField()
-									.getPui().split("/")[2];
-							whereOperation = sciDB
-									.filter(new SciDBArray(arrayName),
-											createSciDBFilterOperation((WhereClause) clause));
-						} else {
-							whereOperation = sciDB
-									.filter(whereOperation,
-											createSciDBFilterOperation((WhereClause) clause));
-						}
-					}
-				} else if (clause instanceof SelectClause) {
-					String[] pathComponents = ((SelectClause) clause)
-							.getParameter().getPui().split("/");
-					if (pathComponents.length == 4) {
-						selects.add(pathComponents[3]);
-					}
-				}
-			}
+		result.setResultStatus(ResultStatus.CREATED);
+		
+		SciDBCommand command = createQuery(sciDB, query);
 
-			String queryId = "";
-			if (selects.isEmpty()) {
-				queryId = sciDB.executeQuery((SciDBOperation) whereOperation);
-			} else {
-				queryId = sciDB.executeQuery(
-						sciDB.project(whereOperation,
-								selects.toArray(new String[] {})), "dcsv");
-			}
+		try {
+			String queryId = sciDB.executeQuery(command, "dcsv");
 			if (queryId.contains("Exception")) {
 				result.setResultStatus(ResultStatus.ERROR);
 				result.setMessage(queryId);
@@ -289,10 +255,69 @@ public class SciDBResourceImplementation implements
 		} catch (NotConnectedException e) {
 			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage(e.getMessage());
+			result.setMessage(e.getMessage().split("\n")[0]);
 			sciDB.close();
 		}
 		return result;
+	}
+
+	private SciDBCommand createQuery(SciDB sciDB, Query query) {
+		SciDBCommand command = null;
+		// Parse all subqueries first
+
+		// Parse all where clauses second
+		List<WhereClause> whereClauses = query
+				.getClausesOfType(WhereClause.class);
+		for (WhereClause whereClause : whereClauses) {
+			command = addWhereOperation(sciDB, command, whereClause);
+		}
+
+		// Parse all join clauses
+		List<JoinClause> joinClauses = query.getClausesOfType(JoinClause.class);
+		for (JoinClause joinClause : joinClauses) {
+
+		}
+
+		// Parse all select clauses
+		List<SelectClause> selectClauses = query
+				.getClausesOfType(SelectClause.class);
+		List<String> selects = new ArrayList<String>();
+		for (SelectClause selectClause : selectClauses) {
+			String[] pathComponents = selectClause.getParameter().getPui()
+					.split("/");
+			if (pathComponents.length == 4) {
+				selects.add(pathComponents[3]);
+			}
+		}
+		if (!selects.isEmpty()) {
+			command = sciDB.project(command, selects.toArray(new String[] {}));
+		}
+
+		// Parse all sort clauses
+
+		return command;
+
+	}
+
+	private SciDBCommand addWhereOperation(SciDB sciDB,
+			SciDBCommand whereOperation, WhereClause clause) {
+
+		String predicateName = clause.getPredicateType().getName();
+		switch (predicateName) {
+		case "FILTER":
+			if (whereOperation == null) {
+				String arrayName = ((WhereClause) clause).getField().getPui()
+						.split("/")[2];
+				whereOperation = sciDB.filter(new SciDBArray(arrayName),
+						createSciDBFilterOperation((WhereClause) clause));
+			} else {
+				whereOperation = sciDB.filter(whereOperation,
+						createSciDBFilterOperation((WhereClause) clause));
+			}
+			break;
+
+		}
+		return whereOperation;
 	}
 
 	/*
