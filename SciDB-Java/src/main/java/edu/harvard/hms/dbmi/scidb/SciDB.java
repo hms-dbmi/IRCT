@@ -47,6 +47,14 @@ public class SciDB {
 	/*** Methods ***/
 	/*************************************************************************/
 
+	public SciDBOperation aggregate(SciDBCommand operation,
+			SciDBAggregate aggregate) {
+		SciDBOperation aggregateOperation = new SciDBOperation("aggregate");
+		aggregateOperation.setCommand(operation);
+		aggregateOperation.setPostFix(aggregate.toAFLQueryString());
+		return aggregateOperation;
+	}
+	
 	/**
 	 * Apply a method to an array
 	 * 
@@ -196,7 +204,7 @@ public class SciDB {
 	 * @throws SciDBOperationException
 	 *             An exception occurred
 	 */
-	public SciDBOperation between(SciDBArray array, int[] lowCoordinates,
+	public SciDBOperation between(SciDBCommand array, int[] lowCoordinates,
 			int highCoordinate) throws SciDBOperationException {
 		return between(array, lowCoordinates, new int[] { highCoordinate });
 	}
@@ -214,7 +222,7 @@ public class SciDB {
 	 * @throws SciDBOperationException
 	 *             An exception occurred
 	 */
-	public SciDBOperation between(SciDBArray array, int lowCoordinate,
+	public SciDBOperation between(SciDBCommand array, int lowCoordinate,
 			int[] highCoordinates) throws SciDBOperationException {
 		return between(array, new int[] { lowCoordinate }, highCoordinates);
 	}
@@ -249,6 +257,47 @@ public class SciDB {
 			throw new SciDBOperationException(
 					"High coordinates is not equal to the size of the array");
 		}
+
+		String postFix = "";
+		for (int lowCoordinate : lowCoordinates) {
+			postFix += Integer.toString(lowCoordinate) + ",";
+		}
+
+		if (highCoordinates == null) {
+			for (@SuppressWarnings("unused")
+			int lowCoordinatate : lowCoordinates) {
+				postFix += "null,";
+			}
+		} else {
+			for (int highCoordinate : highCoordinates) {
+				postFix += Integer.toString(highCoordinate) + ",";
+			}
+		}
+
+		postFix = postFix.substring(0, postFix.length() - 1);
+
+		betweenOperation.setPostFix(postFix);
+
+		return betweenOperation;
+	}
+	
+	/**
+	 * Creates a between operation
+	 * 
+	 * @param array
+	 *            Array
+	 * @param lowCoordinates
+	 *            Low coordinates
+	 * @param highCoordinates
+	 *            High coordinates
+	 * @return SciDB Operation
+	 * @throws SciDBOperationException
+	 *             An exception occurred
+	 */
+	public SciDBOperation between(SciDBCommand array, int[] lowCoordinates,
+			int[] highCoordinates) {
+		SciDBOperation betweenOperation = new SciDBOperation("between",
+				array.toAFLQueryString());
 
 		String postFix = "";
 		for (int lowCoordinate : lowCoordinates) {
@@ -598,7 +647,11 @@ public class SciDB {
 	 */
 	public SciDBOperation filter(SciDBCommand operation, String expression) {
 		SciDBOperation filterOperation = new SciDBOperation("filter");
-		filterOperation.setCommandString(operation.toAFLQueryString());
+		if(operation instanceof SciDBArray) {
+			filterOperation.setCommandString(((SciDBArray) operation).getName());
+		} else {
+			filterOperation.setCommandString(operation.toAFLQueryString());
+		}
 		filterOperation.setPostFix(expression);
 		return filterOperation;
 	}
