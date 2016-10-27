@@ -44,6 +44,8 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType</class>
+      <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       
       <properties>

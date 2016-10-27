@@ -38,6 +38,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
@@ -256,8 +258,19 @@ public class QueryService implements Serializable {
 
 			} else if (type.equals("select")) {
 				String alias = queryParameters.getFirst("alias");
+				String operationName = queryParameters.getFirst("operation");
+				
+				
+				Map<String, String> fields = new HashMap<String, String>();
+				for (String key : queryParameters.keySet()) {
+					if (key.startsWith("data-")) {
+						fields.put(key.substring(5),
+								queryParameters.getFirst(key));
+					}
+				}
+				
 				clauseId = validateSelectClause(clauseId, resource, field,
-						alias);
+						alias, operationName, fields);
 
 			} else if (type.equals("join")) {
 				String joinType = queryParameters.getFirst("joinType");
@@ -272,7 +285,18 @@ public class QueryService implements Serializable {
 
 				clauseId = validateJoinClause(clauseId, resource, joinType,
 						fields);
-			} else {
+			} else if (type.equals("sort")) {
+				String sortType = queryParameters.getFirst("sortType");
+				Map<String, String> fields = new HashMap<String, String>();
+				for (String key : queryParameters.keySet()) {
+					if (key.startsWith("data-")) {
+						fields.put(key.substring(5),
+								queryParameters.getFirst(key));
+					}
+				}
+
+				clauseId = validateSortClause(clauseId, resource, field, sortType, fields);
+			}else {
 				throw new QueryException("No type set");
 			}
 		} catch (QueryException e) {
@@ -330,6 +354,14 @@ public class QueryService implements Serializable {
 				Iterator<JsonValue> joinIterator = joinClauses.iterator();
 				while (joinIterator.hasNext()) {
 					addJsonJoinClauseToQuery((JsonObject) joinIterator.next());
+				}
+			}
+			// Convert JSON Sort to Query
+			if (query.containsKey("sort")) {
+				JsonArray sortClauses = query.getJsonArray("sort");
+				Iterator<JsonValue> sortIterator = sortClauses.iterator();
+				while (sortIterator.hasNext()) {
+					addJsonSortClauseToQuery((JsonObject) sortIterator.next());
 				}
 			}
 		} catch (QueryException e) {
@@ -398,6 +430,14 @@ public class QueryService implements Serializable {
 					addJsonJoinClauseToQuery((JsonObject) joinIterator.next());
 				}
 			}
+			if (query.containsKey("sort")) {
+				JsonArray sortClauses = query.getJsonArray("sort");
+				Iterator<JsonValue> sortIterator = sortClauses.iterator();
+				while (sortIterator.hasNext()) {
+					addJsonSortClauseToQuery((JsonObject) sortIterator.next());
+				}
+			}
+			
 		} catch (QueryException e) {
 			response.add("status", "Invalid Request");
 			response.add("message", e.getMessage());
@@ -463,7 +503,7 @@ public class QueryService implements Serializable {
 				logicalOperator, fields);
 	}
 
-	private Long validateJoinClause(Long clauseId, Resource resource,
+	private Long validateJoinClause(Long clauseId, Resource resource, 
 			String joinName, Map<String, String> fields) throws QueryException {
 		JoinType joinType = resource.getSupportedJoinByName(joinName);
 		if (joinType == null) {
@@ -471,11 +511,28 @@ public class QueryService implements Serializable {
 		}
 		return qc.addJoinClause(clauseId, resource, joinType, fields);
 	}
+	
+	private Long validateSortClause(Long clauseId, Resource resource, Entity field, String sortName, Map<String, String> fields) throws QueryException {
+		SortOperationType sortType = resource.getSupportedSortOperationByName(sortName);
+		if (sortType == null) {
+			throw new QueryException("Unknown sort type");
+		}
+		return qc.addSortClause(clauseId, resource, field, sortType, fields);
+	}
 
 	private Long validateSelectClause(Long clauseId, Resource resource,
-			Entity field, String alias) throws QueryException {
-
-		return qc.addSelectClause(clauseId, resource, field, alias);
+			Entity field, String alias, String operationName, Map<String, String> fields) throws QueryException {
+		
+		SelectOperationType operation = null;
+		if(operationName != null) {
+			operation = resource.getSupportedSelectOperationByName(operationName);
+			if (operation == null) {
+				throw new QueryException("Unknown select operation");
+			}
+		}
+		
+		
+		return qc.addSelectClause(clauseId, resource, field, alias, operation, fields);
 	}
 
 	private Long addJsonWhereClauseToQuery(JsonObject whereClause)
@@ -557,18 +614,104 @@ public class QueryService implements Serializable {
 				field.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
-		if ((resource == null) || (field == null)) {
-			throw new QueryException("Invalid Path");
-		}
+//		if ((resource == null) || (field == null)) {
+//			throw new QueryException("Invalid Path");
+//		}
 		String alias = null;
 		if (selectClause.containsKey("alias")) {
 			alias = selectClause.getString("alias");
 		}
-		return qc.addSelectClause(clauseId, resource, field, alias);
+		
+		String operationName = null; 
+		if (selectClause.containsKey("operation")) {
+			operationName = selectClause.getString("operation");
+		}
+		
+		Map<String, String> fields = new HashMap<String, String>();
+		if (selectClause.containsKey("fields")) {
+			JsonObject fieldObject = selectClause.getJsonObject("fields");
+			for (String key : fieldObject.keySet()) {
+				fields.put(key, fieldObject.getString(key));
+			}
+		}
+		
+		return validateSelectClause(clauseId, resource, field, alias, operationName, fields);
 	}
 
-	private Long addJsonJoinClauseToQuery(JsonObject joinObject)
+	private Long addJsonJoinClauseToQuery(JsonObject joinClause)
 			throws QueryException {
-		return null;
+		String path = null;
+		if (joinClause.containsKey("field")) {
+			path = joinClause.getJsonObject("field").getString("pui");
+		}
+		
+		Long clauseId = null;
+		if (joinClause.containsKey("clauseId")) {
+			clauseId = joinClause.getJsonNumber("clauseId").longValue();
+		}
+		
+		Resource resource = null;
+		if (path != null && !path.isEmpty()) {
+			path = "/" + path;
+			path = path.substring(1);
+			resource = rc.getResource(path.split("/")[1]);
+			if (resource == null) {
+				throw new QueryException("Invalid Resource");
+			}
+		}
+		if (resource == null) {
+			throw new QueryException("Invalid Path");
+		}
+		
+		String joinName = joinClause.getString("join");
+
+		Map<String, String> fields = new HashMap<String, String>();
+		if (joinClause.containsKey("fields")) {
+			JsonObject fieldObject = joinClause.getJsonObject("fields");
+			for (String key : fieldObject.keySet()) {
+				fields.put(key, fieldObject.getString(key));
+			}
+		}
+		
+		
+		return validateJoinClause(clauseId, resource, joinName, fields);
+	}
+	
+	private Long addJsonSortClauseToQuery(JsonObject sortClause) throws QueryException {
+		String path = null;
+		if (sortClause.containsKey("field")) {
+			path = sortClause.getJsonObject("field").getString("pui");
+		}
+		
+		Long clauseId = null;
+		if (sortClause.containsKey("clauseId")) {
+			clauseId = sortClause.getJsonNumber("clauseId").longValue();
+		}
+		
+		Entity field = null;
+		Resource resource = null;
+		if (path != null && !path.isEmpty()) {
+			path = "/" + path;
+			path = path.substring(1);
+			resource = rc.getResource(path.split("/")[1]);
+			if (resource == null) {
+				throw new QueryException("Invalid Resource");
+			}
+			field = new Entity(path);
+		}
+		if ((resource == null) || (field == null)) {
+			throw new QueryException("Invalid Path");
+		}
+		
+		String sortName = sortClause.getString("sort");
+		
+		Map<String, String> fields = new HashMap<String, String>();
+		if (sortClause.containsKey("fields")) {
+			JsonObject fieldObject = sortClause.getJsonObject("fields");
+			for (String key : fieldObject.keySet()) {
+				fields.put(key, fieldObject.getString(key));
+			}
+		}
+		return validateSortClause(clauseId, resource, field, sortName, fields);
 	}
 }
