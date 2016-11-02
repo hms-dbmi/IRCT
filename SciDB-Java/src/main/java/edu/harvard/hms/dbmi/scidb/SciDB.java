@@ -49,9 +49,23 @@ public class SciDB {
 
 	public SciDBOperation aggregate(SciDBCommand operation,
 			SciDBAggregate aggregate) {
+//		SciDBOperation aggregateOperation = new SciDBOperation("aggregate");
+//		aggregateOperation.setCommand(operation);
+//		aggregateOperation.setPostFix(aggregate.toAFLQueryString());
+//		return aggregateOperation;
+		return aggregate(operation, aggregate, null);
+	}
+	
+	public SciDBOperation aggregate(SciDBCommand operation,
+			SciDBAggregate aggregate, String dimmension) {
 		SciDBOperation aggregateOperation = new SciDBOperation("aggregate");
 		aggregateOperation.setCommand(operation);
-		aggregateOperation.setPostFix(aggregate.toAFLQueryString());
+		
+		String postFix = aggregate.toAFLQueryString();
+		if(dimmension != null) {
+			postFix += "," + dimmension;
+		}
+		aggregateOperation.setPostFix(postFix);
 		return aggregateOperation;
 	}
 	
@@ -467,7 +481,7 @@ public class SciDB {
 	 * 
 	 * @param leftArray
 	 *            Left Array
-	 * @param rightArray
+	 * @param rightCommand
 	 *            Right Array
 	 * @param leftDimension
 	 *            Left Dimension
@@ -475,21 +489,21 @@ public class SciDB {
 	 *            Right Dimension
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation crossJoin(SciDBArray leftArray,
-			SciDBArray rightArray, String leftDimension, String rightDimension) {
-		return crossJoin(leftArray, null, rightArray, null, leftDimension,
+	public SciDBOperation crossJoin(SciDBCommand leftArray,
+			SciDBCommand rightCommand, String leftDimension, String rightDimension) {
+		return crossJoin(leftArray, null, rightCommand, null, leftDimension,
 				rightDimension);
 	}
 
 	/**
 	 * Run a Cross Join Operation
 	 * 
-	 * @param leftArray
-	 *            Left Array
+	 * @param leftCommand
+	 *            Left Command
 	 * @param leftAlias
 	 *            Left Array Alias
-	 * @param rightArray
-	 *            Right Array
+	 * @param rightCommand
+	 *            Right Command
 	 * @param rightAlias
 	 *            Right Array Alias
 	 * @param leftDimension
@@ -498,21 +512,29 @@ public class SciDB {
 	 *            Right Dimension
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation crossJoin(SciDBArray leftArray, String leftAlias,
-			SciDBArray rightArray, String rightAlias, String leftDimension,
+	public SciDBOperation crossJoin(SciDBCommand leftCommand, String leftAlias,
+			SciDBCommand rightCommand, String rightAlias, String leftDimension,
 			String rightDimension) {
 		SciDBOperation crossJoinOperation = new SciDBOperation("cross_join");
-
-		String command = leftArray.getName();
-		if (leftAlias != null) {
-			command += " as " + leftAlias;
+		
+		String command = "";
+		if(leftCommand instanceof SciDBArray) {
+			command = ((SciDBArray) leftCommand).getName();
+			if (leftAlias != null) {
+				command += " as " + leftAlias;
+			}
+		} else {
+			command = leftCommand.toAFLQueryString();
 		}
-
-		command += "," + rightArray.getName();
-		if (rightAlias != null) {
-			command += " as " + rightAlias;
+		
+		if(rightCommand instanceof SciDBArray) {
+			command += "," + ((SciDBArray) rightCommand).getName();
+			if (rightAlias != null) {
+				command += " as " + rightAlias;
+			}
+		} else {
+			command += "," + rightCommand.toAFLQueryString();
 		}
-
 		command += "," + leftDimension + "," + rightDimension;
 
 		crossJoinOperation.setCommandString(command);
@@ -670,7 +692,7 @@ public class SciDB {
 	 */
 	public SciDBOperation gemm(SciDBArray array1, SciDBArray array2,
 			SciDBArray array3) {
-		return gemm(array1, array2, array3, null);
+		return gemm(array1, array2, array3, new String[] {});
 	}
 
 	/**
@@ -693,8 +715,8 @@ public class SciDB {
 		gemmOperation.setCommandString(array1.getName());
 		String postFix = array2.getName() + "," + array3.getName();
 
-		if (options != null) {
-			postFix += "," + options;
+		for(String option : options) {
+			postFix += "," + option;
 		}
 
 		gemmOperation.setPostFix(postFix);
