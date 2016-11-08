@@ -13,7 +13,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -266,22 +266,26 @@ public class SciDBResourceImplementation implements
 	private SciDBCommand createQuery(SciDB sciDB, Query query) {
 		SciDBCommand command = null;
 		// Parse all subqueries first
-
+		Map<String, SciDBCommand> subQueryCommands = new HashMap<String, SciDBCommand>();
+		
+		for (String subQueryID : query.getSubQueries().keySet()) {
+			subQueryCommands.put(subQueryID, createQuery(sciDB, query.getSubQuery(subQueryID)));
+		}
+		
 		// Parse all join clauses
 		List<JoinClause> joinClauses = query.getClausesOfType(JoinClause.class);
 		for (JoinClause joinClause : joinClauses) {
-			command = addJoinOperation(sciDB, command, joinClause);
+			command = addJoinOperation(sciDB, command, subQueryCommands, joinClause);
 		}
 
 		// Parse all where clauses second
 		List<WhereClause> whereClauses = query
 				.getClausesOfType(WhereClause.class);
 		for (WhereClause whereClause : whereClauses) {
-			command = addWhereOperation(sciDB, command, whereClause);
+			command = addWhereOperation(sciDB, command, subQueryCommands, whereClause);
 		}
-		
+
 		// Parse all sort clauses
-		
 
 		// Parse all select clauses
 		List<SelectClause> selectClauses = query
@@ -289,12 +293,14 @@ public class SciDBResourceImplementation implements
 		List<String> selects = new ArrayList<String>();
 		for (SelectClause selectClause : selectClauses) {
 			if (selectClause.getOperationType() != null) {
-				command = addSelectOperation(sciDB, command, selectClause);
+				command = addSelectOperation(sciDB, command, subQueryCommands, selectClause);
 			} else {
 				String[] pathComponents = selectClause.getParameter().getPui()
 						.split("/");
 				if (pathComponents.length == 4) {
-					selects.add(pathComponents[3]);
+					selects.add(pathComponents[2] + "." + pathComponents[3]);
+				} else if (pathComponents.length == 3) {
+					selects.add(pathComponents[2]);
 				}
 			}
 		}
@@ -307,7 +313,7 @@ public class SciDBResourceImplementation implements
 	}
 
 	private SciDBCommand addWhereOperation(SciDB sciDB,
-			SciDBCommand whereOperation, WhereClause whereClause) {
+			SciDBCommand whereOperation, Map<String, SciDBCommand> subQueryCommands, WhereClause whereClause) {
 
 		String predicateName = whereClause.getPredicateType().getName();
 
@@ -316,9 +322,17 @@ public class SciDBResourceImplementation implements
 			whereOperation = new SciDBArray(arrayName);
 		}
 		switch (predicateName) {
-		case "FILTER":
-			whereOperation = sciDB.filter(whereOperation,
-					createSciDBFilterOperation(whereClause));
+		case 
+		"FILTER":
+			String[] pathComponents = whereClause.getField().getPui().split("/");
+			String array = pathComponents[2];
+			if(subQueryCommands.containsKey(array)) {
+				whereOperation = sciDB.filter(subQueryCommands.get(array), createSciDBFilterOperation(whereClause));
+			} else {
+				whereOperation = sciDB.filter(whereOperation, createSciDBFilterOperation(whereClause));
+			}
+			
+			
 			break;
 		case "BETWEEN":
 			String[] lowBoundString = whereClause.getStringValues()
@@ -346,27 +360,45 @@ public class SciDBResourceImplementation implements
 	}
 
 	private SciDBCommand addSelectOperation(SciDB sciDB,
-			SciDBCommand selectOperation, SelectClause selectClause) {
+			SciDBCommand selectOperation,
+			Map<String, SciDBCommand> subQueryCommands, SelectClause selectClause) {
 		String operationName = selectClause.getOperationType().getName();
 
 		switch (operationName) {
 		case "AGGREGATE":
 			String aggregateFunction = selectClause.getStringValues().get(
 					"FUNCTION");
+			String alias = selectClause.getAlias();
 			if (aggregateFunction.equalsIgnoreCase("COUNT")) {
-				if (selectClause.getStringValues().containsKey("DIMMENSION")) {
-					String dimmension = selectClause.getStringValues().get(
-							"DIMMENSION");
-					String[] dimmensions = dimmension.split("/");
+				if (selectClause.getStringValues().containsKey("DIMENSION")) {
+					String dimension = selectClause.getStringValues().get(
+							"DIMENSION");
+					String[] dimensions = dimension.split("/");
 
-					if (dimmensions.length == 4) {
-						dimmension = dimmensions[3];
+					if (dimensions.length == 4) {
+						dimension = dimensions[3];
 					}
 					selectOperation = sciDB.aggregate(selectOperation,
-							SciDBAggregateFactory.count(), dimmension);
+							SciDBAggregateFactory.count(), dimension, alias);
+				} else if ((selectClause.getObjectValues() != null) && (selectClause.getObjectValues().containsKey(
+						"DIMENSION"))) {
+
+					String[] dimensions = (String[]) selectClause
+							.getObjectValues().get("DIMENSION");
+
+					String dimensionString = "";
+					for (Object dim : dimensions) {
+						dimensionString += dim + ",";
+					}
+
+					dimensionString = dimensionString.substring(0,
+							dimensionString.length() - 1);
+					selectOperation = sciDB.aggregate(selectOperation,
+							SciDBAggregateFactory.count(), dimensionString,
+							alias);
 				} else {
 					selectOperation = sciDB.aggregate(selectOperation,
-							SciDBAggregateFactory.count());
+							SciDBAggregateFactory.count(), null, alias);
 				}
 			}
 
@@ -375,19 +407,37 @@ public class SciDBResourceImplementation implements
 		return selectOperation;
 	}
 
-	private SciDBCommand addJoinOperation(SciDB sciDB, SciDBCommand joinOperation,
-			JoinClause joinClause) {
+	private SciDBCommand addJoinOperation(SciDB sciDB,
+			SciDBCommand joinOperation, Map<String, SciDBCommand> subQueryCommands, JoinClause joinClause) {
 		String joinName = joinClause.getJoinType().getName();
-		
-		switch(joinName) {
-			case "CROSSJOIN":
-				Query right = (Query) joinClause.getObjectValues().get("RIGHT");
-				String rightDimension = joinClause.getStringValues().get("RIGHT_DIM");
+
+		switch (joinName) {
+		case "CROSSJOIN":
+			Query right = (Query) joinClause.getObjectValues().get("RIGHT");
+			String rightAlias = joinClause.getStringValues().get("RIGHT_ALIAS");
+			String leftAlias = joinClause.getStringValues().get("LEFT_ALIAS");
+			if(joinClause.getStringValues().containsKey("DIMENSIONS")) {
+				String rightDimension = joinClause.getStringValues().get("DIMENSIONS");
+				SciDBCommand rightCommand = createQuery(sciDB, right);
+				String[] components = joinClause.getField().getPui().split("/");
+				joinOperation = sciDB.crossJoin(new SciDBArray(components[2]),
+						rightCommand, components[2] + "." + components[3],
+						rightDimension);
+				
+			} else if(joinClause.getObjectValues().containsKey("DIMENSIONS")) {
+				String[] dimensions = (String[]) joinClause.getObjectValues().get("DIMENSIONS");
+				String[] components = joinClause.getField().getPui().split("/");
 				SciDBCommand rightCommand = createQuery(sciDB, right);
 				
-				String[] components = joinClause.getField().getPui().split("/");
+				SciDBCommand leftCommand;
+				if(subQueryCommands.containsKey(components[2])) {
+					leftCommand = subQueryCommands.get(components[2]);
+				} else {
+					leftCommand = new SciDBArray(components[2]);
+				}
+				joinOperation = sciDB.crossJoin(leftCommand, leftAlias, rightCommand, rightAlias, dimensions);
 				
-				joinOperation = sciDB.crossJoin(new SciDBArray(components[2]), rightCommand, components[2] + "." + components[3], rightDimension);
+			}
 		}
 		return joinOperation;
 	}
