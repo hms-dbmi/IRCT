@@ -49,21 +49,25 @@ public class SciDB {
 
 	public SciDBOperation aggregate(SciDBCommand operation,
 			SciDBAggregate aggregate) {
-//		SciDBOperation aggregateOperation = new SciDBOperation("aggregate");
-//		aggregateOperation.setCommand(operation);
-//		aggregateOperation.setPostFix(aggregate.toAFLQueryString());
-//		return aggregateOperation;
 		return aggregate(operation, aggregate, null);
+	}
+	public SciDBOperation aggregate(SciDBCommand operation,
+			SciDBAggregate aggregate, String dimension) {
+		
+		return aggregate(operation, aggregate, dimension, null);
 	}
 	
 	public SciDBOperation aggregate(SciDBCommand operation,
-			SciDBAggregate aggregate, String dimmension) {
+			SciDBAggregate aggregate, String dimension, String alias) {
 		SciDBOperation aggregateOperation = new SciDBOperation("aggregate");
 		aggregateOperation.setCommand(operation);
 		
 		String postFix = aggregate.toAFLQueryString();
-		if(dimmension != null) {
-			postFix += "," + dimmension;
+		if(alias != null) {
+			postFix += " AS " + alias;
+		}
+		if(dimension != null) {
+			postFix += "," + dimension;
 		}
 		aggregateOperation.setPostFix(postFix);
 		return aggregateOperation;
@@ -494,7 +498,41 @@ public class SciDB {
 		return crossJoin(leftArray, null, rightCommand, null, leftDimension,
 				rightDimension);
 	}
+	
+	
+	public SciDBOperation crossJoin(SciDBCommand leftCommand, String leftAlias, SciDBCommand rightCommand, String rightAlias, String... dimensions) {
+		SciDBOperation crossJoinOperation = new SciDBOperation("cross_join");
+		
+		String command = "";
+		if(leftCommand instanceof SciDBArray) {
+			command = ((SciDBArray) leftCommand).getName();
+		} else {
+			command = leftCommand.toAFLQueryString();
+		}
+		if (leftAlias != null) {
+			command += " as " + leftAlias;
+		}
+		
+		if(rightCommand instanceof SciDBArray) {
+			command += "," + ((SciDBArray) rightCommand).getName();
+		} else {
+			command += "," + rightCommand.toAFLQueryString();
+		}
+		
+		if (rightAlias != null) {
+			command += " as " + rightAlias;
+		}
+		
+		for(String dimension : dimensions) {
+			command += "," + dimension;	
+		}
+		
 
+		crossJoinOperation.setCommandString(command);
+		
+		return crossJoinOperation;
+	}
+	
 	/**
 	 * Run a Cross Join Operation
 	 * 
