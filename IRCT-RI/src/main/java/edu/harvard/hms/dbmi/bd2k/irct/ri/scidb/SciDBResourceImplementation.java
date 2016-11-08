@@ -13,6 +13,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,7 +44,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -62,6 +63,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.security.SecurityUtility;
 import edu.harvard.hms.dbmi.scidb.SciDB;
+import edu.harvard.hms.dbmi.scidb.SciDBAggregateFactory;
 import edu.harvard.hms.dbmi.scidb.SciDBArray;
 import edu.harvard.hms.dbmi.scidb.SciDBAttribute;
 import edu.harvard.hms.dbmi.scidb.SciDBCommand;
@@ -69,7 +71,6 @@ import edu.harvard.hms.dbmi.scidb.SciDBDimension;
 import edu.harvard.hms.dbmi.scidb.SciDBFilterFactory;
 import edu.harvard.hms.dbmi.scidb.SciDBFunction;
 import edu.harvard.hms.dbmi.scidb.SciDBListElement;
-import edu.harvard.hms.dbmi.scidb.SciDBOperation;
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 
 /**
@@ -237,47 +238,14 @@ public class SciDBResourceImplementation implements
 	public Result runQuery(SecureSession session, Query query, Result result)
 			throws ResourceInterfaceException {
 		HttpClient client = createClient(session);
-		result.setResultStatus(ResultStatus.CREATED);
-
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
-		SciDBCommand whereOperation = null;
-		try {
-			List<String> selects = new ArrayList<String>();
-			String arrayName = "";
-			for (ClauseAbstract clause : query.getClauses().values()) {
-				if (clause instanceof WhereClause) {
-					if (((WhereClause) clause).getPredicateType().getName()
-							.equals("FILTER")) {
-						if (whereOperation == null) {
-							arrayName = ((WhereClause) clause).getField()
-									.getPui().split("/")[2];
-							whereOperation = sciDB
-									.filter(new SciDBArray(arrayName),
-											createSciDBFilterOperation((WhereClause) clause));
-						} else {
-							whereOperation = sciDB
-									.filter(whereOperation,
-											createSciDBFilterOperation((WhereClause) clause));
-						}
-					}
-				} else if (clause instanceof SelectClause) {
-					String[] pathComponents = ((SelectClause) clause)
-							.getParameter().getPui().split("/");
-					if (pathComponents.length == 4) {
-						selects.add(pathComponents[3]);
-					}
-				}
-			}
+		result.setResultStatus(ResultStatus.CREATED);
 
-			String queryId = "";
-			if (selects.isEmpty()) {
-				queryId = sciDB.executeQuery((SciDBOperation) whereOperation);
-			} else {
-				queryId = sciDB.executeQuery(
-						sciDB.project(whereOperation,
-								selects.toArray(new String[] {})), "dcsv");
-			}
+		try {
+			SciDBCommand command = createQuery(sciDB, query);
+
+			String queryId = sciDB.executeQuery(command, "dcsv");
 			if (queryId.contains("Exception")) {
 				result.setResultStatus(ResultStatus.ERROR);
 				result.setMessage(queryId);
@@ -286,13 +254,192 @@ public class SciDBResourceImplementation implements
 				result.setResourceActionId(sciDB.getSessionId() + "|" + queryId);
 				result.setResultStatus(ResultStatus.RUNNING);
 			}
-		} catch (NotConnectedException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage(e.getMessage());
+			result.setMessage(e.getMessage().split("\n")[0]);
 			sciDB.close();
 		}
 		return result;
+	}
+
+	private SciDBCommand createQuery(SciDB sciDB, Query query) {
+		SciDBCommand command = null;
+		// Parse all subqueries first
+		Map<String, SciDBCommand> subQueryCommands = new HashMap<String, SciDBCommand>();
+		
+		for (String subQueryID : query.getSubQueries().keySet()) {
+			subQueryCommands.put(subQueryID, createQuery(sciDB, query.getSubQuery(subQueryID)));
+		}
+		
+		// Parse all join clauses
+		List<JoinClause> joinClauses = query.getClausesOfType(JoinClause.class);
+		for (JoinClause joinClause : joinClauses) {
+			command = addJoinOperation(sciDB, command, subQueryCommands, joinClause);
+		}
+
+		// Parse all where clauses second
+		List<WhereClause> whereClauses = query
+				.getClausesOfType(WhereClause.class);
+		for (WhereClause whereClause : whereClauses) {
+			command = addWhereOperation(sciDB, command, subQueryCommands, whereClause);
+		}
+
+		// Parse all sort clauses
+
+		// Parse all select clauses
+		List<SelectClause> selectClauses = query
+				.getClausesOfType(SelectClause.class);
+		List<String> selects = new ArrayList<String>();
+		for (SelectClause selectClause : selectClauses) {
+			if (selectClause.getOperationType() != null) {
+				command = addSelectOperation(sciDB, command, subQueryCommands, selectClause);
+			} else {
+				String[] pathComponents = selectClause.getParameter().getPui()
+						.split("/");
+				if (pathComponents.length == 4) {
+					selects.add(pathComponents[2] + "." + pathComponents[3]);
+				} else if (pathComponents.length == 3) {
+					selects.add(pathComponents[2]);
+				}
+			}
+		}
+		if (!selects.isEmpty()) {
+			command = sciDB.project(command, selects.toArray(new String[] {}));
+		}
+
+		return command;
+
+	}
+
+	private SciDBCommand addWhereOperation(SciDB sciDB,
+			SciDBCommand whereOperation, Map<String, SciDBCommand> subQueryCommands, WhereClause whereClause) {
+
+		String predicateName = whereClause.getPredicateType().getName();
+
+		if (whereOperation == null) {
+			String arrayName = whereClause.getField().getPui().split("/")[2];
+			whereOperation = new SciDBArray(arrayName);
+		}
+		switch (predicateName) {
+		case 
+		"FILTER":
+			String[] pathComponents = whereClause.getField().getPui().split("/");
+			String array = pathComponents[2];
+			if(subQueryCommands.containsKey(array)) {
+				whereOperation = sciDB.filter(subQueryCommands.get(array), createSciDBFilterOperation(whereClause));
+			} else {
+				whereOperation = sciDB.filter(whereOperation, createSciDBFilterOperation(whereClause));
+			}
+			
+			
+			break;
+		case "BETWEEN":
+			String[] lowBoundString = whereClause.getStringValues()
+					.get("LOWBOUNDS").split(",");
+			String[] highBoundString = whereClause.getStringValues()
+					.get("HIGHBOUNDS").split(",");
+			int[] lowCoordinates = new int[lowBoundString.length];
+			int[] highCoordinates = new int[highBoundString.length];
+			for (int i = 0; i < lowBoundString.length; i++) {
+				lowCoordinates[i] = Integer.parseInt(lowBoundString[i]);
+			}
+			for (int i = 0; i < highCoordinates.length; i++) {
+				highCoordinates[i] = Integer.parseInt(highBoundString[i]);
+			}
+
+			sciDB.between(whereOperation, lowCoordinates, highCoordinates);
+			break;
+		case "INDEXLOOKUP":
+
+			break;
+		case "QUANTILE":
+			break;
+		}
+		return whereOperation;
+	}
+
+	private SciDBCommand addSelectOperation(SciDB sciDB,
+			SciDBCommand selectOperation,
+			Map<String, SciDBCommand> subQueryCommands, SelectClause selectClause) {
+		String operationName = selectClause.getOperationType().getName();
+
+		switch (operationName) {
+		case "AGGREGATE":
+			String aggregateFunction = selectClause.getStringValues().get(
+					"FUNCTION");
+			String alias = selectClause.getAlias();
+			if (aggregateFunction.equalsIgnoreCase("COUNT")) {
+				if (selectClause.getStringValues().containsKey("DIMENSION")) {
+					String dimension = selectClause.getStringValues().get(
+							"DIMENSION");
+					String[] dimensions = dimension.split("/");
+
+					if (dimensions.length == 4) {
+						dimension = dimensions[3];
+					}
+					selectOperation = sciDB.aggregate(selectOperation,
+							SciDBAggregateFactory.count(), dimension, alias);
+				} else if ((selectClause.getObjectValues() != null) && (selectClause.getObjectValues().containsKey(
+						"DIMENSION"))) {
+
+					String[] dimensions = (String[]) selectClause
+							.getObjectValues().get("DIMENSION");
+
+					String dimensionString = "";
+					for (Object dim : dimensions) {
+						dimensionString += dim + ",";
+					}
+
+					dimensionString = dimensionString.substring(0,
+							dimensionString.length() - 1);
+					selectOperation = sciDB.aggregate(selectOperation,
+							SciDBAggregateFactory.count(), dimensionString,
+							alias);
+				} else {
+					selectOperation = sciDB.aggregate(selectOperation,
+							SciDBAggregateFactory.count(), null, alias);
+				}
+			}
+
+		}
+
+		return selectOperation;
+	}
+
+	private SciDBCommand addJoinOperation(SciDB sciDB,
+			SciDBCommand joinOperation, Map<String, SciDBCommand> subQueryCommands, JoinClause joinClause) {
+		String joinName = joinClause.getJoinType().getName();
+
+		switch (joinName) {
+		case "CROSSJOIN":
+			Query right = (Query) joinClause.getObjectValues().get("RIGHT");
+			String rightAlias = joinClause.getStringValues().get("RIGHT_ALIAS");
+			String leftAlias = joinClause.getStringValues().get("LEFT_ALIAS");
+			if(joinClause.getStringValues().containsKey("DIMENSIONS")) {
+				String rightDimension = joinClause.getStringValues().get("DIMENSIONS");
+				SciDBCommand rightCommand = createQuery(sciDB, right);
+				String[] components = joinClause.getField().getPui().split("/");
+				joinOperation = sciDB.crossJoin(new SciDBArray(components[2]),
+						rightCommand, components[2] + "." + components[3],
+						rightDimension);
+				
+			} else if(joinClause.getObjectValues().containsKey("DIMENSIONS")) {
+				String[] dimensions = (String[]) joinClause.getObjectValues().get("DIMENSIONS");
+				String[] components = joinClause.getField().getPui().split("/");
+				SciDBCommand rightCommand = createQuery(sciDB, right);
+				
+				SciDBCommand leftCommand;
+				if(subQueryCommands.containsKey(components[2])) {
+					leftCommand = subQueryCommands.get(components[2]);
+				} else {
+					leftCommand = new SciDBArray(components[2]);
+				}
+				joinOperation = sciDB.crossJoin(leftCommand, leftAlias, rightCommand, rightAlias, dimensions);
+				
+			}
+		}
+		return joinOperation;
 	}
 
 	/*
@@ -330,9 +477,14 @@ public class SciDBResourceImplementation implements
 				} else {
 					rs.appendRow();
 					line = line.replaceAll("\\{", "").replaceAll("\\} ", ",");
-					String[] lineData = line.split(",");
-					for (int datai = 0; datai < lineData.length; datai++) {
-						rs.updateString(datai, lineData[datai]);
+
+					CSVParser parser = CSVParser.parse(line,
+							CSVFormat.DEFAULT.withQuote('\''));
+
+					CSVRecord record = parser.getRecords().get(0);
+
+					for (int datai = 0; datai < rs.getColumns().length; datai++) {
+						rs.updateString(datai, record.get(datai));
 					}
 					if (rs.getRow() % (rs.getMaxPending() - 1) == 0) {
 						rs.merge();
