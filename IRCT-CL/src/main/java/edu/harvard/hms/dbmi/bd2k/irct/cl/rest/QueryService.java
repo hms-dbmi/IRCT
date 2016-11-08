@@ -5,10 +5,8 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import javax.enterprise.context.ConversationScoped;
@@ -20,6 +18,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
+import javax.json.JsonValue.ValueType;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -260,7 +259,7 @@ public class QueryService implements Serializable {
 				}
 
 				clauseId = validateWhereClause(null, clauseId, resource, field,
-						predicateName, logicalOperatorName, fields);
+						predicateName, logicalOperatorName, fields, null);
 
 			} else if (type.equals("select")) {
 				String alias = queryParameters.getFirst("alias");
@@ -274,8 +273,8 @@ public class QueryService implements Serializable {
 					}
 				}
 
-				clauseId = validateSelectClause(null, clauseId, resource, field,
-						alias, operationName, fields);
+				clauseId = validateSelectClause(null, clauseId, resource,
+						field, alias, operationName, fields, null);
 
 			} else if (type.equals("join")) {
 				String joinType = queryParameters.getFirst("joinType");
@@ -288,7 +287,8 @@ public class QueryService implements Serializable {
 					}
 				}
 
-				clauseId = validateJoinClause(null, clauseId, resource, field, joinType, fields, null);
+				clauseId = validateJoinClause(null, clauseId, resource, field,
+						joinType, fields, null);
 			} else if (type.equals("sort")) {
 				String sortType = queryParameters.getFirst("sortType");
 				Map<String, String> fields = new HashMap<String, String>();
@@ -300,7 +300,7 @@ public class QueryService implements Serializable {
 				}
 
 				clauseId = validateSortClause(null, clauseId, resource, field,
-						sortType, fields);
+						sortType, fields, null);
 			} else {
 				throw new QueryException("No type set");
 			}
@@ -379,7 +379,8 @@ public class QueryService implements Serializable {
 		}
 
 		try {
-			response.add("resultId", ec.runQuery(query, (SecureSession) session.getAttribute("secureSession")));
+			response.add("resultId", ec.runQuery(query,
+					(SecureSession) session.getAttribute("secureSession")));
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
@@ -412,58 +413,24 @@ public class QueryService implements Serializable {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
-	
-	
-	private SubQuery convertJsonToSubQuery(JsonObject jsonSubQuery) throws QueryException {
-		SubQuery sq = qc.createSubQuery();
-		
-		// Convert JSON Selects to Query
-				if (jsonSubQuery.containsKey("select")) {
-					JsonArray selectClauses = jsonSubQuery.getJsonArray("select");
-					Iterator<JsonValue> selectIterator = selectClauses.iterator();
-					while (selectIterator.hasNext()) {
-						addJsonSelectClauseToQuery(sq, (JsonObject) selectIterator.next());
-					}
-
-				}
-				// Convert JSON Where to Query
-				if (jsonSubQuery.containsKey("where")) {
-					JsonArray whereClauses = jsonSubQuery.getJsonArray("where");
-					Iterator<JsonValue> whereIterator = whereClauses.iterator();
-					while (whereIterator.hasNext()) {
-						addJsonWhereClauseToQuery(sq, (JsonObject) whereIterator.next());
-					}
-				}
-				// Convert JSON Join to Query
-				if (jsonSubQuery.containsKey("join")) {
-					JsonArray joinClauses = jsonSubQuery.getJsonArray("join");
-					Iterator<JsonValue> joinIterator = joinClauses.iterator();
-					while (joinIterator.hasNext()) {
-						addJsonJoinClauseToQuery(sq, (JsonObject) joinIterator.next());
-					}
-				}
-				if (jsonSubQuery.containsKey("sort")) {
-					JsonArray sortClauses = jsonSubQuery.getJsonArray("sort");
-					Iterator<JsonValue> sortIterator = sortClauses.iterator();
-					while (sortIterator.hasNext()) {
-						addJsonSortClauseToQuery(sq, (JsonObject) sortIterator.next());
-					}
-				}
-		
-		return sq;
-	}
 
 	private Query convertJsonToQuery(JsonObject jsonQuery)
 			throws QueryException {
 		// Create the query
 		qc.createQuery();
+		return convertJsonToQuery(null, jsonQuery);
+	}
+
+	private Query convertJsonToQuery(SubQuery subQuery, JsonObject jsonQuery)
+			throws QueryException {
 
 		// Convert JSON Selects to Query
 		if (jsonQuery.containsKey("select")) {
 			JsonArray selectClauses = jsonQuery.getJsonArray("select");
 			Iterator<JsonValue> selectIterator = selectClauses.iterator();
 			while (selectIterator.hasNext()) {
-				addJsonSelectClauseToQuery(null, (JsonObject) selectIterator.next());
+				addJsonSelectClauseToQuery(subQuery,
+						(JsonObject) selectIterator.next());
 			}
 
 		}
@@ -472,7 +439,8 @@ public class QueryService implements Serializable {
 			JsonArray whereClauses = jsonQuery.getJsonArray("where");
 			Iterator<JsonValue> whereIterator = whereClauses.iterator();
 			while (whereIterator.hasNext()) {
-				addJsonWhereClauseToQuery(null, (JsonObject) whereIterator.next());
+				addJsonWhereClauseToQuery(subQuery,
+						(JsonObject) whereIterator.next());
 			}
 		}
 		// Convert JSON Join to Query
@@ -480,66 +448,50 @@ public class QueryService implements Serializable {
 			JsonArray joinClauses = jsonQuery.getJsonArray("join");
 			Iterator<JsonValue> joinIterator = joinClauses.iterator();
 			while (joinIterator.hasNext()) {
-				addJsonJoinClauseToQuery(null, (JsonObject) joinIterator.next());
+				addJsonJoinClauseToQuery(subQuery,
+						(JsonObject) joinIterator.next());
 			}
 		}
+		// Convert JSON Sort to Query
 		if (jsonQuery.containsKey("sort")) {
 			JsonArray sortClauses = jsonQuery.getJsonArray("sort");
 			Iterator<JsonValue> sortIterator = sortClauses.iterator();
 			while (sortIterator.hasNext()) {
-				addJsonSortClauseToQuery(null, (JsonObject) sortIterator.next());
+				addJsonSortClauseToQuery(subQuery,
+						(JsonObject) sortIterator.next());
+			}
+		}
+		// Convert JSON SubQueries to Query
+		if (jsonQuery.containsKey("subquery")) {
+			JsonObject subQueryObject = jsonQuery.getJsonObject("subquery");
+			for (String key : subQueryObject.keySet()) {
+				addJsonSubQueryToQuery(subQuery, key, subQueryObject.getJsonObject(key));
 			}
 		}
 
-		return qc.getQuery();
+		if (subQuery != null) {
+			return subQuery;
+		} else {
+			return qc.getQuery();
+		}
 	}
 
-	private Long validateWhereClause(SubQuery sq, Long clauseId, Resource resource,
-			Entity field, String predicateName, String logicalOperatorName,
-			Map<String, String> fields) throws QueryException {
-
-		PredicateType predicateType = resource
-				.getSupportedPredicateByName(predicateName);
-		if (predicateType == null) {
-			throw new QueryException("Unknown predicate type");
-		}
-
-		LogicalOperator logicalOperator = null;
-		if (logicalOperatorName != null) {
-			logicalOperator = resource
-					.getLogicalOperatorByName(logicalOperatorName);
-			if (logicalOperator == null) {
-				throw new QueryException("Unknown logical operator");
-			}
-		}
-
-		return qc.addWhereClause(sq, clauseId, resource, field, predicateType,
-				logicalOperator, fields);
-	}
-
-	private Long validateJoinClause(SubQuery sq, Long clauseId, Resource resource, Entity field,
-			String joinName, Map<String, String> fields, Map<String, Object> objectFields) throws QueryException {
+	private Long validateJoinClause(SubQuery sq, Long clauseId,
+			Resource resource, Entity field, String joinName,
+			Map<String, String> fields, Map<String, Object> objectFields)
+			throws QueryException {
 		JoinType joinType = resource.getSupportedJoinByName(joinName);
 		if (joinType == null) {
 			throw new QueryException("Unknown join type");
 		}
-		return qc.addJoinClause(sq, clauseId, resource, field, joinType, fields, objectFields);
+		return qc.addJoinClause(sq, clauseId, resource, field, joinType,
+				fields, objectFields);
 	}
 
-	private Long validateSortClause(SubQuery sq, Long clauseId, Resource resource,
-			Entity field, String sortName, Map<String, String> fields)
-			throws QueryException {
-		SortOperationType sortType = resource
-				.getSupportedSortOperationByName(sortName);
-		if (sortType == null) {
-			throw new QueryException("Unknown sort type");
-		}
-		return qc.addSortClause(sq, clauseId, resource, field, sortType, fields);
-	}
-
-	private Long validateSelectClause(SubQuery sq, Long clauseId, Resource resource,
-			Entity field, String alias, String operationName,
-			Map<String, String> fields) throws QueryException {
+	private Long validateSelectClause(SubQuery sq, Long clauseId,
+			Resource resource, Entity field, String alias,
+			String operationName, Map<String, String> fields,
+			Map<String, Object> objectFields) throws QueryException {
 
 		SelectOperationType operation = null;
 		if (operationName != null) {
@@ -550,8 +502,8 @@ public class QueryService implements Serializable {
 			}
 		}
 
-		return qc.addSelectClause(sq, clauseId, resource, field, alias, operation,
-				fields);
+		return qc.addSelectClause(sq, clauseId, resource, field, alias,
+				operation, fields, objectFields);
 	}
 
 	private Long addJsonWhereClauseToQuery(SubQuery sq, JsonObject whereClause)
@@ -571,18 +523,18 @@ public class QueryService implements Serializable {
 			clauseId = whereClause.getJsonNumber("clauseId").longValue();
 		}
 
-		Entity field = null;
+		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
-			field = new Entity(path);
+			entity = new Entity(path);
 			if (dataType != null) {
-				field.setDataType(resource.getDataTypeByName(dataType));
+				entity.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
-		if ((resource == null) || (field == null)) {
+		if ((resource == null) || (entity == null)) {
 			throw new QueryException("Invalid Path");
 		}
 		String predicateName = whereClause.getString("predicate");
@@ -590,16 +542,53 @@ public class QueryService implements Serializable {
 		if (whereClause.containsKey("logicalOperator")) {
 			logicalOperatorName = whereClause.getString("logicalOperator");
 		}
+
+		PredicateType predicateType = resource
+				.getSupportedPredicateByName(predicateName);
+		if (predicateType == null) {
+			throw new QueryException("Unknown predicate type");
+		}
+
+		Map<String, Field> clauseFields = new HashMap<String, Field>();
+		for (Field field : predicateType.getFields()) {
+			clauseFields.put(field.getPath(), field);
+		}
+
+		Map<String, Object> objectFields = new HashMap<String, Object>();
 		Map<String, String> fields = new HashMap<String, String>();
+
 		if (whereClause.containsKey("fields")) {
 			JsonObject fieldObject = whereClause.getJsonObject("fields");
-			for (String key : fieldObject.keySet()) {
-				fields.put(key, fieldObject.getString(key));
+			objectFields = getObjectFields(clauseFields, fieldObject);
+			fields = getStringFields(clauseFields, fieldObject);
+		}
+
+		return validateWhereClause(sq, clauseId, resource, entity,
+				predicateName, logicalOperatorName, fields, objectFields);
+	}
+
+	private Long validateWhereClause(SubQuery sq, Long clauseId,
+			Resource resource, Entity field, String predicateName,
+			String logicalOperatorName, Map<String, String> fields,
+			Map<String, Object> objectFields) throws QueryException {
+
+		PredicateType predicateType = resource
+				.getSupportedPredicateByName(predicateName);
+		if (predicateType == null) {
+			throw new QueryException("Unknown predicate type");
+		}
+
+		LogicalOperator logicalOperator = null;
+		if (logicalOperatorName != null) {
+			logicalOperator = resource
+					.getLogicalOperatorByName(logicalOperatorName);
+			if (logicalOperator == null) {
+				throw new QueryException("Unknown logical operator");
 			}
 		}
 
-		return validateWhereClause(sq, clauseId, resource, field, predicateName,
-				logicalOperatorName, fields);
+		return qc.addWhereClause(sq, clauseId, resource, field, predicateType,
+				logicalOperator, fields, objectFields);
 	}
 
 	private Long addJsonSelectClauseToQuery(SubQuery sq, JsonObject selectClause)
@@ -619,7 +608,7 @@ public class QueryService implements Serializable {
 			clauseId = selectClause.getJsonNumber("clauseId").longValue();
 		}
 
-		Entity field = null;
+		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
@@ -628,40 +617,50 @@ public class QueryService implements Serializable {
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
 			}
-			field = new Entity(path);
+			entity = new Entity(path);
 			if (dataType != null) {
-				field.setDataType(resource.getDataTypeByName(dataType));
+				entity.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
-		// if ((resource == null) || (field == null)) {
-		// throw new QueryException("Invalid Path");
-		// }
+
 		String alias = null;
 		if (selectClause.containsKey("alias")) {
 			alias = selectClause.getString("alias");
 		}
 
 		String operationName = null;
+
+		Map<String, Object> objectFields = new HashMap<String, Object>();
+		Map<String, String> fields = new HashMap<String, String>();
 		if (selectClause.containsKey("operation")) {
 			operationName = selectClause.getString("operation");
-		}
 
-		Map<String, String> fields = new HashMap<String, String>();
-		if (selectClause.containsKey("fields")) {
-			JsonObject fieldObject = selectClause.getJsonObject("fields");
-			for (String key : fieldObject.keySet()) {
-				fields.put(key, fieldObject.getString(key));
+			SelectOperationType st = resource
+					.getSupportedSelectOperationByName(operationName);
+
+			if (st == null) {
+				throw new QueryException("Unsupported Select Operation Type");
+			}
+
+			Map<String, Field> clauseFields = new HashMap<String, Field>();
+			for (Field field : st.getFields()) {
+				clauseFields.put(field.getPath(), field);
+			}
+
+			if (selectClause.containsKey("fields")) {
+				JsonObject fieldObject = selectClause.getJsonObject("fields");
+				objectFields = getObjectFields(clauseFields, fieldObject);
+				fields = getStringFields(clauseFields, fieldObject);
 			}
 		}
-		
-		return validateSelectClause(sq, clauseId, resource, field, alias,
-				operationName, fields);
+		return validateSelectClause(sq, clauseId, resource, entity, alias,
+				operationName, fields, objectFields);
 	}
 
 	private Long addJsonJoinClauseToQuery(SubQuery sq, JsonObject joinClause)
 			throws QueryException {
 		String path = null;
-		
+
 		if (joinClause.containsKey("field")) {
 			path = joinClause.getJsonObject("field").getString("pui");
 		}
@@ -671,7 +670,7 @@ public class QueryService implements Serializable {
 			clauseId = joinClause.getJsonNumber("clauseId").longValue();
 		}
 
-		Entity field = null;
+		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
@@ -680,44 +679,92 @@ public class QueryService implements Serializable {
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
 			}
-			field = new Entity(path);
+			entity = new Entity(path);
 		}
-		if ((resource == null) || (field == null)) {
+		if ((resource == null) || (entity == null)) {
 			throw new QueryException("Invalid Path");
 		}
 
 		String joinName = joinClause.getString("joinType");
-		
+
 		JoinType jt = resource.getSupportedJoinByName(joinName);
-		
-		if(jt == null) {
+
+		if (jt == null) {
 			throw new QueryException("Unsupported Join Type");
 		}
-		
-		List<String> queryFields = new ArrayList<String>();
-		for(Field jtField : jt.getFields()) {
-			if(jtField.getDataTypes().contains(PrimitiveDataType.SUBQUERY)) {
-				queryFields.add(jtField.getPath());
-			}
+
+		Map<String, Field> clauseFields = new HashMap<String, Field>();
+		for (Field field : jt.getFields()) {
+			clauseFields.put(field.getPath(), field);
 		}
 
-		Map<String, String> fields = new HashMap<String, String>();
 		Map<String, Object> objectFields = new HashMap<String, Object>();
-		
-		
+		Map<String, String> fields = new HashMap<String, String>();
+
 		if (joinClause.containsKey("fields")) {
 			JsonObject fieldObject = joinClause.getJsonObject("fields");
-			
-			for (String key : fieldObject.keySet()) {
-				if(queryFields.contains(key)) {
-					objectFields.put(key, convertJsonToSubQuery(fieldObject.getJsonObject(key)));
+			objectFields = getObjectFields(clauseFields, fieldObject);
+			fields = getStringFields(clauseFields, fieldObject);
+		}
+
+		return validateJoinClause(sq, clauseId, resource, entity, joinName,
+				fields, objectFields);
+	}
+
+	private Map<String, Object> getObjectFields(
+			Map<String, Field> clauseFields, JsonObject fieldObject)
+			throws QueryException {
+		Map<String, Object> objectFields = new HashMap<String, Object>();
+		for (String key : fieldObject.keySet()) {
+			ValueType vt = fieldObject.get(key).getValueType();
+
+			if ((vt == ValueType.ARRAY)) {
+				if (clauseFields.containsKey(key)
+						&& (clauseFields.get(key).getDataTypes()
+								.contains(PrimitiveDataType.ARRAY))) {
+
+					JsonArray array = fieldObject.getJsonArray(key);
+					String[] stringArray = new String[array.size()];
+					for (int sa_i = 0; sa_i < array.size(); sa_i++) {
+						stringArray[sa_i] = array.getString(sa_i);
+					}
+					objectFields.put(key, stringArray);
 				} else {
-					fields.put(key, fieldObject.getString(key));
+					throw new QueryException(key
+							+ " field does not support arrays.");
+				}
+
+			} else if (vt == ValueType.OBJECT) {
+				if (clauseFields.containsKey(key)
+						&& (clauseFields.get(key).getDataTypes()
+								.contains(PrimitiveDataType.SUBQUERY))) {
+
+					objectFields.put(
+							key,
+							convertJsonToQuery(qc.createSubQuery(),
+									fieldObject.getJsonObject(key)));
+
+				} else {
+					throw new QueryException(key
+							+ " field does not support subqueries.");
 				}
 			}
 		}
 
-		return validateJoinClause(sq, clauseId, resource, field, joinName, fields, objectFields);
+		return objectFields;
+	}
+
+	private Map<String, String> getStringFields(
+			Map<String, Field> clauseFields, JsonObject fieldObject) {
+		Map<String, String> fields = new HashMap<String, String>();
+		for (String key : fieldObject.keySet()) {
+			ValueType vt = fieldObject.get(key).getValueType();
+			if ((vt != ValueType.ARRAY) && (vt != ValueType.OBJECT)) {
+				fields.put(key, fieldObject.getString(key));
+			}
+		}
+
+		return fields;
 	}
 
 	private Long addJsonSortClauseToQuery(SubQuery sq, JsonObject sortClause)
@@ -732,7 +779,7 @@ public class QueryService implements Serializable {
 			clauseId = sortClause.getJsonNumber("clauseId").longValue();
 		}
 
-		Entity field = null;
+		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
@@ -741,21 +788,58 @@ public class QueryService implements Serializable {
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
 			}
-			field = new Entity(path);
+			entity = new Entity(path);
 		}
-		if ((resource == null) || (field == null)) {
+		if ((resource == null) || (entity == null)) {
 			throw new QueryException("Invalid Path");
 		}
 
 		String sortName = sortClause.getString("sort");
 
+		SortOperationType sortType = resource
+				.getSupportedSortOperationByName(sortName);
+		if (sortType == null) {
+			throw new QueryException("Unknown sort type");
+		}
+		
+		Map<String, Field> clauseFields = new HashMap<String, Field>();
+		for (Field field : sortType.getFields()) {
+			clauseFields.put(field.getPath(), field);
+		}
+
+		Map<String, Object> objectFields = new HashMap<String, Object>();
 		Map<String, String> fields = new HashMap<String, String>();
+
 		if (sortClause.containsKey("fields")) {
 			JsonObject fieldObject = sortClause.getJsonObject("fields");
-			for (String key : fieldObject.keySet()) {
-				fields.put(key, fieldObject.getString(key));
-			}
+			objectFields = getObjectFields(clauseFields, fieldObject);
+			fields = getStringFields(clauseFields, fieldObject);
 		}
-		return validateSortClause(sq, clauseId, resource, field, sortName, fields);
+
+		return validateSortClause(sq, clauseId, resource, entity, sortName,
+				fields, objectFields);
+	}
+	
+	private Long validateSortClause(SubQuery sq, Long clauseId,
+			Resource resource, Entity field, String sortName,
+			Map<String, String> fields, Map<String, Object> objectFields) throws QueryException {
+		SortOperationType sortType = resource
+				.getSupportedSortOperationByName(sortName);
+		if (sortType == null) {
+			throw new QueryException("Unknown sort type");
+		}
+		return qc
+				.addSortClause(sq, clauseId, resource, field, sortType, fields, objectFields);
+	}
+
+	private void addJsonSubQueryToQuery(Query query, String subQueryId, JsonObject subQuery)
+			throws QueryException {
+		SubQuery sq = (SubQuery) convertJsonToQuery(qc.createSubQuery(),
+				subQuery);
+		if(query == null) {
+			qc.addSubQuery(subQueryId, sq);	
+		} else {
+			query.addSubQuery(subQueryId, sq);
+		}
 	}
 }
