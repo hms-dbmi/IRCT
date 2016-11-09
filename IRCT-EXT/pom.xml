@@ -13,19 +13,15 @@
 			<groupId>com.oracle.jdbc</groupId>
 			<artifactId>ojdbc6</artifactId>
 			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/src/main/resources/ojdbc6.jar</systemPath>
 		</dependency>
-
-		<!-- <dependency> <groupId>com.oracle.jdbc</groupId> <artifactId>ojdbc6</artifactId> 
-			<version>1.0</version> </dependency> -->
 
 		<!-- AWS -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk</artifactId>
-			<version>1.11.7</version>
+			<version>1.11.46</version>
 		</dependency>
+
 		<!-- JODA Time -->
 		<dependency>
 			<groupId>joda-time</groupId>
