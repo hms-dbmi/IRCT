@@ -50,6 +50,7 @@
 			<artifactId>SciDB-Java</artifactId>
 			<version>1.0-QA</version>
 		</dependency>
+		
 		<!-- IRCT API -->
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
