@@ -1155,37 +1155,37 @@ public class SciDB {
 	/**
 	 * Creates quantile operation
 	 * 
-	 * @param array
-	 *            Array
+	 * @param command
+	 *            Command
 	 * @param quantiles
 	 *            Quantile
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation quantile(SciDBArray array, int quantiles) {
-		return quantile(array, quantiles, null, null);
+	public SciDBOperation quantile(SciDBCommand command, int quantiles) {
+		return quantile(command, quantiles, null, null);
 	}
 
 	/**
 	 * Creates quantile operation
 	 * 
-	 * @param array
-	 *            Array
+	 * @param command
+	 *            Command
 	 * @param quantiles
 	 *            Quantile
 	 * @param attribute
 	 *            Attribute
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation quantile(SciDBArray array, int quantiles,
+	public SciDBOperation quantile(SciDBCommand command, int quantiles,
 			String attribute) {
-		return quantile(array, quantiles, attribute, null);
+		return quantile(command, quantiles, attribute, null);
 	}
 
 	/**
 	 * Creates quantile operation
 	 * 
-	 * @param array
-	 *            Array
+	 * @param command
+	 *            Command
 	 * @param quantile
 	 *            Quantile
 	 * @param attribute
@@ -1194,10 +1194,16 @@ public class SciDB {
 	 *            Dimension
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation quantile(SciDBArray array, int quantile,
+	public SciDBOperation quantile(SciDBCommand command, int quantile,
 			String attribute, String dimension) {
 		SciDBOperation quantileOperation = new SciDBOperation("quantile");
-		quantileOperation.setCommandString(array.getName());
+		
+		
+		if(command instanceof SciDBArray) {
+			quantileOperation.setCommandString(((SciDBArray) command).getName());
+		} else {
+			quantileOperation.setCommandString(command.toAFLQueryString());
+		}
 
 		String postFix = Integer.toString(quantile);
 
@@ -1607,11 +1613,11 @@ public class SciDB {
 	 * Creates a sort operation on an array that will sorted by the first
 	 * attribute.
 	 * 
-	 * @param array Array
+	 * @param command Command
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation sort(SciDBArray array) {
-		return sort(array, new String[] {});
+	public SciDBOperation sort(SciDBCommand command) {
+		return sort(command, new String[] {});
 	}
 
 	/**
@@ -1620,20 +1626,31 @@ public class SciDB {
 	 * If the attributes parameter is null then array will be sorted by the
 	 * first attribute.
 	 * 
-	 * @param array
-	 *            Array
+	 * @param command
+	 *            Command
 	 * @param attributes
-	 *            Atributes
+	 *            Attributes
 	 * @return SciDB Operation
 	 */
-	public SciDBOperation sort(SciDBArray array, String... attributes) {
+	public SciDBOperation sort(SciDBCommand command, String... attributes) {
 		SciDBOperation sortOperation = new SciDBOperation("sort");
-		sortOperation.setCommandString(array.getName());
+		if(command instanceof SciDBArray) {
+			sortOperation.setCommandString(((SciDBArray) command).getName());
+		} else {
+			sortOperation.setCommandString(command.toAFLQueryString());
+		}
 
+		
 		if ((attributes != null) && (attributes.length >= 1)) {
 			String postFix = "";
-			for (String attribute : attributes) {
-				postFix += attribute + ",";
+			
+			for(int i = 0; i < attributes.length; i++) {
+				String attribute = attributes[i];
+				if(i % 2 == 1) {
+					postFix += " " + attribute + ",";
+				} else {
+					postFix += attribute;
+				}
 			}
 			postFix = postFix.substring(0, postFix.length() - 1);
 			sortOperation.setPostFix(postFix);
