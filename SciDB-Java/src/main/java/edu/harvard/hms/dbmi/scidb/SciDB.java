@@ -47,16 +47,41 @@ public class SciDB {
 	/*** Methods ***/
 	/*************************************************************************/
 
+	/**
+	 * Creates a SciDB Aggregate operation
+	 * 
+	 * @param operation Operation
+	 * @param aggregate Aggregate
+	 * @return SciDB Operation
+	 */
 	public SciDBOperation aggregate(SciDBCommand operation,
 			SciDBAggregate aggregate) {
 		return aggregate(operation, aggregate, null);
 	}
+	
+	/**
+	 * Creates a SciDB Aggregate Operation
+	 * 
+	 * @param operation Operation
+	 * @param aggregate Aggregate
+	 * @param dimension Dimension
+	 * @return SciDB Operation
+	 */
 	public SciDBOperation aggregate(SciDBCommand operation,
 			SciDBAggregate aggregate, String dimension) {
 		
 		return aggregate(operation, aggregate, dimension, null);
 	}
 	
+	/**
+	 * Creates a SciDB Aggregate operation
+	 * 
+	 * @param operation Operation
+	 * @param aggregate Aggregate
+	 * @param dimension Dimension
+	 * @param alias Alias of the returned array
+	 * @return SciDB Operation
+	 */
 	public SciDBOperation aggregate(SciDBCommand operation,
 			SciDBAggregate aggregate, String dimension, String alias) {
 		SciDBOperation aggregateOperation = new SciDBOperation("aggregate");
@@ -309,8 +334,6 @@ public class SciDB {
 	 * @param highCoordinates
 	 *            High coordinates
 	 * @return SciDB Operation
-	 * @throws SciDBOperationException
-	 *             An exception occurred
 	 */
 	public SciDBOperation between(SciDBCommand array, int[] lowCoordinates,
 			int[] highCoordinates) {

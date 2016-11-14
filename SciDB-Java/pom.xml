@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.harvard.hms.dbmi</groupId>
 	<artifactId>SciDB-Java</artifactId>
-	<version>1.0-QA</version>
+	<version>1.0</version>
 	<name>SciDB Java Interface</name>
 	<description>An interface that uses SHIM to communicate with a SciDB instance.</description>
 	
