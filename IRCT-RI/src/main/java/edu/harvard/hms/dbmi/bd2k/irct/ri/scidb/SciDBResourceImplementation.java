@@ -47,6 +47,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
@@ -286,6 +287,10 @@ public class SciDBResourceImplementation implements
 		}
 
 		// Parse all sort clauses
+		List<SortClause> sortClauses = query.getClausesOfType(SortClause.class);
+		for(SortClause sortClause : sortClauses) {
+			command = addSortOperation(sciDB, command, subQueryCommands, sortClause);
+		}
 
 		// Parse all select clauses
 		List<SelectClause> selectClauses = query
@@ -322,8 +327,7 @@ public class SciDBResourceImplementation implements
 			whereOperation = new SciDBArray(arrayName);
 		}
 		switch (predicateName) {
-		case 
-		"FILTER":
+		case "FILTER":
 			String[] pathComponents = whereClause.getField().getPui().split("/");
 			String array = pathComponents[2];
 			if(subQueryCommands.containsKey(array)) {
@@ -348,12 +352,22 @@ public class SciDBResourceImplementation implements
 				highCoordinates[i] = Integer.parseInt(highBoundString[i]);
 			}
 
-			sciDB.between(whereOperation, lowCoordinates, highCoordinates);
-			break;
-		case "INDEXLOOKUP":
-
+			String[] components = whereClause.getField().getPui().split("/");
+			
+			if (components.length == 3) {
+				if(subQueryCommands.containsKey(components[2])) {
+					whereOperation = subQueryCommands.get(components[2]);
+				} else {
+;					whereOperation = new SciDBArray(components[2]);
+				}
+			}
+			
+			whereOperation = sciDB.between(whereOperation, lowCoordinates, highCoordinates);
 			break;
 		case "QUANTILE":
+			int quantiles = Integer.parseInt(whereClause.getStringValues().get("QUANTILE"));
+			String attribute = whereClause.getStringValues().get("ATTRIBUTE");
+			sciDB.quantile(whereOperation, quantiles, attribute);
 			break;
 		}
 		return whereOperation;
@@ -440,6 +454,41 @@ public class SciDBResourceImplementation implements
 			}
 		}
 		return joinOperation;
+	}
+	
+	private SciDBCommand addSortOperation(SciDB sciDB,
+			SciDBCommand sortOperation,
+			Map<String, SciDBCommand> subQueryCommands, SortClause sortClause) {
+		String sortName = sortClause.getOperationType().getName();
+		
+		switch (sortName) {
+		case "SORT":
+			String field = null;
+			String[] components = sortClause.getParameter().getPui().split("/");
+			
+			if(components.length == 3) {
+				field = components[2];
+			} else if (components.length == 4) {
+				if(subQueryCommands.containsKey(components[2])) {
+					sortOperation = subQueryCommands.get(components[2]);
+				} else {
+;					sortOperation = new SciDBArray(components[2]);
+				}
+				field = components[3];
+			}
+			
+			String direction = sortClause.getStringValues().get("DIRECTION");
+			
+			if(field == null && direction == null) {
+				sortOperation = sciDB.sort(sortOperation);
+			} else if (field != null && direction == null) {
+				sortOperation = sciDB.sort(sortOperation, field);
+			} else if(field != null && direction != null) {
+				sortOperation = sciDB.sort(sortOperation, field, direction);
+			}
+			break;
+		}
+		return sortOperation;
 	}
 
 	/*
