@@ -244,12 +244,6 @@ public class ResourceService {
 	 *            Path
 	 * @param relationshipString
 	 *            Relationship
-	 * @param searchTerm
-	 *            Search Term
-	 * @param ontologyType
-	 *            Ontology Type
-	 * @param ontologyTerm
-	 *            Ontology Term
 	 * @return List of entities
 	 */
 	@GET

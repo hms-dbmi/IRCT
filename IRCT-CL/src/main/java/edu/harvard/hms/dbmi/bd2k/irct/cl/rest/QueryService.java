@@ -794,7 +794,10 @@ public class QueryService implements Serializable {
 			throw new QueryException("Invalid Path");
 		}
 
-		String sortName = sortClause.getString("sort");
+		if(!sortClause.containsKey("sortType")) {
+			throw new QueryException("No sort type defined");
+		}
+		String sortName = sortClause.getString("sortType");
 
 		SortOperationType sortType = resource
 				.getSupportedSortOperationByName(sortName);
