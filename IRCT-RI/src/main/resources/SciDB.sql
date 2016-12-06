@@ -12,7 +12,7 @@ set @filterId = (select IF(id is NULL,0,max(id)) from PredicateType) + 1;
 
 -- SET THE SELECT OPERATIONS
 set @aggregateId = (select IF(id is NULL,0,max(id)) from SelectOperationType) + 1;
-
+set @betweenId = @aggregateId + 1;
 -- SET THE JOIN OPERATIONS
 set @crossJoinID = (select IF(id is NULL,0,max(id)) from JoinType) + 1;
 
@@ -32,6 +32,11 @@ set @crossJoin_LEFTALIAS_ID = @crossJoin_DIMMENSION_Id + 1;
 set @crossJoin_RIGHTALIAS_ID = @crossJoin_LEFTALIAS_ID + 1;
 
 set @sort_Direction_Id = @crossJoin_RIGHTALIAS_ID + 1;
+
+set @lowBound_BetweenId = @sort_Direction_Id + 1;
+set @highBound_BetweenId = @lowBound_BetweenId + 1;
+
+
 
 
 -- INSERT THE RESOURCE
@@ -73,6 +78,25 @@ insert into PredicateType_Field(PredicateType_id, fields_id) values(@filterId, @
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@filterId, @filter_ValueId);
 
 insert into Resource_PredicateType(Resource_Id, supportedPredicates_id) values(@resourceId, @filterId);
+
+-- INSERT BETWEEN PREDICATE
+insert into PredicateType(id, defaultPredicate, description, displayName, name) values(@betweenId, 0, 'Between', 'Between', 'BETWEEN');
+insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@betweenId, 'edu.harvard.hms.dbmi.bd2k.irct.ri.scidb.SciDBDataType:ATTRIBUTE');
+insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@betweenId, 'edu.harvard.hms.dbmi.bd2k.irct.ri.scidb.SciDBDataType:DIMENSION');
+
+insert into Field(id, description, name, path, relationship, required) values(@lowBound_BetweenId, 'Lower Bound', 'Low Bound', 'LOWBOUNDS', null, 1);
+insert into Field_dataTypes(Field_id, dataTypes) values(@lowBound_BetweenId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:STRING');
+insert into Field_dataTypes(Field_id, dataTypes) values(@lowBound_BetweenId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:ARRAY');
+
+insert into Field(id, description, name, path, relationship, required) values(@highBound_BetweenId, 'Higher Bound', 'High Bound', 'HIGHBOUNDS', null, 1);
+insert into Field_dataTypes(Field_id, dataTypes) values(@highBound_BetweenId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:STRING');
+insert into Field_dataTypes(Field_id, dataTypes) values(@highBound_BetweenId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:ARRAY');
+
+insert into PredicateType_Field(PredicateType_id, fields_id) values(@betweenId, @lowBound_BetweenId);
+insert into PredicateType_Field(PredicateType_id, fields_id) values(@betweenId, @highBound_BetweenId);
+
+insert into Resource_PredicateType(Resource_Id, supportedPredicates_id) values(@resourceId, @betweenId);
+
 
 -- INSERT Select Aggregate Operation
 insert into SelectOperationType(id, name, displayName, description) values(@aggregateId, 'AGGREGATE', 'Aggregate', 'A set of aggregate functions that can be run');

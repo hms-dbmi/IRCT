@@ -112,7 +112,7 @@ insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@constra
 insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@constrainValueId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:INTEGER');
 insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@constrainValueId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:FLOAT');
 
-insert into Field(id, description, name, path, relationship, required) values(@operator_ConstrainValueId, 'Operator', 'Operator', 'OPERATOR', null, 1);
+insert into Field(id, description, name, path, relationship, required) values(@operator_ConstrainValueId, 'Nb', 'Operator', 'OPERATOR', null, 1);
 insert into Field_permittedValues(Field_Id, permittedValues) values(@operator_ConstrainValueId, 'EQ');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@operator_ConstrainValueId, 'NE');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@operator_ConstrainValueId, 'GT');
