@@ -10,11 +10,13 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.json.Json;
 import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue.ValueType;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -45,6 +47,18 @@ public class JoinService implements Serializable {
 
 	@Inject
 	private HttpSession session;
+	
+	@GET
+	@Path("/joins")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getJoins() {
+		JsonArrayBuilder response = Json.createArrayBuilder();
+		
+		for(IRCTJoin join : jc.getSupportedJoins()) {
+			response.add(join.toJson());
+		}
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON).build();
+	}
 
 	@POST
 	@Path("/runJoin")
