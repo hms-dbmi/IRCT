@@ -98,6 +98,10 @@ public class JoinService implements Serializable {
 		String joinName = jsonJoin.getString("joinType");
 
 		IRCTJoin irctJoin = jc.getIRCTJoin(joinName);
+		
+		if(irctJoin == null) {
+			throw new JoinException("Unknown join type");
+		}
 
 		Map<String, Field> clauseFields = new HashMap<String, Field>();
 		for (Field field : irctJoin.getFields()) {
