@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
+import com.google.common.base.Charsets;
+import com.google.common.hash.Funnel;
+import com.google.common.hash.PrimitiveSink;
+
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.JoinImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -20,16 +23,16 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
- * Performs a right outer join between two result sets
+ * Performs a left outer join between two result sets
  * 
  * 
  * @author Jeremy R. Easton-Marks
  *
  */
-public class RightOuterJoin implements JoinImplementation {
+public class LeftOuterBloomArrayJoin implements JoinImplementation {
+
 	@Override
-	public void setup(Map<String, Object> parameters)
-			throws JoinActionSetupException {
+	public void setup(Map<String, Object> parameters) {
 	}
 
 	@Override
@@ -38,55 +41,73 @@ public class RightOuterJoin implements JoinImplementation {
 
 		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
 		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
-		int leftColumnIndex = leftResultSet.findColumn(join.getStringValues().get("LeftColumn"));
-		int rightColumnIndex = rightResultSet.findColumn(join.getStringValues().get("RightColumn"));
+
+		
+		// Get Left Matching Column Ids
+		List<Integer> leftMatchingColumns = new ArrayList<Integer>();
+		for(String columnName : join.getStringValues().get("LeftColumn").split(",")) {
+			leftMatchingColumns.add(leftResultSet.findColumn(columnName));
+		}
+		//Get Right Matching Column Ids
+		List<Integer> rightMatchingColumns = new ArrayList<Integer>();
+		for(String columnName : join.getStringValues().get("RightColumn").split(",")) {
+			rightMatchingColumns.add(leftResultSet.findColumn(columnName));
+		}
+		
+		Funnel<String> rowFunnel = new Funnel<String>() {
+			@Override
+			public void funnel(String rowIdentifier, PrimitiveSink into) {
+				into.putString(rowIdentifier, Charsets.UTF_8);
+			}
+		};
+		
+		
+		// OLD
 
 		
 		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
 
-		List<Integer> leftColumns = new ArrayList<Integer>();
 		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
-			if (leftColumnIterator != leftColumnIndex) {
-				computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
-				leftColumns.add(leftColumnIterator);
+			computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
+		}
+		
+		List<Integer> rightColumns = new ArrayList<Integer>();
+		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
+			if (rightColumnIterator != rightColumnIndex) {
+				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
+				rightColumns.add(rightColumnIterator);
 			}
 		}
-		
-		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
-				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
-		}
-		
-		int baseColumn = leftColumns.size();
+		int baseColumn = leftResultSet.getColumnSize();
 
-		rightResultSet.beforeFirst();
-		while (rightResultSet.next()) {
-			Object rightRowMatchObj = ((ResultSetImpl) rightResultSet).getObject(rightColumnIndex);
+		leftResultSet.beforeFirst();
+		while (leftResultSet.next()) {
+			Object leftRowMatchObj = ((ResultSetImpl) leftResultSet).getObject(leftColumnIndex);
 
 			// Add a new row
 			computedResults.appendRow();
 
-			// Copy Right values over
-			for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
-				computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumnIterator));
+			// Copy Left values over
+			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
+				computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumnIterator));
 			}
 
-			leftResultSet.beforeFirst();
-			while (leftResultSet.next()) {
-				if (((ResultSetImpl) leftResultSet).getObject(leftColumnIndex).equals(rightRowMatchObj)) {
-
-					// Copy Left values over
-					for(int leftColumnIterator = 0; leftColumnIterator < leftColumns.size(); leftColumnIterator++) {
-						computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumns.get(leftColumnIterator)));
+			rightResultSet.beforeFirst();
+			while (rightResultSet.next()) {
+				if (((ResultSetImpl) rightResultSet).getObject(rightColumnIndex).equals(leftRowMatchObj)) {
+					// Copy Right values over
+					for(int rightColumnIterator = 0; rightColumnIterator < rightColumns.size(); rightColumnIterator++) {
+						computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumns.get(rightColumnIterator)));
 					}
 
 				}
 			}
 		}
 		computedResults.beforeFirst();
-
 		result.setResultStatus(ResultStatus.COMPLETE);
 		result.setData(computedResults);
 		return result;
+
 	}
 
 	@Override
@@ -98,4 +119,5 @@ public class RightOuterJoin implements JoinImplementation {
 	public ResultDataType getJoinDataType() {
 		return ResultDataType.TABULAR;
 	}
+
 }

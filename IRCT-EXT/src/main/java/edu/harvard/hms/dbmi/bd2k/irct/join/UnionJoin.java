@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
@@ -15,6 +13,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
@@ -26,7 +25,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
  * @author Jeremy R. Easton-Marks
  *
  */
-public class RightOuterJoin implements JoinImplementation {
+public class UnionJoin implements JoinImplementation {
 	@Override
 	public void setup(Map<String, Object> parameters)
 			throws JoinActionSetupException {
@@ -38,50 +37,50 @@ public class RightOuterJoin implements JoinImplementation {
 
 		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
 		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
-		int leftColumnIndex = leftResultSet.findColumn(join.getStringValues().get("LeftColumn"));
-		int rightColumnIndex = rightResultSet.findColumn(join.getStringValues().get("RightColumn"));
 
+		//Check that columns match
+		if(leftResultSet.getColumnSize() != rightResultSet.getColumnSize()) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("Result sets have unequal number of columns");
+			return result;
+		}
 		
-		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
-
-		List<Integer> leftColumns = new ArrayList<Integer>();
-		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
-			if (leftColumnIterator != leftColumnIndex) {
-				computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
-				leftColumns.add(leftColumnIterator);
+		for (int columnIterator = 0; columnIterator < rightResultSet.getColumnSize(); columnIterator++) {
+			Column rightColumn = rightResultSet.getColumn(columnIterator);
+			Column leftColumn = leftResultSet.getColumn(columnIterator);
+			if(!rightColumn.getName().equals(leftColumn.getName()) || (rightColumn.getDataType() != leftColumn.getDataType())) {
+				result.setResultStatus(ResultStatus.ERROR);
+				result.setMessage("Left Column " + leftColumn.getName() + "(" + leftColumn.getDataType() + ") is not equal to Right Column " + rightColumn.getName() + "(" + rightColumn.getDataType() + ")");
+				return result;
 			}
 		}
+		
+		
+		//Create new computed results with the same columns
+		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
 		
 		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
 				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
 		}
 		
-		int baseColumn = leftColumns.size();
-
-		rightResultSet.beforeFirst();
-		while (rightResultSet.next()) {
-			Object rightRowMatchObj = ((ResultSetImpl) rightResultSet).getObject(rightColumnIndex);
-
-			// Add a new row
+		// Loop through the Left Result Set
+		leftResultSet.beforeFirst();
+		while(leftResultSet.next()) {
 			computedResults.appendRow();
-
-			// Copy Right values over
-			for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
-				computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumnIterator));
-			}
-
-			leftResultSet.beforeFirst();
-			while (leftResultSet.next()) {
-				if (((ResultSetImpl) leftResultSet).getObject(leftColumnIndex).equals(rightRowMatchObj)) {
-
-					// Copy Left values over
-					for(int leftColumnIterator = 0; leftColumnIterator < leftColumns.size(); leftColumnIterator++) {
-						computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumns.get(leftColumnIterator)));
-					}
-
-				}
+			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
+				computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumnIterator));
 			}
 		}
+		
+		// Loop through the Right Result Set
+		rightResultSet.beforeFirst();
+		while(rightResultSet.next()) {
+			computedResults.appendRow();
+			for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
+				computedResults.updateObject(rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumnIterator));
+			}
+		}
+
 		computedResults.beforeFirst();
 
 		result.setResultStatus(ResultStatus.COMPLETE);

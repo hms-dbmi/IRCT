@@ -3,18 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.JoinImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
  * Performs a left outer join between two result sets
@@ -24,107 +26,69 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
  *
  */
 public class LeftOuterJoin implements JoinImplementation {
-	private ResultSet leftResultSet;
-	private int leftColumnIndex;
-	private ResultSet rightResultSet;
-	private int rightColumnIndex;
-	private Result results;
 
 	@Override
-	public void setup(Map<String, Object> parameters)
-			throws JoinActionSetupException {
-
-		try {
-			this.leftResultSet = (ResultSet) parameters.get("LeftResultSet");
-			this.rightResultSet = (ResultSet) parameters.get("RightResultSet");
-			this.leftColumnIndex = this.leftResultSet
-					.findColumn((String) parameters.get("LeftColumn"));
-			this.rightColumnIndex = this.rightResultSet
-					.findColumn((String) parameters.get("RightColumn"));
-		} catch (Exception e) {
-			throw new JoinActionSetupException("Unable to setup join columns");
-		}
-
+	public void setup(Map<String, Object> parameters) {
 	}
 
 	@Override
-	public Result run(Result result) throws ResultSetException,
-			PersistableException {
-		this.results = result;
-		FileResultSet computedResults = (FileResultSet) result.getData();
-		computedResults.appendColumn(leftResultSet.getColumn(leftColumnIndex));
+	public Result run(SecureSession session, Join join, Result result)
+			throws ResultSetException, PersistableException {
 
-		for (int rsColumnIterator = 0; rsColumnIterator < leftResultSet
-				.getColumnSize(); rsColumnIterator++) {
-			if (rsColumnIterator != leftColumnIndex) {
-				computedResults.appendColumn(leftResultSet
-						.getColumn(rsColumnIterator));
+		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
+		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
+		int leftColumnIndex = leftResultSet.findColumn(join.getStringValues().get("LeftColumn"));
+		int rightColumnIndex = rightResultSet.findColumn(join.getStringValues().get("RightColumn"));
+
+		
+		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
+
+		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
+			computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
+		}
+		
+		List<Integer> rightColumns = new ArrayList<Integer>();
+		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
+			if (rightColumnIterator != rightColumnIndex) {
+				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
+				rightColumns.add(rightColumnIterator);
 			}
 		}
-		for (int rsColumnIterator = 0; rsColumnIterator < rightResultSet
-				.getColumnSize(); rsColumnIterator++) {
-			if (rsColumnIterator != rightColumnIndex) {
-				computedResults.appendColumn(rightResultSet
-						.getColumn(rsColumnIterator));
-			}
-		}
-		int baseColumn = leftResultSet.getColumnSize() - 1;
+		int baseColumn = leftResultSet.getColumnSize();
 
 		leftResultSet.beforeFirst();
 		while (leftResultSet.next()) {
-			Object rs1RowMatchObj = ((ResultSetImpl) leftResultSet)
-					.getObject(leftColumnIndex);
+			Object leftRowMatchObj = ((ResultSetImpl) leftResultSet).getObject(leftColumnIndex);
 
 			// Add a new row
 			computedResults.appendRow();
-			// Set the join column value
-			computedResults.updateObject(leftColumnIndex, rs1RowMatchObj);
 
-			// Copy RS1 values over
-			for (int rsColumnIterator = 0; rsColumnIterator < leftResultSet
-					.getColumnSize(); rsColumnIterator++) {
-
-				if (rsColumnIterator != leftColumnIndex) {
-					computedResults.updateObject(rsColumnIterator,
-							((ResultSetImpl) leftResultSet)
-									.getObject(rsColumnIterator));
-				}
+			// Copy Left values over
+			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
+				computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumnIterator));
 			}
 
 			rightResultSet.beforeFirst();
 			while (rightResultSet.next()) {
-				if (((ResultSetImpl) rightResultSet).getObject(leftColumnIndex)
-						.equals(rs1RowMatchObj)) {
-
-					// Copy RS2 values over
-					for (int rsColumnIterator = 0; rsColumnIterator < rightResultSet
-							.getColumnSize(); rsColumnIterator++) {
-						if (rsColumnIterator != rightColumnIndex) {
-							computedResults.updateObject(baseColumn
-									+ rsColumnIterator,
-									((ResultSetImpl) rightResultSet)
-											.getObject(rsColumnIterator));
-						}
+				if (((ResultSetImpl) rightResultSet).getObject(rightColumnIndex).equals(leftRowMatchObj)) {
+					// Copy Right values over
+					for(int rightColumnIterator = 0; rightColumnIterator < rightColumns.size(); rightColumnIterator++) {
+						computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumns.get(rightColumnIterator)));
 					}
 
 				}
 			}
 		}
 		computedResults.beforeFirst();
-		this.results.setResultStatus(ResultStatus.COMPLETE);
-		this.results.setData(computedResults);
-		return this.results;
+		result.setResultStatus(ResultStatus.COMPLETE);
+		result.setData(computedResults);
+		return result;
 
 	}
 
 	@Override
 	public Result getResults(Result result) {
-		return this.results;
-	}
-
-	@Override
-	public String getType() {
-		return "Left Outer Join";
+		return result;
 	}
 
 	@Override

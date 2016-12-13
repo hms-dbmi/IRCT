@@ -3,18 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.JoinImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
  * Performs a full outer join between two result sets
@@ -23,60 +26,48 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
  *
  */
 public class FullOuterJoin implements JoinImplementation {
-	private ResultSet leftResultSet;
-	private int leftColumnIndex;
-	private ResultSet rightResultSet;
-	private int rightColumnIndex;
-	private LeftOuterJoin leftOuterJoin;
-
-	private Result results;
 
 	@Override
 	public void setup(Map<String, Object> parameters)
 			throws JoinActionSetupException {
-		try {
-			this.leftResultSet = (ResultSet) parameters.get("LeftResultSet");
-			this.rightResultSet = (ResultSet) parameters.get("RightResultSet");
-			this.leftColumnIndex = this.leftResultSet
-					.findColumn((String) parameters.get("LeftColumn"));
-			this.rightColumnIndex = this.rightResultSet
-					.findColumn((String) parameters.get("RightColumn"));
-
-			this.leftOuterJoin = new LeftOuterJoin();
-			leftOuterJoin.setup(parameters);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new JoinActionSetupException("Unable to setup join columns");
-		}
-
 	}
 
 	@Override
-	public Result run(Result result) throws ResultSetException, PersistableException {
-		this.results = result;
-		FileResultSet computedResults = (FileResultSet) result.getData();
-		int baseColumn = leftResultSet.getColumnSize() - 1;
+	public Result run(SecureSession session, Join join, Result result) throws ResultSetException, PersistableException {
+		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
+		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
+		int leftColumnIndex = leftResultSet.findColumn( join.getStringValues().get("LeftColumn"));
+		int rightColumnIndex = rightResultSet.findColumn( join.getStringValues().get("RightColumn"));
+
+		LeftOuterJoin leftOuterJoin = new LeftOuterJoin();
+		
+		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
+		int baseColumn = leftResultSet.getColumnSize();
 
 		// Perform a left outer join to get all the left, and matches
 
-		leftOuterJoin.run(result);
-		computedResults = (FileResultSet) leftOuterJoin.getResults(result).getData();
+		leftOuterJoin.run(session, join, result);
+		computedResults = (ResultSetImpl) leftOuterJoin.getResults(result).getData();
+		
+		List<Integer> rightColumns = new ArrayList<Integer>();
+		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
+			if (rightColumnIterator != rightColumnIndex) {
+				rightColumns.add(rightColumnIterator);
+			}
+		}
 
-		// Loop through Result 2 make sure that right joins occur bringing
+		// Loop through right result to make sure that right joins occur bringing
 		// in all right matches
 		rightResultSet.beforeFirst();
 
 		while (rightResultSet.next()) {
-			Object rs2RowMatchObj = ((ResultSetImpl) rightResultSet)
-					.getObject(leftColumnIndex);
+			Object rightRowMatchObj = ((ResultSetImpl) rightResultSet).getObject(rightColumnIndex);
 			boolean match = false;
 
 			// Reset resultset before looping through it
 			leftResultSet.beforeFirst();
 			while (leftResultSet.next()) {
-				if (((ResultSetImpl) leftResultSet).getObject(leftColumnIndex)
-						.equals(rs2RowMatchObj)) {
+				if (((ResultSetImpl) leftResultSet).getObject(leftColumnIndex).equals(rightRowMatchObj)) {
 					match = true;
 					break;
 				}
@@ -87,36 +78,26 @@ public class FullOuterJoin implements JoinImplementation {
 				// Add a new row
 				computedResults.appendRow();
 				// Set the join column value
-				computedResults.updateObject(leftColumnIndex, rs2RowMatchObj);
+				computedResults.updateObject(leftColumnIndex, rightRowMatchObj);
 
-				// Copy RS2 values over
-				for (int rsColumnIterator = 0; rsColumnIterator < rightResultSet
-						.getColumnSize(); rsColumnIterator++) {
-					if (rsColumnIterator != rightColumnIndex) {
-						computedResults.updateObject(baseColumn
-								+ rsColumnIterator,
-								((ResultSetImpl) rightResultSet)
-										.getObject(rsColumnIterator));
-					}
+				// Copy Right values over
+				for(int rightColumnIterator = 0; rightColumnIterator < rightColumns.size(); rightColumnIterator++) {
+					computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumns.get(rightColumnIterator)));
 				}
+
 			}
 		}
 
 		computedResults.beforeFirst();
-		this.results.setResultStatus(ResultStatus.COMPLETE);
-		this.results.setData(computedResults);
-		return this.results;
+		result.setResultStatus(ResultStatus.COMPLETE);
+		result.setData(computedResults);
+		return result;
 
 	}
 
 	@Override
 	public Result getResults(Result result) {
-		return this.results;
-	}
-
-	@Override
-	public String getType() {
-		return "Full Outer Join";
+		return result;
 	}
 
 	@Override

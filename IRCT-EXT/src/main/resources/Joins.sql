@@ -27,11 +27,17 @@ set @IJ_LEFTCOLUMN_ID = @IJ_LEFTRESULTSET_ID + 1;
 set @IJ_RIGHTRESULTSET_ID = @IJ_LEFTRESULTSET_ID + 2;
 set @IJ_RIGHTCOLUMN_ID = @IJ_LEFTRESULTSET_ID + 3;
 
+-- UNOIN
+set @UJID = @LOGID + 5;
+set @UJ_LEFTRESULTSET_ID = @LOJ_LEFTRESULTSET_ID + 20;
+set @UJ_RIGHTRESULTSET_ID = @UJ_LEFTRESULTSET_ID + 1;
+
 -- Insert into Join Type
 insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@LOJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.LeftOuterJoin', 'Performs a left outer join on two result sets', 'Left Outer Join', 'leftOuterJoin');
 insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@ROJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.RightOuterJoin', 'Performs a right outer join on two result sets', 'Right Outer Join', 'rightOuterJoin');
 insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@FOJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.FullOuterJoin', 'Performs a full outer join on two result sets', 'Full Outer Join', 'fullOuterJoin');
 insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@IJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.InnerJoin', 'Performs an inner join on two result sets', 'Inner Join', 'innerJoin');
+insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@UJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.UnionJoin', 'Performs an union join on two result sets', 'Union Join', 'unionJoin');
 
 -- Insert into fields
 insert into FIELD(id, description, name, path, required) values (@LOJ_LEFTRESULTSET_ID, 'Result set on left side of join', 'Left Result Set', 'LeftResultSet', 1);
@@ -47,7 +53,7 @@ insert into FIELD(id, description, name, path, required) values (@ROJ_LEFTRESULT
 insert into FIELD(id, description, name, path, required) values (@ROJ_LEFTCOLUMN_ID, 'Column for result set on left side of join', 'Left Result Set Column', 'LeftColumn', 1);
 insert into FIELD(id, description, name, path, required) values (@ROJ_RIGHTRESULTSET_ID, 'Result set on right side of join', 'Right Result Set', 'RightResultSet', 1);
 insert into FIELD(id, description, name, path, required) values (@ROJ_RIGHTCOLUMN_ID, 'Column for result set on right side of join', 'Right Result Set Column', 'RightColumn', 1);
-insert into IRCTJoin_Field(IRCTJoine_id, Fields_id) values (@ROJID, @ROJ_LEFTRESULTSET_ID);
+insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@ROJID, @ROJ_LEFTRESULTSET_ID);
 insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@ROJID, @ROJ_LEFTCOLUMN_ID);
 insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@ROJID, @ROJ_RIGHTRESULTSET_ID);
 insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@ROJID, @ROJ_RIGHTCOLUMN_ID);
@@ -70,6 +76,11 @@ insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@IJID, @IJ_LEFTCOLUMN
 insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@IJID, @IJ_RIGHTRESULTSET_ID);
 insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@IJID, @IJ_RIGHTCOLUMN_ID);
 
+insert into FIELD(id, description, name, path, required) values (@UJ_LEFTRESULTSET_ID, 'Result set on left side of join', 'Left Result Set', 'LeftResultSet', 1);
+insert into FIELD(id, description, name, path, required) values (@UJ_RIGHTRESULTSET_ID, 'Result set on right side of join', 'Right Result Set', 'RightResultSet', 1);
+insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@UJID, @UJ_LEFTRESULTSET_ID);
+insert into IRCTJoin_Field(IRCTJoin_id, Fields_id) values (@UJID, @UJ_RIGHTRESULTSET_ID);
+
 -- Insert into datatypes
 insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@LOJ_LEFTRESULTSET_ID ,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:RESULTSET');
 insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@LOJ_LEFTCOLUMN_ID,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:COLUMN');
@@ -90,3 +101,6 @@ insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@IJ_LEFTRESULTSET_ID ,'
 insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@IJ_LEFTCOLUMN_ID,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:COLUMN');
 insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@IJ_RIGHTRESULTSET_ID,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:RESULTSET');
 insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@IJ_RIGHTCOLUMN_ID,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:COLUMN');
+
+insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@UJ_LEFTRESULTSET_ID ,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:RESULTSET');
+insert into FIELD_DATATYPES(Field_Id, dataTypes) values (@UJ_RIGHTRESULTSET_ID ,'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:RESULTSET');
