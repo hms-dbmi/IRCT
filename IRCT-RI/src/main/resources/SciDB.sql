@@ -12,7 +12,8 @@ set @filterId = (select IF(id is NULL,0,max(id)) from PredicateType) + 1;
 
 -- SET THE SELECT OPERATIONS
 set @aggregateId = (select IF(id is NULL,0,max(id)) from SelectOperationType) + 1;
-set @betweenId = @aggregateId + 1;
+
+
 -- SET THE JOIN OPERATIONS
 set @crossJoinID = (select IF(id is NULL,0,max(id)) from JoinType) + 1;
 
@@ -33,8 +34,10 @@ set @crossJoin_RIGHTALIAS_ID = @crossJoin_LEFTALIAS_ID + 1;
 
 set @sort_Direction_Id = @crossJoin_RIGHTALIAS_ID + 1;
 
+
 set @lowBound_BetweenId = @sort_Direction_Id + 1;
 set @highBound_BetweenId = @lowBound_BetweenId + 1;
+set @betweenId = @highBound_BetweenId + 1;
 
 
 
@@ -121,6 +124,7 @@ insert into SelectOperationType_Field(SelectOperationType_id, fields_id) values(
 
 insert into Field(id, description, name, path, relationship, required) values(@aggregate_Dimension_Id, 'Aggregate Dimension', 'Dimension', 'DIMENSION', null, 0);
 insert into Field_dataTypes(Field_id, dataTypes) values(@aggregate_Dimension_Id, 'edu.harvard.hms.dbmi.bd2k.irct.ri.scidb.SciDBDataType:DIMENSION');
+insert into Field_dataTypes(Field_id, dataTypes) values(@aggregate_Dimension_Id, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:ARRAY');
 insert into SelectOperationType_Field(SelectOperationType_id, fields_id) values(@aggregateId, @aggregate_Dimension_Id);
 
 insert into Resource_SelectOperationType(Resource_Id, supportedSelectOperations_id) values(@resourceId, @aggregateId);
