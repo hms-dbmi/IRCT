@@ -34,10 +34,40 @@ public class FullOuterJoin implements JoinImplementation {
 
 	@Override
 	public Result run(SecureSession session, Join join, Result result) throws ResultSetException, PersistableException {
-		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
-		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
-		int leftColumnIndex = leftResultSet.findColumn( join.getStringValues().get("LeftColumn"));
-		int rightColumnIndex = rightResultSet.findColumn( join.getStringValues().get("RightColumn"));
+		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get(
+				"LeftResultSet");
+
+		if (leftResultSet == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("LeftResultSet is null");
+			return result;
+		}
+		int leftColumnIndex;
+		try {
+			leftColumnIndex = leftResultSet.findColumn(join.getStringValues()
+					.get("LeftColumn"));
+		} catch (ResultSetException rse) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("LeftColumn : " + rse.getMessage());
+			return result;
+		}
+
+		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get(
+				"RightResultSet");
+		if (rightResultSet == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("RightResultSet is null");
+			return result;
+		}
+		int rightColumnIndex;
+		try {
+			rightColumnIndex = rightResultSet.findColumn(join.getStringValues()
+					.get("RightColumn"));
+		} catch (ResultSetException rse) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("RightColumn : " + rse.getMessage());
+			return result;
+		}
 
 		LeftOuterJoin leftOuterJoin = new LeftOuterJoin();
 		

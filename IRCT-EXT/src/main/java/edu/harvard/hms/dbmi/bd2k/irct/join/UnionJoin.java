@@ -35,8 +35,21 @@ public class UnionJoin implements JoinImplementation {
 	public Result run(SecureSession session, Join join, Result result)
 			throws ResultSetException, PersistableException {
 
-		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
-		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
+		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get(
+				"LeftResultSet");
+
+		if (leftResultSet == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("LeftResultSet is null");
+			return result;
+		}
+		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get(
+				"RightResultSet");
+		if (rightResultSet == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("RightResultSet is null");
+			return result;
+		}
 
 		//Check that columns match
 		if(leftResultSet.getColumnSize() != rightResultSet.getColumnSize()) {

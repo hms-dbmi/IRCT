@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.JoinImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -28,29 +29,62 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 public class LeftOuterJoin implements JoinImplementation {
 
 	@Override
-	public void setup(Map<String, Object> parameters) {
+	public void setup(Map<String, Object> parameters) throws JoinActionSetupException {
 	}
 
 	@Override
 	public Result run(SecureSession session, Join join, Result result)
 			throws ResultSetException, PersistableException {
 
-		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
-		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
-		int leftColumnIndex = leftResultSet.findColumn(join.getStringValues().get("LeftColumn"));
-		int rightColumnIndex = rightResultSet.findColumn(join.getStringValues().get("RightColumn"));
+		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get(
+				"LeftResultSet");
 
-		
+		if (leftResultSet == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("LeftResultSet is null");
+			return result;
+		}
+		int leftColumnIndex;
+		try {
+			leftColumnIndex = leftResultSet.findColumn(join.getStringValues()
+					.get("LeftColumn"));
+		} catch (ResultSetException rse) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("LeftColumn : " + rse.getMessage());
+			return result;
+		}
+
+		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get(
+				"RightResultSet");
+		if (rightResultSet == null) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("RightResultSet is null");
+			return result;
+		}
+		int rightColumnIndex;
+		try {
+			rightColumnIndex = rightResultSet.findColumn(join.getStringValues()
+					.get("RightColumn"));
+		} catch (ResultSetException rse) {
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("RightColumn : " + rse.getMessage());
+			return result;
+		}
+
 		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
 
-		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
-			computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
+		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet
+				.getColumnSize(); leftColumnIterator++) {
+			computedResults.appendColumn(leftResultSet
+					.getColumn(leftColumnIterator));
 		}
-		
+
 		List<Integer> rightColumns = new ArrayList<Integer>();
-		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
+		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet
+				.getColumnSize(); rightColumnIterator++) {
 			if (rightColumnIterator != rightColumnIndex) {
-				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
+				computedResults.appendColumn(rightResultSet
+						.getColumn(rightColumnIterator));
 				rightColumns.add(rightColumnIterator);
 			}
 		}
@@ -58,22 +92,32 @@ public class LeftOuterJoin implements JoinImplementation {
 
 		leftResultSet.beforeFirst();
 		while (leftResultSet.next()) {
-			Object leftRowMatchObj = ((ResultSetImpl) leftResultSet).getObject(leftColumnIndex);
+			Object leftRowMatchObj = ((ResultSetImpl) leftResultSet)
+					.getObject(leftColumnIndex);
 
 			// Add a new row
 			computedResults.appendRow();
 
 			// Copy Left values over
-			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
-				computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumnIterator));
+			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet
+					.getColumnSize(); leftColumnIterator++) {
+				computedResults.updateObject(leftColumnIterator,
+						((ResultSetImpl) leftResultSet)
+								.getObject(leftColumnIterator));
 			}
 
 			rightResultSet.beforeFirst();
 			while (rightResultSet.next()) {
-				if (((ResultSetImpl) rightResultSet).getObject(rightColumnIndex).equals(leftRowMatchObj)) {
+				if (((ResultSetImpl) rightResultSet)
+						.getObject(rightColumnIndex).equals(leftRowMatchObj)) {
 					// Copy Right values over
-					for(int rightColumnIterator = 0; rightColumnIterator < rightColumns.size(); rightColumnIterator++) {
-						computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumns.get(rightColumnIterator)));
+					for (int rightColumnIterator = 0; rightColumnIterator < rightColumns
+							.size(); rightColumnIterator++) {
+						computedResults.updateObject(baseColumn
+								+ rightColumnIterator,
+								((ResultSetImpl) rightResultSet)
+										.getObject(rightColumns
+												.get(rightColumnIterator)));
 					}
 
 				}

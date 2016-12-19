@@ -38,11 +38,10 @@ public class LeftOuterBloomArrayJoin implements JoinImplementation {
 	@Override
 	public Result run(SecureSession session, Join join, Result result)
 			throws ResultSetException, PersistableException {
-
+		
 		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get("LeftResultSet");
 		ResultSet rightResultSet = (ResultSet) join.getObjectValues().get("RightResultSet");
 
-		
 		// Get Left Matching Column Ids
 		List<Integer> leftMatchingColumns = new ArrayList<Integer>();
 		for(String columnName : join.getStringValues().get("LeftColumn").split(",")) {
@@ -61,52 +60,54 @@ public class LeftOuterBloomArrayJoin implements JoinImplementation {
 			}
 		};
 		
+		result.setResultStatus(ResultStatus.ERROR);
+		result.setMessage("Join Not Implemented");
 		
+		return result;		
 		// OLD
-
 		
-		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
-
-		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
-			computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
-		}
-		
-		List<Integer> rightColumns = new ArrayList<Integer>();
-		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
-			if (rightColumnIterator != rightColumnIndex) {
-				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
-				rightColumns.add(rightColumnIterator);
-			}
-		}
-		int baseColumn = leftResultSet.getColumnSize();
-
-		leftResultSet.beforeFirst();
-		while (leftResultSet.next()) {
-			Object leftRowMatchObj = ((ResultSetImpl) leftResultSet).getObject(leftColumnIndex);
-
-			// Add a new row
-			computedResults.appendRow();
-
-			// Copy Left values over
-			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
-				computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumnIterator));
-			}
-
-			rightResultSet.beforeFirst();
-			while (rightResultSet.next()) {
-				if (((ResultSetImpl) rightResultSet).getObject(rightColumnIndex).equals(leftRowMatchObj)) {
-					// Copy Right values over
-					for(int rightColumnIterator = 0; rightColumnIterator < rightColumns.size(); rightColumnIterator++) {
-						computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumns.get(rightColumnIterator)));
-					}
-
-				}
-			}
-		}
-		computedResults.beforeFirst();
-		result.setResultStatus(ResultStatus.COMPLETE);
-		result.setData(computedResults);
-		return result;
+//		ResultSetImpl computedResults = (ResultSetImpl) result.getData();
+//
+//		for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
+//			computedResults.appendColumn(leftResultSet.getColumn(leftColumnIterator));
+//		}
+//		
+//		List<Integer> rightColumns = new ArrayList<Integer>();
+//		for (int rightColumnIterator = 0; rightColumnIterator < rightResultSet.getColumnSize(); rightColumnIterator++) {
+//			if (rightColumnIterator != rightColumnIndex) {
+//				computedResults.appendColumn(rightResultSet.getColumn(rightColumnIterator));
+//				rightColumns.add(rightColumnIterator);
+//			}
+//		}
+//		int baseColumn = leftResultSet.getColumnSize();
+//
+//		leftResultSet.beforeFirst();
+//		while (leftResultSet.next()) {
+//			Object leftRowMatchObj = ((ResultSetImpl) leftResultSet).getObject(leftColumnIndex);
+//
+//			// Add a new row
+//			computedResults.appendRow();
+//
+//			// Copy Left values over
+//			for (int leftColumnIterator = 0; leftColumnIterator < leftResultSet.getColumnSize(); leftColumnIterator++) {
+//				computedResults.updateObject(leftColumnIterator, ((ResultSetImpl) leftResultSet).getObject(leftColumnIterator));
+//			}
+//
+//			rightResultSet.beforeFirst();
+//			while (rightResultSet.next()) {
+//				if (((ResultSetImpl) rightResultSet).getObject(rightColumnIndex).equals(leftRowMatchObj)) {
+//					// Copy Right values over
+//					for(int rightColumnIterator = 0; rightColumnIterator < rightColumns.size(); rightColumnIterator++) {
+//						computedResults.updateObject(baseColumn + rightColumnIterator, ((ResultSetImpl) rightResultSet).getObject(rightColumns.get(rightColumnIterator)));
+//					}
+//
+//				}
+//			}
+//		}
+//		computedResults.beforeFirst();
+//		result.setResultStatus(ResultStatus.COMPLETE);
+//		result.setData(computedResults);
+//		return result;
 
 	}
 

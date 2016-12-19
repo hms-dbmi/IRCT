@@ -7,7 +7,7 @@ import java.util.HashMap;
 import org.junit.Test;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinActionSetupException;
-import edu.harvard.hms.dbmi.bd2k.irct.join.LeftOuterJoin;
+import edu.harvard.hms.dbmi.bd2k.irct.join.InnerJoin;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -20,7 +20,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
-public class LeftOuterJoinTest {
+public class InnerJoinTest {
 
 	/**
 	 * Tests the creation of a Left Outer Join
@@ -28,10 +28,10 @@ public class LeftOuterJoinTest {
 	 */
 	@Test
 	public void testSetup() {
-		LeftOuterJoin loj = new LeftOuterJoin();
+		InnerJoin ij = new InnerJoin();
 		try {
-			loj.setup(new HashMap<String, Object>());
-			assertNotNull(loj);
+			ij.setup(new HashMap<String, Object>());
+			assertNotNull(ij);
 		} catch (JoinActionSetupException e) {
 			e.printStackTrace();
 			fail("Exception thrown");
@@ -44,7 +44,7 @@ public class LeftOuterJoinTest {
 	 */
 	@Test
 	public void testRunPositive() {
-		LeftOuterJoin loj = new LeftOuterJoin();
+		InnerJoin ij = new InnerJoin();
 		SecureSession session = new SecureSession();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
@@ -58,8 +58,9 @@ public class LeftOuterJoinTest {
 			join.getObjectValues().put("RightResultSet", createRightResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			ResultSetImpl returnedData = (ResultSetImpl) loj.run(session, join,
+			ResultSetImpl returnedData = (ResultSetImpl) ij.run(session, join,
 					result).getData();
+			
 			
 			assertTrue("Results are not equal",
 					JoinTestUtil.isEqual(returnedData, createComparator()));
@@ -75,7 +76,7 @@ public class LeftOuterJoinTest {
 	 */
 	@Test
 	public void testRunNegative() {
-		LeftOuterJoin loj = new LeftOuterJoin();
+		InnerJoin ij = new InnerJoin();
 		SecureSession session = new SecureSession();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
@@ -89,7 +90,7 @@ public class LeftOuterJoinTest {
 			join.getObjectValues().put("RightResultSet", createLeftResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			result = loj.run(session, join, result);
+			result = ij.run(session, join, result);
 			assertEquals("ResultStatus is not ERROR", ResultStatus.ERROR,
 					result.getResultStatus());
 		} catch (ResultSetException | PersistableException e) {
@@ -104,7 +105,7 @@ public class LeftOuterJoinTest {
 	 */
 	@Test
 	public void testRunNull() {
-		LeftOuterJoin loj = new LeftOuterJoin();
+		InnerJoin ij = new InnerJoin();
 		SecureSession session = new SecureSession();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
@@ -118,7 +119,7 @@ public class LeftOuterJoinTest {
 			join.getObjectValues().put("RightResultSet", null);
 			join.getStringValues().put("RightColumn", "user_id");
 
-			result = loj.run(session, join, result);
+			result = ij.run(session, join, result);
 			assertEquals("ResultStatus is not ERROR", ResultStatus.ERROR,
 					result.getResultStatus());
 		} catch (ResultSetException | PersistableException e) {
@@ -134,7 +135,7 @@ public class LeftOuterJoinTest {
 	 */
 	@Test
 	public void testGetResults() {
-		LeftOuterJoin loj = new LeftOuterJoin();
+		InnerJoin ij = new InnerJoin();
 		SecureSession session = new SecureSession();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
@@ -148,14 +149,14 @@ public class LeftOuterJoinTest {
 			join.getObjectValues().put("RightResultSet", createRightResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			loj.run(session, join, result);
+			ij.run(session, join, result);
 
-			ResultSetImpl returnedData = (ResultSetImpl) loj.getResults(result)
+			ResultSetImpl returnedData = (ResultSetImpl) ij.getResults(result)
 					.getData();
 			assertTrue("Results are not equal",
 					JoinTestUtil.isEqual(returnedData, createComparator()));
 
-			assertSame(result, loj.getResults(result));
+			assertSame(result, ij.getResults(result));
 		} catch (ResultSetException | PersistableException e) {
 			e.printStackTrace();
 			fail("Exception thrown");
@@ -169,8 +170,8 @@ public class LeftOuterJoinTest {
 	 */
 	@Test
 	public void testGetJoinDataType() {
-		LeftOuterJoin loj = new LeftOuterJoin();
-		assertEquals("Should be result type of tabular", loj.getJoinDataType(),
+		InnerJoin ij = new InnerJoin();
+		assertEquals("Should be result type of tabular", ij.getJoinDataType(),
 				ResultDataType.TABULAR);
 	}
 
@@ -246,7 +247,7 @@ public class LeftOuterJoinTest {
 
 		return JoinTestUtil.createResultSet(new Column[] { leftIdColumn,
 				leftNameColumn, rightAgeColumn }, new Object[] { 1, "Jeremy",
-				20, 2, "James", 30, 3, "Bob", null });
+				20, 2, "James", 30, 3 });
 	}
 
 }
