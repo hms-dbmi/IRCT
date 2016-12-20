@@ -9,15 +9,16 @@
 	<dependencies>
 		<!-- Oracle -->
 
-		<!-- <dependency> <groupId>com.oracle.jdbc</groupId> <artifactId>ojdbc6</artifactId> 
-			<version>1.0</version> <scope>system</scope> <systemPath>${project.basedir}/src/main/resources/ojdbc6.jar</systemPath> 
-			</dependency> -->
-
 		<dependency>
 			<groupId>com.oracle.jdbc</groupId>
 			<artifactId>ojdbc6</artifactId>
 			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/src/main/resources/lib/ojdbc6.jar</systemPath>
 		</dependency>
+
+		<!-- <dependency> <groupId>com.oracle.jdbc</groupId> <artifactId>ojdbc6</artifactId> 
+			<version>1.0</version> </dependency> -->
 
 		<!-- AWS -->
 		<dependency>
@@ -83,7 +84,7 @@
 	<build>
 		<finalName>IRCT-EXT</finalName>
 		<plugins>
-			<plugin>
+			<!-- <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-install-plugin</artifactId>
 				<version>2.5.2</version>
@@ -102,7 +103,7 @@
 						</configuration>
 					</execution>
 				</executions>
-			</plugin>
+			</plugin> -->
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
