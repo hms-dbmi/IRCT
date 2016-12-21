@@ -35,4 +35,4 @@ This is the first full release of the IRCT Resource Interface library. It includ
 This release fixes bugs in the IRCT-RI 0.2 release
 
 ### 0.2
-This is the initial commit of the IRCT-RI it provides a proof of concept of the IRCT.
+This is the prerelease release of the IRCT-RI it provides a proof of concept of the IRCT.
