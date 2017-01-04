@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -20,6 +21,7 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -164,7 +166,7 @@ public class I2B2TranSMARTResourceImplementation extends
 					} else if (clause instanceof WhereClause) {
 						WhereClause whereClause = (WhereClause) clause;
 						String encounter = whereClause.getStringValues().get(
-								"ENCOUNTER");
+								"ENOUNTER");
 						if ((encounter != null)
 								&& (encounter.equalsIgnoreCase("yes"))) {
 							gatherAllEncounterFacts = "true";
@@ -174,7 +176,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				}
 
 				if (!aliasMap.isEmpty()) {
-
+					
 					ResultSet rs = (ResultSet) result.getData();
 					if (rs.getSize() == 0) {
 						rs = createInitialDataset(result, aliasMap,
@@ -295,6 +297,9 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			dataMatrix.get(rowId).put(obj.getString("CONCEPT_PATH"),
 					obj.getString("VALUE"));
+			if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
+				dataMatrix.get(rowId).put("PATIENT_NUM", obj.getString("PATIENT_NUM"));
+			}
 		}
 
 		// Loop through the result set and add the information in the matrix to
