@@ -159,8 +159,13 @@ public class I2B2TranSMARTResourceImplementation extends
 				for (ClauseAbstract clause : query.getClauses().values()) {
 					if (clause instanceof SelectClause) {
 						SelectClause selectClause = (SelectClause) clause;
-						String pui = convertPUItoI2B2Path(selectClause
-								.getParameter().getPui());
+						String pui = selectClause.getParameter().getPui();
+						if(pui.replaceAll("/" + this.resourceName + "/", "").contains("/")) {
+							pui = convertPUItoI2B2Path(selectClause
+									.getParameter().getPui());
+						} else {
+							pui = pui.replaceAll("/" + this.resourceName + "/", "");
+						}
 						aliasMap.put(pui, selectClause.getAlias());
 
 					} else if (clause instanceof WhereClause) {
@@ -278,6 +283,14 @@ public class I2B2TranSMARTResourceImplementation extends
 			PersistableException {
 		// If the resultset is empty create the initial result set
 		ResultSet rs = (ResultSet) result.getData();
+		
+		// Get additional fields to grab from alias
+		List<String> additionalFields = new ArrayList<String>();
+		for(String key : aliasMap.keySet()) {
+			if(!key.startsWith("\\")) {
+				additionalFields.add(key);
+			}
+		}
 
 		// Create the initial Matrix
 		Map<String, Map<String, String>> dataMatrix = new HashMap<String, Map<String, String>>();
@@ -285,6 +298,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		String pivot = "PATIENT_NUM";
 		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
 			pivot = "ENCOUNTER_NUM";
+			additionalFields.add("PATIENT_NUM");
 		}
 
 		for (JsonValue val : arrayResults) {
@@ -295,11 +309,16 @@ public class I2B2TranSMARTResourceImplementation extends
 				dataMatrix.put(rowId, new HashMap<String, String>());
 			}
 
-			dataMatrix.get(rowId).put(obj.getString("CONCEPT_PATH"),
-					obj.getString("VALUE"));
-			if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-				dataMatrix.get(rowId).put("PATIENT_NUM", obj.getString("PATIENT_NUM"));
+			dataMatrix.get(rowId).put(obj.getString("CONCEPT_PATH"), obj.getString("VALUE"));
+			
+			for(String field : additionalFields) {
+				if(obj.containsKey(field)) {
+					dataMatrix.get(rowId).put(field, obj.getString(field));
+				}
 			}
+//			if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
+//				dataMatrix.get(rowId).put("PATIENT_NUM", obj.getString("PATIENT_NUM"));
+//			}
 		}
 
 		// Loop through the result set and add the information in the matrix to
