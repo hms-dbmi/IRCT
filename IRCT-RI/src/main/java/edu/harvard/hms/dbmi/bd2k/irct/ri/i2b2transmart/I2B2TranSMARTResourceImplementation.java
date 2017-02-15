@@ -18,8 +18,11 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonException;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
+import javax.json.stream.JsonParser;
+import javax.json.stream.JsonParser.Event;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -163,19 +166,12 @@ public class I2B2TranSMARTResourceImplementation extends
 							.replaceAll("/" + this.resourceName + "/", "");
 
 					if (pui.contains("/")) {
-						if ((queryType != null)
-								&& (!queryType.equals("CLINICAL"))) {
-							result.setResultStatus(ResultStatus.ERROR);
-							result.setMessage("Error in select parameters: To many select parameters, or mixed select parameter types");
-							return result;
-						}
 						queryType = "CLINICAL";
-
 						pui = convertPUItoI2B2Path(selectClause.getParameter()
 								.getPui());
 					}
 
-					aliasMap.put(pui, selectClause.getAlias());
+					aliasMap.put(pui.replaceAll("%2[f,F]", "/"), selectClause.getAlias());
 				}
 
 				// Run Additional Queries and Create Result Set
@@ -210,12 +206,29 @@ public class I2B2TranSMARTResourceImplementation extends
 			Map<String, String> aliasMap, String gatherAllEncounterFacts,
 			String resultId) throws ResultSetException,
 			ClientProtocolException, IOException, PersistableException {
+		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
 			rs = createInitialDataset(result, aliasMap, gatherAllEncounterFacts);
-			result.setData(rs);
 		}
 
+		// Get additional fields to grab from alias
+		List<String> additionalFields = new ArrayList<String>();
+		for (String key : aliasMap.keySet()) {
+			if (!key.startsWith("\\")) {
+				additionalFields.add(key);
+			}
+		}
+
+		String pivot = "PATIENT_NUM";
+		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
+			pivot = "ENCOUNTER_NUM";
+			additionalFields.add("PATIENT_NUM");
+		}
+
+		//Setup initial fields
+		Map<String, Long> entryMap = new HashMap<String, Long>();
+		
 		// Loop through the columns submitting and appending to the
 		// rows every 10
 		List<String> parameterList = new ArrayList<String>();
@@ -239,22 +252,67 @@ public class I2B2TranSMARTResourceImplementation extends
 		for (String parameter : parameterList) {
 			// Call the tranSMART API to get the dataset
 			String url = this.transmartURL
-					+ "/ClinicalData/retrieveClinicalData?rid=" + resultId
-					+ "&conceptPaths=" + URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"), "UTF-8")
-					+ "&gatherAllEncounterFacts=" + gatherAllEncounterFacts;
+					+ "/ClinicalData/retrieveClinicalData?rid="
+					+ resultId
+					+ "&conceptPaths="
+					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
+							"UTF-8") + "&gatherAllEncounterFacts="
+					+ gatherAllEncounterFacts;
+			System.out.println(url);
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(url);
 			HttpResponse response = client.execute(get);
-			JsonReader reader = Json.createReader(response.getEntity()
+
+			JsonParser parser = Json.createParser(response.getEntity()
 					.getContent());
+
+			convertJsonStreamToResultSet(rs, parser,
+					aliasMap, pivot, entryMap, additionalFields);
 			
-			JsonArray arrayResults = reader.readArray();
-			// Convert the dataset to Tabular format
-			result = convertJsonToResultSet(result, arrayResults, aliasMap,
-					gatherAllEncounterFacts);
+		}
+		result.setData(rs);
+		return result;
+	}
+
+	
+
+	private ResultSet convertJsonStreamToResultSet(ResultSet rs,
+			JsonParser parser, Map<String, String> aliasMap, String pivot,
+			Map<String, Long> entryMap, List<String> additionalFields)
+			throws ResultSetException, PersistableException {
+
+		while (parser.hasNext()) {
+			JsonObject obj = convertStreamToObject(parser);
+
+			if(!obj.containsKey(pivot)) {
+				break;
+			}
+			String id = obj.getString(pivot);
+
+			if (entryMap.containsKey(id)) {
+				// Is already in the resultset
+				rs.absolute(entryMap.get(id));
+				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")), obj.getString("VALUE"));
+				
+			} else {
+				// Is not in the resultset
+				rs.appendRow();
+				rs.updateString(pivot, id);
+				//Add concept value
+				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")), obj.getString("VALUE"));
+				
+				//Add fields
+				for (String field : additionalFields) {
+					if (obj.containsKey(field)) {
+						rs.updateString(aliasMap.get(field), obj.getString(field));
+					}
+				}
+				entryMap.put(id, rs.getRow());
+			}
+
 		}
 
-		return result;
+		return rs;
 	}
 
 	private ResultSet createInitialDataset(Result result,
@@ -286,96 +344,46 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			rs.appendColumn(newColumn);
 		}
+		
 		result.setData(rs);
 		return rs;
 	}
 
-	private Result convertJsonToResultSet(Result result,
-			JsonArray arrayResults, Map<String, String> aliasMap,
-			String gatherAllEncounterFacts) throws ResultSetException,
-			PersistableException {
-		// If the resultset is empty create the initial result set
-		ResultSet rs = (ResultSet) result.getData();
+	private JsonObject convertStreamToObject(JsonParser parser) {
+		JsonObjectBuilder build = Json.createObjectBuilder();
+		String key = null;
+		boolean endObj = false;
+		while (parser.hasNext() && !endObj) {
+			Event event = parser.next();
 
-		// Get additional fields to grab from alias
-		List<String> additionalFields = new ArrayList<String>();
-		for (String key : aliasMap.keySet()) {
-			if (!key.startsWith("\\")) {
-				additionalFields.add(key);
+			switch (event) {
+			case KEY_NAME:
+				key = parser.getString();
+				break;
+			case VALUE_STRING:
+				build.add(key, parser.getString());
+				key = null;
+				break;
+			case VALUE_NUMBER:
+				build.add(key, parser.getBigDecimal());
+				key = null;
+				break;
+			case VALUE_TRUE:
+				build.add(key, true);
+				key = null;
+				break;
+			case VALUE_FALSE:
+				build.add(key, false);
+				key = null;
+				break;
+			case END_OBJECT:
+				endObj = true;
+				break;
+			default:
 			}
 		}
 
-		// Create the initial Matrix
-		Map<String, Map<String, String>> dataMatrix = new HashMap<String, Map<String, String>>();
-
-		String pivot = "PATIENT_NUM";
-		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-			pivot = "ENCOUNTER_NUM";
-			additionalFields.add("PATIENT_NUM");
-		}
-
-		for (JsonValue val : arrayResults) {
-			JsonObject obj = (JsonObject) val;
-			String rowId = obj.getString(pivot);
-
-			if (!dataMatrix.containsKey(rowId)) {
-				dataMatrix.put(rowId, new HashMap<String, String>());
-			}
-
-			dataMatrix.get(rowId).put(obj.getString("CONCEPT_PATH"),
-					obj.getString("VALUE"));
-
-			for (String field : additionalFields) {
-				if (obj.containsKey(field)) {
-					dataMatrix.get(rowId).put(field, obj.getString(field));
-				}
-			}
-			// if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-			// dataMatrix.get(rowId).put("PATIENT_NUM",
-			// obj.getString("PATIENT_NUM"));
-			// }
-		}
-
-		// Loop through the result set and add the information in the matrix to
-		// the result set
-		rs.first();
-		while (rs.next()) {
-			String rsRowId = rs.getString(pivot);
-			if (dataMatrix.containsKey(rsRowId)) {
-				Map<String, String> newRowData = dataMatrix.get(rsRowId);
-				for (String colKeySet : newRowData.keySet()) {
-					// Check to see if an alias exists
-					if (aliasMap.get(colKeySet) != null) {
-						rs.updateString(aliasMap.get(colKeySet),
-								newRowData.get(colKeySet));
-					} else {
-						rs.updateString(colKeySet, newRowData.get(colKeySet));
-					}
-				}
-				dataMatrix.remove(rsRowId);
-			}
-		}
-		// If the information is still in the matrix add it to the result set at
-		// the end
-		for (String rowId : dataMatrix.keySet()) {
-			rs.appendRow();
-			rs.updateString(pivot, rowId);
-
-			Map<String, String> newRowData = dataMatrix.get(rowId);
-			for (String colKeySet : newRowData.keySet()) {
-				// Check to see if an alias exists
-				if (aliasMap.get(colKeySet) != null) {
-					rs.updateString(aliasMap.get(colKeySet),
-							newRowData.get(colKeySet));
-				} else {
-					rs.updateString(colKeySet, newRowData.get(colKeySet));
-				}
-			}
-		}
-
-		// Add results back
-		result.setData(rs);
-		return result;
+		return build.build();
 	}
 
 	@Override

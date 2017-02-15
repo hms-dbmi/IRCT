@@ -877,7 +877,7 @@ public class I2B2XMLResourceImplementation implements
 			}
 		}
 		
-		return escapedPath;//.replaceAll("\\\\\\\\", "/").replace('\\', '/');
+		return escapedPath;
 	}
 
 	private ConceptsType runNameSearch(HttpClient client, String projectId,
