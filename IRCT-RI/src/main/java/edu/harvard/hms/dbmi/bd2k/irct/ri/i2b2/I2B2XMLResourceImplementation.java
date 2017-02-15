@@ -4,6 +4,8 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -185,9 +187,9 @@ public class I2B2XMLResourceImplementation implements
 					for (ProjectType pt : configureType.getUser().getProject()) {
 						Entity entity = new Entity();
 						if (pt.getPath() == null) {
-							entity.setPui(path.getPui() + "/" + pt.getName());
+							entity.setPui(path.getPui() + "/" + URLEncoder.encode(pt.getName(), "UTF-8"));
 						} else {
-							entity.setPui(path.getPui() + pt.getPath());
+							entity.setPui(path.getPui() + URLEncoder.encode(pt.getPath(), "UTF-8"));
 						}
 						entity.setDisplayName(pt.getName());
 						entity.setName(pt.getId());
@@ -739,13 +741,14 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	private List<Entity> convertConceptsTypeToEntities(String basePath,
-			ConceptsType conceptsType) {
+			ConceptsType conceptsType) throws UnsupportedEncodingException {
 		List<Entity> returns = new ArrayList<Entity>();
 		for (ConceptType concept : conceptsType.getConcept()) {
 			Entity returnEntity = new Entity();
 			returnEntity.setName(concept.getName());
 			String appendPath = converti2b2Path(concept.getKey());
 			returnEntity.setPui(basePath + appendPath);
+			
 
 			if (concept.getVisualattributes().startsWith("L")) {
 				returnEntity.setDataType(PrimitiveDataType.STRING);
@@ -819,7 +822,7 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	private List<Entity> convertModifiersTypeToEntities(String basePath,
-			ModifiersType modifiersType) {
+			ModifiersType modifiersType) throws UnsupportedEncodingException {
 		List<Entity> returns = new ArrayList<Entity>();
 		if (modifiersType == null) {
 			return returns;
@@ -865,8 +868,16 @@ public class I2B2XMLResourceImplementation implements
 		return returns;
 	}
 
-	protected String converti2b2Path(String i2b2Path) {
-		return i2b2Path.replaceAll("\\\\\\\\", "/").replace('\\', '/');
+	protected String converti2b2Path(String i2b2Path) throws UnsupportedEncodingException {
+		String[] components = i2b2Path.split("\\\\");
+		String escapedPath = "/";
+		for(String component : components) {
+			if(!component.isEmpty()) {
+				escapedPath += component.replaceAll("/", "%2F") + "/";
+			}
+		}
+		
+		return escapedPath;
 	}
 
 	private ConceptsType runNameSearch(HttpClient client, String projectId,
