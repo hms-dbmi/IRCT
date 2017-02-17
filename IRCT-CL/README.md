@@ -8,6 +8,9 @@ The IRCT Communication Layer (IRCT-CL) provides a resource agnostic Representati
 
 ## Version Information
 
+### 1.3.2
+No changes in this release
+
 ### 1.3.1
 This release includes improved documentation.
 
