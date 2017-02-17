@@ -6,6 +6,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,11 +18,15 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonException;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
+import javax.json.stream.JsonParser;
+import javax.json.stream.JsonParser.Event;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
@@ -33,10 +38,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -150,84 +153,46 @@ public class I2B2TranSMARTResourceImplementation extends
 					return result;
 				}
 				result.setResultStatus(ResultStatus.RUNNING);
-				// Loop through the select clauses to build up the select string
+
+				String queryType = null;
+
+				// Gather Select Clauses
 				String gatherAllEncounterFacts = "false";
 				Map<String, String> aliasMap = new HashMap<String, String>();
 
-				for (ClauseAbstract clause : query.getClauses().values()) {
-					if (clause instanceof SelectClause) {
-						SelectClause selectClause = (SelectClause) clause;
-						String pui = convertPUItoI2B2Path(selectClause
-								.getParameter().getPui());
-						aliasMap.put(pui, selectClause.getAlias());
+				for (SelectClause selectClause : query
+						.getClausesOfType(SelectClause.class)) {
+					String pui = selectClause.getParameter().getPui()
+							.replaceAll("/" + this.resourceName + "/", "");
 
-					} else if (clause instanceof WhereClause) {
-						WhereClause whereClause = (WhereClause) clause;
-						String encounter = whereClause.getStringValues().get(
-								"ENCOUNTER");
-						if ((encounter != null)
-								&& (encounter.equalsIgnoreCase("yes"))) {
-							gatherAllEncounterFacts = "true";
-						}
+					if (pui.contains("/")) {
+						queryType = "CLINICAL";
+						pui = convertPUItoI2B2Path(selectClause.getParameter()
+								.getPui());
 					}
 
+					aliasMap.put(pui.replaceAll("%2[f,F]", "/"), selectClause.getAlias());
 				}
 
-				if (!aliasMap.isEmpty()) {
-
-					ResultSet rs = (ResultSet) result.getData();
-					if (rs.getSize() == 0) {
-						rs = createInitialDataset(result, aliasMap,
-								gatherAllEncounterFacts);
-						result.setData(rs);
-					}
-
-					// Loop through the columns submitting and appending to the
-					// rows every 10
-					List<String> parameterList = new ArrayList<String>();
-					int counter = 0;
-					String parameters = "";
-					for (String param : aliasMap.keySet()) {
-						if (counter == 10) {
-							parameterList.add(parameters);
-							counter = 0;
-							parameters = "";
-						}
-						if (!parameters.equals("")) {
-							parameters += "|";
-						}
-						parameters += param;
-					}
-					if (!parameters.equals("")) {
-						parameterList.add(parameters);
-					}
-
-					for (String parameter : parameterList) {
-						// Call the tranSMART API to get the dataset
-						String url = this.transmartURL
-								+ "/ClinicalData/retrieveClinicalData?rid="
-								+ resultId + "&conceptPaths="
-								+ URLEncoder.encode(parameter, "UTF-8")
-								+ "&gatherAllEncounterFacts="
-								+ gatherAllEncounterFacts;
-						HttpClient client = createClient(session);
-						HttpGet get = new HttpGet(url);
-						try {
-							HttpResponse response = client.execute(get);
-							JsonReader reader = Json.createReader(response
-									.getEntity().getContent());
-							JsonArray arrayResults = reader.readArray();
-							// Convert the dataset to Tabular format
-							result = convertJsonToResultSet(result,
-									arrayResults, aliasMap,
-									gatherAllEncounterFacts);
-						} catch (JsonException e) {
-						}
-					}
-
+				// Run Additional Queries and Create Result Set
+				if (queryType == null) {
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage("Unknown queryType");
+					return result;
 				}
+
+				switch (queryType) {
+				case "CLINICAL":
+					result = runClinicalDataQuery(session, result, aliasMap,
+							gatherAllEncounterFacts, resultId);
+					result.setResultStatus(ResultStatus.COMPLETE);
+					break;
+				default:
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage("Unknown queryType");
+				}
+
 				// Set the status to complete
-				result.setResultStatus(ResultStatus.COMPLETE);
 			} catch (InterruptedException | UnsupportedOperationException
 					| IOException | ResultSetException | PersistableException e) {
 				result.setResultStatus(ResultStatus.ERROR);
@@ -235,6 +200,119 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 		}
 		return result;
+	}
+
+	private Result runClinicalDataQuery(SecureSession session, Result result,
+			Map<String, String> aliasMap, String gatherAllEncounterFacts,
+			String resultId) throws ResultSetException,
+			ClientProtocolException, IOException, PersistableException {
+		// Setup Resultset
+		ResultSet rs = (ResultSet) result.getData();
+		if (rs.getSize() == 0) {
+			rs = createInitialDataset(result, aliasMap, gatherAllEncounterFacts);
+		}
+
+		// Get additional fields to grab from alias
+		List<String> additionalFields = new ArrayList<String>();
+		for (String key : aliasMap.keySet()) {
+			if (!key.startsWith("\\")) {
+				additionalFields.add(key);
+			}
+		}
+
+		String pivot = "PATIENT_NUM";
+		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
+			pivot = "ENCOUNTER_NUM";
+			additionalFields.add("PATIENT_NUM");
+		}
+
+		//Setup initial fields
+		Map<String, Long> entryMap = new HashMap<String, Long>();
+		
+		// Loop through the columns submitting and appending to the
+		// rows every 10
+		List<String> parameterList = new ArrayList<String>();
+		int counter = 0;
+		String parameters = "";
+		for (String param : aliasMap.keySet()) {
+			if (counter == 10) {
+				parameterList.add(parameters);
+				counter = 0;
+				parameters = "";
+			}
+			if (!parameters.equals("")) {
+				parameters += "|";
+			}
+			parameters += param;
+		}
+		if (!parameters.equals("")) {
+			parameterList.add(parameters);
+		}
+
+		for (String parameter : parameterList) {
+			// Call the tranSMART API to get the dataset
+			String url = this.transmartURL
+					+ "/ClinicalData/retrieveClinicalData?rid="
+					+ resultId
+					+ "&conceptPaths="
+					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
+							"UTF-8") + "&gatherAllEncounterFacts="
+					+ gatherAllEncounterFacts;
+			System.out.println(url);
+			HttpClient client = createClient(session);
+			HttpGet get = new HttpGet(url);
+			HttpResponse response = client.execute(get);
+
+			JsonParser parser = Json.createParser(response.getEntity()
+					.getContent());
+
+			convertJsonStreamToResultSet(rs, parser,
+					aliasMap, pivot, entryMap, additionalFields);
+			
+		}
+		result.setData(rs);
+		return result;
+	}
+
+	
+
+	private ResultSet convertJsonStreamToResultSet(ResultSet rs,
+			JsonParser parser, Map<String, String> aliasMap, String pivot,
+			Map<String, Long> entryMap, List<String> additionalFields)
+			throws ResultSetException, PersistableException {
+
+		while (parser.hasNext()) {
+			JsonObject obj = convertStreamToObject(parser);
+
+			if(!obj.containsKey(pivot)) {
+				break;
+			}
+			String id = obj.getString(pivot);
+
+			if (entryMap.containsKey(id)) {
+				// Is already in the resultset
+				rs.absolute(entryMap.get(id));
+				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")), obj.getString("VALUE"));
+				
+			} else {
+				// Is not in the resultset
+				rs.appendRow();
+				rs.updateString(pivot, id);
+				//Add concept value
+				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")), obj.getString("VALUE"));
+				
+				//Add fields
+				for (String field : additionalFields) {
+					if (obj.containsKey(field)) {
+						rs.updateString(aliasMap.get(field), obj.getString(field));
+					}
+				}
+				entryMap.put(id, rs.getRow());
+			}
+
+		}
+
+		return rs;
 	}
 
 	private ResultSet createInitialDataset(Result result,
@@ -266,77 +344,46 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			rs.appendColumn(newColumn);
 		}
-
+		
+		result.setData(rs);
 		return rs;
 	}
 
-	private Result convertJsonToResultSet(Result result,
-			JsonArray arrayResults, Map<String, String> aliasMap,
-			String gatherAllEncounterFacts) throws ResultSetException,
-			PersistableException {
-		// If the resultset is empty create the initial result set
-		ResultSet rs = (ResultSet) result.getData();
+	private JsonObject convertStreamToObject(JsonParser parser) {
+		JsonObjectBuilder build = Json.createObjectBuilder();
+		String key = null;
+		boolean endObj = false;
+		while (parser.hasNext() && !endObj) {
+			Event event = parser.next();
 
-		// Create the initial Matrix
-		Map<String, Map<String, String>> dataMatrix = new HashMap<String, Map<String, String>>();
-
-		String pivot = "PATIENT_NUM";
-		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-			pivot = "ENCOUNTER_NUM";
-		}
-
-		for (JsonValue val : arrayResults) {
-			JsonObject obj = (JsonObject) val;
-			String rowId = obj.getString(pivot);
-
-			if (!dataMatrix.containsKey(rowId)) {
-				dataMatrix.put(rowId, new HashMap<String, String>());
-			}
-
-			dataMatrix.get(rowId).put(obj.getString("CONCEPT_PATH"),
-					obj.getString("VALUE"));
-		}
-
-		// Loop through the result set and add the information in the matrix to
-		// the result set
-		rs.first();
-		while (rs.next()) {
-			String rsRowId = rs.getString(pivot);
-			if (dataMatrix.containsKey(rsRowId)) {
-				Map<String, String> newRowData = dataMatrix.get(rsRowId);
-				for (String colKeySet : newRowData.keySet()) {
-					// Check to see if an alias exists
-					if (aliasMap.get(colKeySet) != null) {
-						rs.updateString(aliasMap.get(colKeySet),
-								newRowData.get(colKeySet));
-					} else {
-						rs.updateString(colKeySet, newRowData.get(colKeySet));
-					}
-				}
-				dataMatrix.remove(rsRowId);
-			}
-		}
-		// If the information is still in the matrix add it to the result set at
-		// the end
-		for (String rowId : dataMatrix.keySet()) {
-			rs.appendRow();
-			rs.updateString(pivot, rowId);
-
-			Map<String, String> newRowData = dataMatrix.get(rowId);
-			for (String colKeySet : newRowData.keySet()) {
-				// Check to see if an alias exists
-				if (aliasMap.get(colKeySet) != null) {
-					rs.updateString(aliasMap.get(colKeySet),
-							newRowData.get(colKeySet));
-				} else {
-					rs.updateString(colKeySet, newRowData.get(colKeySet));
-				}
+			switch (event) {
+			case KEY_NAME:
+				key = parser.getString();
+				break;
+			case VALUE_STRING:
+				build.add(key, parser.getString());
+				key = null;
+				break;
+			case VALUE_NUMBER:
+				build.add(key, parser.getBigDecimal());
+				key = null;
+				break;
+			case VALUE_TRUE:
+				build.add(key, true);
+				key = null;
+				break;
+			case VALUE_FALSE:
+				build.add(key, false);
+				key = null;
+				break;
+			case END_OBJECT:
+				endObj = true;
+				break;
+			default:
 			}
 		}
 
-		// Add results back
-		result.setData(rs);
-		return result;
+		return build.build();
 	}
 
 	@Override
@@ -390,8 +437,10 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		try {
 			URI uri = new URI(this.transmartURL.split("://")[0],
-					this.transmartURL.split("://")[1].split("/")[0], "/" + this.transmartURL.split("://")[1].split("/")[1] + "/textSearch/findPaths",
-					"oblyObs=" + onlObs + "&term=" + searchTerm, null);
+					this.transmartURL.split("://")[1].split("/")[0], "/"
+							+ this.transmartURL.split("://")[1].split("/")[1]
+							+ "/textSearch/findPaths", "oblyObs=" + onlObs
+							+ "&term=" + searchTerm, null);
 
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(uri);
