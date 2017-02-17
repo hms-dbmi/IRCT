@@ -10,6 +10,9 @@ You can read more about some of the extensions here: https://github.com/hms-dbmi
 
 ## Version Information
 
+### 1.3.2
+No changes in this release
+
 ### 1.3.1
 This release includes improved documentation, as well as an update to the sql file for adding result data converters to a new IRCT installation.
 
