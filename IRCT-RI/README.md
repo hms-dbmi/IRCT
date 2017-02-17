@@ -10,6 +10,9 @@ You can read more about some of the current Resource Implementations here: https
 
 ## Version Information
 
+### 1.3.2
+No changes in this release
+
 ### 1.3.1
 This release includes improved documentation, and an update on the SciDB.sql file. The i2b2/tranSMART resource interface has been refactored to better support '/' characters. The i2b2/tranSMART JSON result converter has been refactored to better handle large arrays of JSON objects that are returned from the Clinical Data Service. 
 
