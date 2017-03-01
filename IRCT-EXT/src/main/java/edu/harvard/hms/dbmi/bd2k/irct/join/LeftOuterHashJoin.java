@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join;
 
 import java.util.Map;
@@ -79,11 +82,12 @@ public class LeftOuterHashJoin implements JoinImplementation {
 
 		ResultSet outputResult = (ResultSet) result.getData();
 		
-		hashJoin.join(outputResult);
+		outputResult = hashJoin.join(outputResult);
 
 		outputResult.beforeFirst();
 		result.setResultStatus(ResultStatus.COMPLETE);
 		result.setData(outputResult);
+		
 		return result;
 	}
 

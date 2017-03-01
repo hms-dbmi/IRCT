@@ -10,6 +10,9 @@ You can read more about some of the extensions here: https://github.com/hms-dbmi
 
 ## Version Information
 
+### 1.4
+This release adds several different types of joins, and applicable tests. These include Inner, Left Outer, Right Outer, and Full Outer joins implemented both in a naive loop manner, and using an equi join hybrid hash. A scale test has been included to test the hybrid hash joins at size 10x10, 100x100, 1,000x1,000, 1,000,000x1,000,000.
+
 ### 1.3.2
 No changes in this release
 
