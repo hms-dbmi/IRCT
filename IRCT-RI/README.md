@@ -10,6 +10,9 @@ You can read more about some of the current Resource Implementations here: https
 
 ## Version Information
 
+### 1.4
+This release includes updates to the tranSMART Resource Interface to support wildcard select clauses.
+
 ### 1.3.2
 No changes in this release
 
@@ -17,7 +20,7 @@ No changes in this release
 This release includes improved documentation, and an update on the SciDB.sql file. The i2b2/tranSMART resource interface has been refactored to better support '/' characters. The i2b2/tranSMART JSON result converter has been refactored to better handle large arrays of JSON objects that are returned from the Clinical Data Service. 
 
 ### 1.3
-This release includes improvements in the SciDB resource interface that includes improved
+This release includes improvements in the SciDB resource interface that includes improved query performance.
 
 ### 1.2.2
 This release includes the first implementation of the SciDB resource interface
