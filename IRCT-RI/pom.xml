@@ -43,14 +43,14 @@
 			<artifactId>i2b2-Java-API</artifactId>
 			<version>1.0</version>
 		</dependency>
-		
+
 		<!-- SciDB Java API -->
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi</groupId>
 			<artifactId>SciDB-Java</artifactId>
 			<version>1.0</version>
 		</dependency>
-		
+
 		<!-- IRCT API -->
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
@@ -64,6 +64,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-eclipse-plugin</artifactId>
+				<version>3.3</version>
 				<configuration>
 					<downloadSources>true</downloadSources>
 					<downloadJavadocs>true</downloadJavadocs>
@@ -75,11 +76,13 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.0.2</version>
 			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.3</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
