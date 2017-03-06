@@ -11,7 +11,7 @@ You can read more about some of the current Resource Implementations here: https
 ## Version Information
 
 ### 1.4
-This release includes updates to the tranSMART Resource Interface to support wildcard select clauses.
+This release includes updates to the tranSMART Resource Interface to support wildcard select clauses. It also remove the need for the ENOUNTER/ENOUTER/ENCOUNTER field when querying against an tranSMART resource. It adds support for fields in select clauses that are not associated with an operation.
 
 ### 1.3.2
 No changes in this release
