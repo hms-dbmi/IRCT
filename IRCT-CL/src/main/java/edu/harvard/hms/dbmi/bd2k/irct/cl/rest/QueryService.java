@@ -652,9 +652,20 @@ public class QueryService implements Serializable {
 				objectFields = getObjectFields(clauseFields, fieldObject);
 				fields = getStringFields(clauseFields, fieldObject);
 			}
-		} else if (selectClause.containsKey("fields")) {
-			JsonObject fieldObject = selectClause.getJsonObject("fields");
-			fields = getNonOperationFields(fieldObject);
+		} 
+		
+		if ((resource.getSupportedSelectFields() != null) && (!resource.getSupportedSelectFields().isEmpty())) {
+			
+			Map<String, Field> clauseFields = new HashMap<String, Field>();
+			for(Field field : resource.getSupportedSelectFields()) {
+				clauseFields.put(field.getPath(), field);
+			}
+			
+			if (selectClause.containsKey("fields")) {
+				JsonObject fieldObject = selectClause.getJsonObject("fields");
+				objectFields = getObjectFields(clauseFields, fieldObject);
+				fields = getStringFields(clauseFields, fieldObject);
+			}
 		}
 		
 		
@@ -773,19 +784,6 @@ public class QueryService implements Serializable {
 		return fields;
 	}
 	
-	private Map<String, String> getNonOperationFields(JsonObject fieldObject) {
-		Map<String, String> fields = new HashMap<String, String>();
-		
-		for (String key : fieldObject.keySet()) {
-			ValueType vt = fieldObject.get(key).getValueType();
-			if ((vt != ValueType.ARRAY) && (vt != ValueType.OBJECT)) {
-				fields.put(key, fieldObject.getString(key));
-			}
-		}
-		
-		return fields;
-	}
-
 	private Long addJsonSortClauseToQuery(SubQuery sq, JsonObject sortClause)
 			throws QueryException {
 		String path = null;

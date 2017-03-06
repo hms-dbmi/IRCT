@@ -82,12 +82,15 @@ public class ResultService {
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		User user = (User) session.getAttribute("user");
 
-		ResultStatus resultStatus = rc.getResultStatus(user, resultId);
-		if (resultStatus == null) {
+		Result result = rc.getResult(user, resultId);
+		if (result == null) {
 			response.add("message", "Unable to get result for that id");
 		} else {
 			response.add("resultId", resultId);
-			response.add("status", resultStatus.toString());
+			response.add("status", result.getResultStatus().toString());
+			if(result.getResultStatus() == ResultStatus.ERROR) {
+				response.add("message", result.getMessage());
+			}
 		}
 
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
