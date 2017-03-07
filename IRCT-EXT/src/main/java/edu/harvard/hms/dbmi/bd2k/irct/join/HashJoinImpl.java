@@ -22,6 +22,16 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
 
+/**
+ * This is an implementation of a equi hybrid hash join. It performs joins
+ * between two result sets of either full, inner, left, or right type.
+ * 
+ * You can read more about a hybrid hash join at
+ * https://en.wikipedia.org/wiki/Hash_join#Hybrid_hash_join
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class HashJoinImpl {
 	enum HashJoinImplType {
 		FULLOUTER, INNERJOIN, LEFTOUTER, RIGHTOUTER
@@ -31,10 +41,10 @@ public class HashJoinImpl {
 	private boolean isLeftOuterResultSet;
 	private ResultSet innerResultSet;
 	private ResultSet outerResultSet;
-	
+
 	private List<Integer> ignoreOuterColumns;
 	private List<Integer> ignoreInnerColumns;
-	
+
 	private int[] innerColumns;
 	private PrimitiveDataType[] innerDataTypes;
 	private int[] outerColumns;
@@ -48,7 +58,7 @@ public class HashJoinImpl {
 			long blockSize) throws ResultSetException {
 		this.joinType = joinType;
 		this.blockSize = blockSize;
-		
+
 		this.ignoreOuterColumns = new ArrayList<Integer>();
 		this.ignoreInnerColumns = new ArrayList<Integer>();
 
@@ -98,7 +108,7 @@ public class HashJoinImpl {
 		int outerOffset = 0;
 		List<String> columnNames = new ArrayList<String>();
 		if (isLeftOuterResultSet) {
-			
+
 			for (int outerColumnIterator = 0; outerColumnIterator < outerResultSet
 					.getColumnSize(); outerColumnIterator++) {
 				Column column = outerResultSet.getColumn(outerColumnIterator);
@@ -109,7 +119,7 @@ public class HashJoinImpl {
 			for (int innerColumnIterator = 0; innerColumnIterator < innerResultSet
 					.getColumnSize(); innerColumnIterator++) {
 				Column column = innerResultSet.getColumn(innerColumnIterator);
-				if(!columnNames.contains(column.getName())) {
+				if (!columnNames.contains(column.getName())) {
 					output.appendColumn(column);
 				} else {
 					ignoreInnerColumns.add(innerColumnIterator);
@@ -127,20 +137,18 @@ public class HashJoinImpl {
 
 			for (int outerColumnIterator = 0; outerColumnIterator < outerResultSet
 					.getColumnSize(); outerColumnIterator++) {
-				
+
 				Column column = outerResultSet.getColumn(outerColumnIterator);
-				if(!columnNames.contains(column.getName())) {
+				if (!columnNames.contains(column.getName())) {
 					output.appendColumn(column);
 				} else {
 					ignoreOuterColumns.add(outerColumnIterator);
 				}
-				
-				
+
 			}
 
 			outerOffset = innerResultSet.getColumnSize();
 		}
-
 
 		outerResultSet.beforeFirst();
 
@@ -151,9 +159,8 @@ public class HashJoinImpl {
 			// Build the multi map from the inner for this block
 			buildMultiMap();
 
-			
 			Set<HashCode> usedKeys = new HashSet<HashCode>();
-			
+
 			// Loop through the inner loop to check for matches
 			innerResultSet.beforeFirst();
 			while (innerResultSet.next()) {
@@ -163,7 +170,7 @@ public class HashJoinImpl {
 
 				// Check if inner columns match on anything in the hash
 				Set<Row> matchedRows = hashMultiMap.get(innerHash);
-				
+
 				// Loop through all matches
 				for (Row row : matchedRows) {
 
@@ -171,37 +178,42 @@ public class HashJoinImpl {
 					if (trueMatch(row, innerResultSet.getCurrentRow())) {
 						// Write both output rows
 						output.appendRow();
-						writeRow(output, row, outerResultSet.getColumnSize(), outerOffset, ignoreOuterColumns);
-						writeRow(output, innerResultSet.getCurrentRow(), innerResultSet.getColumnSize(), innerOffset, ignoreInnerColumns);
-						
+						writeRow(output, row, outerResultSet.getColumnSize(),
+								outerOffset, ignoreOuterColumns);
+						writeRow(output, innerResultSet.getCurrentRow(),
+								innerResultSet.getColumnSize(), innerOffset,
+								ignoreInnerColumns);
+
 						usedKeys.add(innerHash);
 					}
 
 				}
 				if (matchedRows.isEmpty()) {
-					if ((joinType == HashJoinImplType.FULLOUTER)  || 
-							(!isLeftOuterResultSet && (joinType == HashJoinImplType.LEFTOUTER)) ||
-							(isLeftOuterResultSet && (joinType == HashJoinImplType.RIGHTOUTER))) {
+					if ((joinType == HashJoinImplType.FULLOUTER)
+							|| (!isLeftOuterResultSet && (joinType == HashJoinImplType.LEFTOUTER))
+							|| (isLeftOuterResultSet && (joinType == HashJoinImplType.RIGHTOUTER))) {
 						output.appendRow();
 						writeRow(output, innerResultSet.getCurrentRow(),
-								innerResultSet.getColumnSize(), innerOffset, ignoreInnerColumns);
+								innerResultSet.getColumnSize(), innerOffset,
+								ignoreInnerColumns);
 					}
 				}
 			}
-			if ((joinType == HashJoinImplType.FULLOUTER)  || 
-				(isLeftOuterResultSet && (joinType == HashJoinImplType.LEFTOUTER)) || 
-				(!isLeftOuterResultSet && (joinType == HashJoinImplType.RIGHTOUTER))) {
-				for(HashCode innerHash : hashMultiMap.keySet()) {
-					if(!usedKeys.contains(innerHash)) {
+			if ((joinType == HashJoinImplType.FULLOUTER)
+					|| (isLeftOuterResultSet && (joinType == HashJoinImplType.LEFTOUTER))
+					|| (!isLeftOuterResultSet && (joinType == HashJoinImplType.RIGHTOUTER))) {
+				for (HashCode innerHash : hashMultiMap.keySet()) {
+					if (!usedKeys.contains(innerHash)) {
 						output.appendRow();
 						// Check if inner columns match on anything in the hash
 						// Loop through all matches
 						for (Row row : hashMultiMap.get(innerHash)) {
-							writeRow(output, row, outerResultSet.getColumnSize(),
+							writeRow(output, row,
+									outerResultSet.getColumnSize(),
 									outerOffset, ignoreOuterColumns);
 						}
 					}
-					
+
 				}
 			}
 		}
@@ -209,11 +221,11 @@ public class HashJoinImpl {
 		return output;
 	}
 
-	private void writeRow(ResultSet output, Row row, int colSize, int offset, List<Integer> ignoreColumns)
-			throws ResultSetException {
+	private void writeRow(ResultSet output, Row row, int colSize, int offset,
+			List<Integer> ignoreColumns) throws ResultSetException {
 		int minus = 0;
 		for (int i = 0; i < colSize; i++) {
-			if(!ignoreColumns.contains(i)) {
+			if (!ignoreColumns.contains(i)) {
 				output.updateObject(i + offset - minus, row.getColumn(i));
 			} else {
 				minus++;

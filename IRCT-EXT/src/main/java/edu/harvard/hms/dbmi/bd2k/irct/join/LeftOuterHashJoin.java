@@ -17,6 +17,14 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
+/**
+ * Performs a left outer join between two result sets using the hybrid hash
+ * join implementation
+ * 
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class LeftOuterHashJoin implements JoinImplementation {
 	private long blockSize;
 

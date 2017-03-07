@@ -17,6 +17,14 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
+/**
+ * Performs a right outer join between two result sets using the hybrid hash
+ * join implementation
+ * 
+ * 
+ * @author Jeremy R. Easton-Marks
+ *
+ */
 public class RightOuterHashJoin implements JoinImplementation {
 	private long blockSize;
 
@@ -47,9 +55,10 @@ public class RightOuterHashJoin implements JoinImplementation {
 		}
 
 		// Get Left Matching Column Ids
-		String[] leftStringColumnNames = join.getStringValues().get("LeftColumn").split(",");
+		String[] leftStringColumnNames = join.getStringValues()
+				.get("LeftColumn").split(",");
 		int[] leftColumns = new int[leftStringColumnNames.length];
-		
+
 		int counter = 0;
 		try {
 			for (String columnName : leftStringColumnNames) {
@@ -61,11 +70,12 @@ public class RightOuterHashJoin implements JoinImplementation {
 			result.setMessage("LeftColumn : " + rse.getMessage());
 			return result;
 		}
-		
+
 		// Get Right Matching Column Ids
-		String[] rightStringColumnNames = join.getStringValues().get("RightColumn").split(",");
+		String[] rightStringColumnNames = join.getStringValues()
+				.get("RightColumn").split(",");
 		int[] rightColumns = new int[rightStringColumnNames.length];
-		
+
 		counter = 0;
 		try {
 			for (String columnName : rightStringColumnNames) {
@@ -78,10 +88,12 @@ public class RightOuterHashJoin implements JoinImplementation {
 			return result;
 		}
 
-		HashJoinImpl hashJoin = new HashJoinImpl(leftResultSet, rightResultSet, leftColumns, rightColumns, HashJoinImplType.RIGHTOUTER, this.blockSize);
+		HashJoinImpl hashJoin = new HashJoinImpl(leftResultSet, rightResultSet,
+				leftColumns, rightColumns, HashJoinImplType.RIGHTOUTER,
+				this.blockSize);
 
 		ResultSet outputResult = (ResultSet) result.getData();
-		
+
 		hashJoin.join(outputResult);
 
 		outputResult.beforeFirst();
