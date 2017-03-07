@@ -33,10 +33,10 @@ set @UJ_LEFTRESULTSET_ID = @LOJ_LEFTRESULTSET_ID + 20;
 set @UJ_RIGHTRESULTSET_ID = @UJ_LEFTRESULTSET_ID + 1;
 
 -- Insert into Join Type
-insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@LOJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.LeftOuterJoin', 'Performs a left outer join on two result sets', 'Left Outer Join', 'leftOuterJoin');
-insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@ROJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.RightOuterJoin', 'Performs a right outer join on two result sets', 'Right Outer Join', 'rightOuterJoin');
-insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@FOJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.FullOuterJoin', 'Performs a full outer join on two result sets', 'Full Outer Join', 'fullOuterJoin');
-insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@IJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.InnerJoin', 'Performs an inner join on two result sets', 'Inner Join', 'innerJoin');
+insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@LOJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.LeftOuterHashJoin', 'Performs a left outer join on two result sets', 'Left Outer Join', 'leftOuterJoin');
+insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@ROJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.RightOuterHashJoin', 'Performs a right outer join on two result sets', 'Right Outer Join', 'rightOuterJoin');
+insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@FOJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.FullOuterHashJoin', 'Performs a full outer join on two result sets', 'Full Outer Join', 'fullOuterJoin');
+insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@IJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.InnerHashJoin', 'Performs an inner join on two result sets', 'Inner Join', 'innerJoin');
 insert into IRCTJoin(id, joinImplementation, description, displayName, name) values (@UJID, 'edu.harvard.hms.dbmi.bd2k.irct.join.UnionJoin', 'Performs an union join on two result sets', 'Union Join', 'unionJoin');
 
 -- Insert into fields
