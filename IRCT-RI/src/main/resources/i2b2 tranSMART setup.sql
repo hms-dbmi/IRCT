@@ -5,7 +5,6 @@ set @resourceURL = '{{i2b2resourceurl}}';
 set @domain = '{{i2b2domain}}';
 set @userName = '{{i2b2username}}';
 set @password = '{{i2b2password}}';
---set @ignoreCertificate = 'true';
 set @auth0ClientId = '{{auth0clientid.msg}}';
 set @auth0Domain = '{{auth0domain.msg}}';
 
@@ -23,23 +22,18 @@ set @constrainValueId = @containsId + 2;
 set @constrainDateId = @containsId + 3;
 
 -- Set the Fields
-set @encounter_ContainsId = (select IF(id is NULL,0,max(id)) from Field) + 1; 
+set @modifier_FieldId = (select IF(id is NULL,0,max(id)) from Field) + 1;
 
-set @modifier_FieldId = @encounter_ContainsId + 1;
-set @encounter_ModifierId = @modifier_FieldId + 1;
-
-set @operator_ConstrainValueId = @encounter_ModifierId + 1;
+set @operator_ConstrainValueId = @modifier_FieldId + 1;
 set @constraint_ConstrainValueId = @operator_ConstrainValueId + 1;
 set @unitOfMeasure_ConstrainValueId = @constraint_ConstrainValueId + 1;
-set @encounter_ConstrainValueId = @unitOfMeasure_ConstrainValueId + 1;
 
-set @fromInclusive_ConstrainDateId = @encounter_ConstrainValueId + 1;
+set @fromInclusive_ConstrainDateId = @unitOfMeasure_ConstrainValueId + 1;
 set @fromTime_ConstrainDateId = @fromInclusive_ConstrainDateId + 1;
 set @fromDate_ConstrainDateId = @fromTime_ConstrainDateId + 1;
 set @toInclusive_ConstrainDateId = @fromDate_ConstrainDateId + 1;
 set @toTime_ConstrainDateId = @toInclusive_ConstrainDateId + 1;
 set @toDate_ConstrainDateId = @toTime_ConstrainDateId + 1;
-set @encounter_ConstrainDateId = @toDate_ConstrainDateId + 1;
 
 -- INSERT THE RESOURCE
 insert into Resource(id, implementingInterface, name, ontologyType) values(@resourceId, @resourceImplementingInterface, @resourceName, @resourceOntology);
@@ -80,12 +74,6 @@ insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@contain
 insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@containsId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:INTEGER');
 insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@containsId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:FLOAT');
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ContainsId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ContainsId, 'YES');
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ContainsId, 'NO');
-
-insert into PredicateType_Field(PredicateType_id, fields_id) values(@containsId, @encounter_ContainsId);
-
 insert into Resource_PredicateType(Resource_Id, supportedPredicates_id) values(@resourceId, @containsId);
 
 -- CONSTRAIN BY MODIFER
@@ -96,13 +84,7 @@ insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@constra
 
 insert into Field(id, description, name, path, relationship, required) values(@modifier_FieldId, 'Constrain by a modifier of this entity', 'Modifier', 'MODIFIER_KEY', 'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship:MODIFIER', 1);
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ModifierId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ModifierId, 'YES');
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ModifierId, 'NO');
-
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainModifierId, @modifier_FieldId);
-insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainModifierId, @encounter_ModifierId);
-
 
 insert into Resource_PredicateType(Resource_Id, supportedPredicates_id) values(@resourceId, @constrainModifierId);
 
@@ -133,15 +115,9 @@ insert into Field_dataTypes(Field_id, dataTypes) values(@constraint_ConstrainVal
 insert into Field(id, description, name, path, relationship, required) values(@unitOfMeasure_ConstrainValueId, 'Unit of Measure', 'Unit of Measure', 'UNIT_OF_MEASURE', null, 0);
 insert into Field_dataTypes(Field_id, dataTypes) values(@unitOfMeasure_ConstrainValueId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:STRING');
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ConstrainValueId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainValueId, 'YES');
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainValueId, 'NO');
-
-
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainValueId, @operator_ConstrainValueId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainValueId, @constraint_ConstrainValueId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainValueId, @unitOfMeasure_ConstrainValueId);
-insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainValueId, @encounter_ConstrainValueId);
 
 
 insert into Resource_PredicateType(Resource_Id, supportedPredicates_id) values(@resourceId, @constrainValueId);
@@ -173,16 +149,11 @@ insert into Field_permittedValues(Field_Id, permittedValues) values(@toTime_Cons
 insert into Field(id, description, name, path, relationship, required) values(@toDate_ConstrainDateId, 'To Date', 'To Date', 'TO_DATE', null, 1);
 insert into Field_dataTypes(Field_id, dataTypes) values(@toDate_ConstrainDateId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:DATE');
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ConstrainDateId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainDateId, 'YES');
-insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainDateId, 'NO');
-
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @fromInclusive_ConstrainDateId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @fromTime_ConstrainDateId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @fromDate_ConstrainDateId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @toInclusive_ConstrainDateId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @toTime_ConstrainDateId);
 insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @toDate_ConstrainDateId);
-insert into PredicateType_Field(PredicateType_id, fields_id) values(@constrainDateId, @encounter_ConstrainDateId);
 
 insert into Resource_PredicateType(Resource_Id, supportedPredicates_id) values(@resourceId, @constrainDateId);

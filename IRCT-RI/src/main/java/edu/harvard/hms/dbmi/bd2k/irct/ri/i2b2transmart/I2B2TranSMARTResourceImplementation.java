@@ -50,6 +50,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
 
 /**
@@ -154,10 +155,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				}
 				result.setResultStatus(ResultStatus.RUNNING);
 
-				String queryType = null;
-
 				// Gather Select Clauses
-				String gatherAllEncounterFacts = "false";
 				Map<String, String> aliasMap = new HashMap<String, String>();
 
 				for (SelectClause selectClause : query
@@ -165,32 +163,35 @@ public class I2B2TranSMARTResourceImplementation extends
 					String pui = selectClause.getParameter().getPui()
 							.replaceAll("/" + this.resourceName + "/", "");
 
-					if (pui.contains("/")) {
-						queryType = "CLINICAL";
+					String rawPUI = selectClause.getParameter().getPui();
+					if (rawPUI.endsWith("*")) {
+						//Get the base PUI
+						String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
+						boolean compact = false;
+						String subPUI = null;
+						
+						if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
+							compact = true;
+						}
+						if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
+							subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
+						}
+						
+						//Loop through all the children and add them to the aliasMap
+						aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, session));
+						
+					} else {
 						pui = convertPUItoI2B2Path(selectClause.getParameter()
 								.getPui());
+						aliasMap.put(pui.replaceAll("%2[f,F]", "/") + "\\",
+								selectClause.getAlias());
 					}
-
-					aliasMap.put(pui.replaceAll("%2[f,F]", "/"), selectClause.getAlias());
 				}
 
 				// Run Additional Queries and Create Result Set
-				if (queryType == null) {
-					result.setResultStatus(ResultStatus.ERROR);
-					result.setMessage("Unknown queryType");
-					return result;
-				}
-
-				switch (queryType) {
-				case "CLINICAL":
-					result = runClinicalDataQuery(session, result, aliasMap,
-							gatherAllEncounterFacts, resultId);
-					result.setResultStatus(ResultStatus.COMPLETE);
-					break;
-				default:
-					result.setResultStatus(ResultStatus.ERROR);
-					result.setMessage("Unknown queryType");
-				}
+				result = runClinicalDataQuery(session, result, aliasMap,
+						resultId);
+				result.setResultStatus(ResultStatus.COMPLETE);
 
 				// Set the status to complete
 			} catch (InterruptedException | UnsupportedOperationException
@@ -201,15 +202,48 @@ public class I2B2TranSMARTResourceImplementation extends
 		}
 		return result;
 	}
+	
+	private Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, SecureSession session) throws ResourceInterfaceException {
+		Map<String, String> returns = new HashMap<String, String>();
+		
+		Entity baseEntity = new Entity(basePUI);
+		for(Entity entity : super.getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, session)) {
+			
+			if(entity.getAttributes().containsKey("visualattributes")) {
+				String visualAttributes = entity.getAttributes().get("visualattributes");
+				
+				if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
+					returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, session));
+				} else if (visualAttributes.startsWith("L")) {
+					String pui = convertPUItoI2B2Path(entity.getPui()).replaceAll("%2[f,F]", "/")  + "\\";
+					String alias =  pui;
+					if(compact) {
+						alias = basePUI;
+					}
+					if(subPUI != null) {
+						alias = alias.replaceAll(subPUI, "");
+					}
+					if(alias.endsWith("/")) {
+						alias = alias.substring(0, alias.length() - 1);
+					}
+					returns.put(pui, alias);
+				}
+				
+			}
+		}
+		
+		
+		return returns;
+	}
 
 	private Result runClinicalDataQuery(SecureSession session, Result result,
-			Map<String, String> aliasMap, String gatherAllEncounterFacts,
-			String resultId) throws ResultSetException,
-			ClientProtocolException, IOException, PersistableException {
+			Map<String, String> aliasMap, String resultId)
+			throws ResultSetException, ClientProtocolException, IOException,
+			PersistableException {
 		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
-			rs = createInitialDataset(result, aliasMap, gatherAllEncounterFacts);
+			rs = createInitialDataset(result, aliasMap);
 		}
 
 		// Get additional fields to grab from alias
@@ -221,21 +255,19 @@ public class I2B2TranSMARTResourceImplementation extends
 		}
 
 		String pivot = "PATIENT_NUM";
-		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-			pivot = "ENCOUNTER_NUM";
-			additionalFields.add("PATIENT_NUM");
-		}
 
-		//Setup initial fields
+		// Setup initial fields
 		Map<String, Long> entryMap = new HashMap<String, Long>();
-		
+
 		// Loop through the columns submitting and appending to the
 		// rows every 10
+		
+		
 		List<String> parameterList = new ArrayList<String>();
 		int counter = 0;
 		String parameters = "";
 		for (String param : aliasMap.keySet()) {
-			if (counter == 10) {
+			if (counter >= 10) {
 				parameterList.add(parameters);
 				counter = 0;
 				parameters = "";
@@ -244,6 +276,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				parameters += "|";
 			}
 			parameters += param;
+			counter++;
 		}
 		if (!parameters.equals("")) {
 			parameterList.add(parameters);
@@ -256,8 +289,7 @@ public class I2B2TranSMARTResourceImplementation extends
 					+ resultId
 					+ "&conceptPaths="
 					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
-							"UTF-8") + "&gatherAllEncounterFacts="
-					+ gatherAllEncounterFacts;
+							"UTF-8");
 			System.out.println(url);
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(url);
@@ -266,15 +298,13 @@ public class I2B2TranSMARTResourceImplementation extends
 			JsonParser parser = Json.createParser(response.getEntity()
 					.getContent());
 
-			convertJsonStreamToResultSet(rs, parser,
-					aliasMap, pivot, entryMap, additionalFields);
-			
+			convertJsonStreamToResultSet(rs, parser, aliasMap, pivot, entryMap,
+					additionalFields);
+
 		}
 		result.setData(rs);
 		return result;
 	}
-
-	
 
 	private ResultSet convertJsonStreamToResultSet(ResultSet rs,
 			JsonParser parser, Map<String, String> aliasMap, String pivot,
@@ -284,7 +314,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		while (parser.hasNext()) {
 			JsonObject obj = convertStreamToObject(parser);
 
-			if(!obj.containsKey(pivot)) {
+			if (!obj.containsKey(pivot)) {
 				break;
 			}
 			String id = obj.getString(pivot);
@@ -292,19 +322,22 @@ public class I2B2TranSMARTResourceImplementation extends
 			if (entryMap.containsKey(id)) {
 				// Is already in the resultset
 				rs.absolute(entryMap.get(id));
-				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")), obj.getString("VALUE"));
-				
+				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")),
+						obj.getString("VALUE"));
+
 			} else {
 				// Is not in the resultset
 				rs.appendRow();
 				rs.updateString(pivot, id);
-				//Add concept value
-				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")), obj.getString("VALUE"));
-				
-				//Add fields
+				// Add concept value
+				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")),
+						obj.getString("VALUE"));
+
+				// Add fields
 				for (String field : additionalFields) {
 					if (obj.containsKey(field)) {
-						rs.updateString(aliasMap.get(field), obj.getString(field));
+						rs.updateString(aliasMap.get(field),
+								obj.getString(field));
 					}
 				}
 				entryMap.put(id, rs.getRow());
@@ -316,8 +349,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	}
 
 	private ResultSet createInitialDataset(Result result,
-			Map<String, String> aliasMap, String gatherAllEncounterFacts)
-			throws ResultSetException {
+			Map<String, String> aliasMap) throws ResultSetException {
 		ResultSet rs = (ResultSet) result.getData();
 
 		// Set up the columns
@@ -325,13 +357,6 @@ public class I2B2TranSMARTResourceImplementation extends
 		idColumn.setName("PATIENT_NUM");
 		idColumn.setDataType(PrimitiveDataType.STRING);
 		rs.appendColumn(idColumn);
-
-		if (gatherAllEncounterFacts.equalsIgnoreCase("true")) {
-			Column encounterColumn = new Column();
-			encounterColumn.setName("ENCOUNTER_NUM");
-			encounterColumn.setDataType(PrimitiveDataType.STRING);
-			rs.appendColumn(encounterColumn);
-		}
 
 		for (String aliasKey : aliasMap.keySet()) {
 			Column newColumn = new Column();
@@ -344,7 +369,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			rs.appendColumn(newColumn);
 		}
-		
+
 		result.setData(rs);
 		return rs;
 	}
@@ -483,7 +508,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			singleReturnMyPath += "\\" + pathComponent;
 		}
 
-		singleReturnMyPath += "\\";
+		// singleReturnMyPath += "\\";
 
 		return singleReturnMyPath;
 	}
