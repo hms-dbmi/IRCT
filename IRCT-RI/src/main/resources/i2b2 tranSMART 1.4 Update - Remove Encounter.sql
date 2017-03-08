@@ -9,6 +9,11 @@ delete PredicateType_Field from Field
 	inner join PredicateType_Field on PredicateType_Field.fields_id=Field.id
     inner join PredicateType on PredicateType_Field.PredicateType_id=PredicateType.id
     where Field.path="ENOUTER";
+
+delete PredicateType_Field from Field
+	inner join PredicateType_Field on PredicateType_Field.fields_id=Field.id
+    inner join PredicateType on PredicateType_Field.PredicateType_id=PredicateType.id
+    where Field.path="ENOUNTER";
     
 delete Field_permittedValues from Field
 	inner join Field_permittedValues on Field_permittedValues.Field_id = Field.id
