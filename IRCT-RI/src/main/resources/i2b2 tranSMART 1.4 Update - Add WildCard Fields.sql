@@ -10,7 +10,7 @@ insert into Field(id, description, name, path, relationship, required) values(@c
 insert into Field_permittedValues(Field_Id, permittedValues) values(@compactFieldId, 'TRUE');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@compactFieldId, 'FALSE');
 
-insert into Resource_field(Resource_id, supportedSelectFields_id) values(@resourceId, @compactFieldId);
+insert into Resource_Field(Resource_id, supportedSelectFields_id) values(@resourceId, @compactFieldId);
 
 
 -- Insert the REMOVEPREPEND field
@@ -18,4 +18,4 @@ insert into Field(id, description, name, path, relationship, required) values(@r
 insert into Field_permittedValues(Field_Id, permittedValues) values(@removePrependFieldId, 'TRUE');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@removePrependFieldId, 'FALSE');
 
-insert into Resource_field(Resource_id, supportedSelectFields_id) values(@resourceId, @removePrependFieldId);
+insert into Resource_Field(Resource_id, supportedSelectFields_id) values(@resourceId, @removePrependFieldId);
