@@ -646,13 +646,30 @@ public class QueryService implements Serializable {
 			for (Field field : st.getFields()) {
 				clauseFields.put(field.getPath(), field);
 			}
-
+		
+			if (selectClause.containsKey("fields")) {
+				JsonObject fieldObject = selectClause.getJsonObject("fields");
+				objectFields = getObjectFields(clauseFields, fieldObject);
+				fields = getStringFields(clauseFields, fieldObject);
+			}
+		} 
+		
+		if ((resource.getSupportedSelectFields() != null) && (!resource.getSupportedSelectFields().isEmpty())) {
+			
+			Map<String, Field> clauseFields = new HashMap<String, Field>();
+			for(Field field : resource.getSupportedSelectFields()) {
+				clauseFields.put(field.getPath(), field);
+			}
+			
 			if (selectClause.containsKey("fields")) {
 				JsonObject fieldObject = selectClause.getJsonObject("fields");
 				objectFields = getObjectFields(clauseFields, fieldObject);
 				fields = getStringFields(clauseFields, fieldObject);
 			}
 		}
+		
+		
+		
 		return validateSelectClause(sq, clauseId, resource, entity, alias,
 				operationName, fields, objectFields);
 	}
@@ -766,7 +783,7 @@ public class QueryService implements Serializable {
 
 		return fields;
 	}
-
+	
 	private Long addJsonSortClauseToQuery(SubQuery sq, JsonObject sortClause)
 			throws QueryException {
 		String path = null;

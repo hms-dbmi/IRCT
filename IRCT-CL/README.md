@@ -8,6 +8,9 @@ The IRCT Communication Layer (IRCT-CL) provides a resource agnostic Representati
 
 ## Version Information
 
+### 1.4
+This release adds support for Joins by adding the Join Service. It removes the previous join service implemented in the system service. It also includes updates to the Select Clause JSON handler to support fields that are not associated with an operation.
+
 ### 1.3.2
 No changes in this release
 
