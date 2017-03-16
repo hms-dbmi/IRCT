@@ -3,12 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Logger;
-
+import java.nio.file.Paths;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -31,7 +33,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 /**
  * Manages supported resources and join types for this instance of the IRCT
  * application
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -40,26 +42,28 @@ public class IRCTApplication {
 
 	@javax.annotation.Resource(mappedName ="java:global/resultDataFolder")
 	private String resultDataFolder = null;
-	
+
 	private Map<String, Resource> resources;
 	private Map<String, IRCTJoin> supportedJoinTypes;
 	private Map<ResultDataType, List<DataConverterImplementation>> resultDataConverters;
+
+	private String version = "N/A";
 
 	@Inject
 	Logger log;
 
 	@Inject
 	private EntityManagerFactory objectEntityManager;
-	
+
 	@Inject
 	private IRCTEventListener irctEventListener;
 
 	private EntityManager oem;
- 
+
 	/**
 	 * Initiates the IRCT Application and loading of the joins, resources, and
 	 * predicates.
-	 * 
+	 *
 	 */
 	@PostConstruct
 	public void init() {
@@ -70,8 +74,8 @@ public class IRCTApplication {
 		log.info("Loading Data Converters");
 		loadDataConverters();
 		log.info("Finished Data Converters");
-		
-		
+
+
 		log.info("Loading Event Listeners");
 		loadIRCTEventListeners();
 		log.info("Finished Loading Event Listeners");
@@ -90,9 +94,55 @@ public class IRCTApplication {
 		log.info("Finished Starting IRCT Application");
 	}
 
+	public String getVersion() {
+
+		String version = null;
+		System.out.println("getVersion()");
+
+	    // try to load from maven properties first
+	    try {
+	        Properties p = new Properties();
+					System.out.println("getVersion() reading file."+System.getProperty("user.dir"));
+					System.out.println("getVersion() path: "+Paths.get(".").toAbsolutePath().normalize().toString());
+
+
+
+
+	        InputStream is = getClass().getResourceAsStream("META-INF/maven/edu.harvard.hms.dbmi.bd2k.irct/IRCT-API/pom.properties");
+	        if (is != null) {
+	            p.load(is);
+	            version = p.getProperty("version", "");
+
+	            System.out.println(p);
+	        }
+	    } catch (Exception e) {
+	        System.err.println(e);
+					System.err.println("Could not open properties file.");
+	    }
+
+	    // fallback to using Java API
+	    if (version == null) {
+	        Package aPackage = getClass().getPackage();
+	        if (aPackage != null) {
+	            version = aPackage.getImplementationVersion();
+	            if (version == null) {
+	                version = aPackage.getSpecificationVersion();
+	            }
+	        }
+	    }
+
+	    if (version == null) {
+	        // we could not compute the version so use a blank
+	        version = "";
+	    }
+
+
+		return this.version;
+	}
+
 	/**
 	 * Load all the Listeners
-	 * 
+	 *
 	 */
 	private void loadIRCTEventListeners() {
 		this.irctEventListener.init();
@@ -104,17 +154,17 @@ public class IRCTApplication {
 		criteria.select(load);
 		List<EventConverterImplementation> allEventListeners = oem.createQuery(criteria)
 				.getResultList();
-		
+
 		for (EventConverterImplementation irctEvent : allEventListeners) {
 			irctEventListener.registerListener(irctEvent);
 		}
-		
+
 		log.info("Loaded " + allEventListeners.size() + " IRCT Event listeners");
 	}
 
 	/**
 	 * Load all the Output Data Converters
-	 * 
+	 *
 	 */
 	private void loadDataConverters() {
 		this.resultDataConverters = new HashMap<ResultDataType, List<DataConverterImplementation>>();
@@ -158,9 +208,9 @@ public class IRCTApplication {
 	}
 
 	/**
-	 * 
+	 *
 	 * Loads all the resources from the persistence manager
-	 * 
+	 *
 	 */
 	private void loadResources() {
 		setResources(new HashMap<String, Resource>());
@@ -180,13 +230,13 @@ public class IRCTApplication {
 		}
 		log.info("Loaded " + this.resources.size() + " resources");
 	}
-	
-	
-	
+
+
+
 
 	/**
 	 * Adds a given resource to the IRCT application
-	 * 
+	 *
 	 * @param name
 	 *            Resource name
 	 * @param resource
@@ -201,7 +251,7 @@ public class IRCTApplication {
 
 	/**
 	 * Removes a resource from the IRCT application
-	 * 
+	 *
 	 * @param name
 	 *            Resource name
 	 */
@@ -212,9 +262,9 @@ public class IRCTApplication {
 
 	/**
 	 * Returns true if the resource exists
-	 * 
+	 *
 	 * True if resource exists, false otherwise
-	 * 
+	 *
 	 * @param name
 	 *            Resource name
 	 * @return If resource exists
@@ -226,7 +276,7 @@ public class IRCTApplication {
 	/**
 	 * Returns a map of the resources where the Resource name is the key, and
 	 * the Resource itself is the value
-	 * 
+	 *
 	 * @return Resources
 	 */
 	public Map<String, Resource> getResources() {
@@ -235,7 +285,7 @@ public class IRCTApplication {
 
 	/**
 	 * Sets a map of the resources.
-	 * 
+	 *
 	 * @param resources
 	 *            Resources
 	 */
@@ -246,7 +296,7 @@ public class IRCTApplication {
 	/**
 	 * Returns a map of the supported joins where the Join name is the key, and
 	 * the JoinType itself is the value
-	 * 
+	 *
 	 * @return Supported join types
 	 */
 	public Map<String, IRCTJoin> getSupportedJoinTypes() {
@@ -255,7 +305,7 @@ public class IRCTApplication {
 
 	/**
 	 * Sets a map of the supported join types
-	 * 
+	 *
 	 * @param supportedJoinTypes
 	 *            Supported join types
 	 */
@@ -265,7 +315,7 @@ public class IRCTApplication {
 
 	/**
 	 * Adds a join to the list of supported joins
-	 * 
+	 *
 	 * @param name
 	 *            Join Name
 	 * @param join
@@ -295,7 +345,7 @@ public class IRCTApplication {
 
 	/**
 	 * Returns a dataconveter for a given datatype and format
-	 * 
+	 *
 	 * @param dataType
 	 *            DataType
 	 * @param format
@@ -318,7 +368,7 @@ public class IRCTApplication {
 
 	/**
 	 * Removes a join from the list of supported joins
-	 * 
+	 *
 	 * @param name
 	 *            Join name
 	 */
@@ -329,9 +379,9 @@ public class IRCTApplication {
 
 	/**
 	 * Returns true if the join type is supported
-	 * 
+	 *
 	 * True if join type is supported, otherwise it false
-	 * 
+	 *
 	 * @param name
 	 *            Resource name
 	 * @return If resource exists
