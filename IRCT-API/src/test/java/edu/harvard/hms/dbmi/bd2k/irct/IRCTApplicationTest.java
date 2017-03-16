@@ -2,20 +2,24 @@
  *
  */
 package edu.harvard.hms.dbmi.bd2k.irct;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 /**
  * @author gabor
  *
  */
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(IRCTApplication.class) 
 public class IRCTApplicationTest {
 
 	private IRCTApplication app = null;
@@ -62,14 +66,7 @@ public class IRCTApplicationTest {
 	 */
 	@Test
 	public void testGetVersion() {
-		String appversion = this.app.getVersion();
-		System.out.println("testGetVersion() appversion:"+appversion);
-
-		if (appversion.equals("N/A")) {
-			//fail("Could not determine version of the IRCTApplication object.");
-		} else {
-			assertEquals("1.4", appversion);
-		}
+		assertEquals("X.X", this.app.getVersion());
 	}
 
 	/**
