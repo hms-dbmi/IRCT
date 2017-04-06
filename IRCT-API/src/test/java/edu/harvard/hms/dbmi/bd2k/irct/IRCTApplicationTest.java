@@ -10,7 +10,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -21,7 +20,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(IRCTApplication.class) 
 public class IRCTApplicationTest {
-
 	private IRCTApplication app = null;
 
 	/**
@@ -66,6 +64,7 @@ public class IRCTApplicationTest {
 	 */
 	@Test
 	public void testGetVersion() {
+		
 		assertEquals("X.X", this.app.getVersion());
 	}
 

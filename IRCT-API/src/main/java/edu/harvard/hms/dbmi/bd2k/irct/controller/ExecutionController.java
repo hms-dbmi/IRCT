@@ -213,6 +213,7 @@ public class ExecutionController {
 					result.setResultStatus(ResultStatus.ERROR);
 					result.setMessage(e.getMessage());
 				} catch (Exception e) {
+					e.printStackTrace();
 					log.info(e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
 				} finally {
