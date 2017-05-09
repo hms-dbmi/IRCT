@@ -94,7 +94,7 @@ public class CSVTabularDataConverter implements ResultDataConverter {
 						printer.close();
 					}
 					
-					if(rs != null) {
+					if(rs != null && !rs.isClosed()) {
 						try {
 							rs.close();
 						} catch (ResultSetException e) {

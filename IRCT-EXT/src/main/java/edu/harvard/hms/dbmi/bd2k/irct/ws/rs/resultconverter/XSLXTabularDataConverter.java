@@ -110,7 +110,7 @@ public class XSLXTabularDataConverter implements ResultDataConverter {
 					if (wb != null) {
 						wb.close();
 					}
-					if (rs != null) {
+					if (rs != null && !rs.isClosed()) {
 						try {
 							rs.close();
 						} catch (ResultSetException e) {

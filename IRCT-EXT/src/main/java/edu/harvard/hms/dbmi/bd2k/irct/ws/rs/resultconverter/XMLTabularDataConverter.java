@@ -98,7 +98,7 @@ public class XMLTabularDataConverter implements ResultDataConverter {
 							e.printStackTrace();
 						}
 					}
-					if(rs != null) {
+					if(rs != null && !rs.isClosed()) {
 						try {
 							rs.close();
 						} catch (ResultSetException e) {

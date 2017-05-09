@@ -112,7 +112,7 @@ public class JSONTabularDataConverter implements ResultDataConverter {
 					if(jg != null) {
 						jg.close();
 					}
-					if(rs != null) {
+					if(rs != null && !rs.isClosed()) {
 						try {
 							rs.close();
 						} catch (ResultSetException e) {
