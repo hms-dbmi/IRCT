@@ -195,7 +195,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 				// Set the status to complete
 			} catch (InterruptedException | UnsupportedOperationException
-					| IOException | ResultSetException | PersistableException e) {
+					| IOException | ResultSetException | PersistableException | JsonException e) {
 				result.setResultStatus(ResultStatus.ERROR);
 				result.setMessage(e.getMessage());
 			}
@@ -239,7 +239,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	private Result runClinicalDataQuery(SecureSession session, Result result,
 			Map<String, String> aliasMap, String resultId)
 			throws ResultSetException, ClientProtocolException, IOException,
-			PersistableException {
+			PersistableException, JsonException {
 		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
@@ -309,7 +309,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	private ResultSet convertJsonStreamToResultSet(ResultSet rs,
 			JsonParser parser, Map<String, String> aliasMap, String pivot,
 			Map<String, Long> entryMap, List<String> additionalFields)
-			throws ResultSetException, PersistableException {
+			throws ResultSetException, PersistableException, JsonException {
 
 		while (parser.hasNext()) {
 			JsonObject obj = convertStreamToObject(parser);
