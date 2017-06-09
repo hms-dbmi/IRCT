@@ -95,7 +95,7 @@ public class IRCTApplication {
 	public String getVersion() {
 		String version = null;
 		//log.log(Level.INFO, "getVersion() Starting");
-		
+
 		// try to load from maven properties first
 		try {
 			Properties p = new Properties();
@@ -108,7 +108,7 @@ public class IRCTApplication {
 				version = p.getProperty("version", "");
 			}
 		} catch (Exception e) {
-			log.log(Level.INFO, "getVersion() " + e.getMessage());
+			log.log(Level.INFO, "getVersion() ERROR:" + e.getMessage());
 		}
 
 		if (version == null) {
@@ -359,7 +359,7 @@ public class IRCTApplication {
 
 	/**
 	 * Get the name of the result data folder
-	 * 
+	 *
 	 * @return Result Data Folder
 	 */
 	public String getResultDataFolder() {
@@ -368,7 +368,7 @@ public class IRCTApplication {
 
 	/**
 	 * Sets the name of the result data folder
-	 * 
+	 *
 	 * @param resultDataFolder
 	 *            Result Data Folder
 	 */
