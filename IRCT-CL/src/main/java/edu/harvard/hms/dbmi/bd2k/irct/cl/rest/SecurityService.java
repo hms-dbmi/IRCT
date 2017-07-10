@@ -209,18 +209,24 @@ public class SecurityService implements Serializable {
 	@Path("/createKey")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createKey() {
+		System.err.println("createKey()");
+		
 		JsonObjectBuilder build = Json.createObjectBuilder();
+		
 		if((this.user == null) && (session.getAttribute("user") != null)) {
 			this.user = (User) session.getAttribute("user");
 			this.token = (Token) session.getAttribute("token");
 		}
+		System.err.println("createKey() user :"+this.user);
+		System.err.println("createKey() token:"+this.token);
+		
 		String key = sc.createKey(this.user, this.token);
 		// IF USER IS LOGGED IN
 		if (key != null) {
 			build.add("key", key);
 		} else {
 			build.add("status", "fail");
-			build.add("message", "Unable to generate key");
+			build.add("message", "Unable to generate key for user:"+this.user+" and token:"+this.token);
 			return Response.status(Response.Status.FORBIDDEN)
 					.entity(build.build()).build();
 		}
