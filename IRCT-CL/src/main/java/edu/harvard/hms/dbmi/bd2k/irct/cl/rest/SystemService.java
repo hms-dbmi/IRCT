@@ -83,9 +83,15 @@ public class SystemService {
 		IRCTApplication app = new IRCTApplication();
 		JsonArrayBuilder build = Json.createArrayBuilder();
 		build.add(Json.createObjectBuilder().add("version", app.getVersion()));
+
+		// Add user details
 		User user = (User) session.getAttribute("user");
-		build.add(Json.createObjectBuilder().add("username", user.getName()));
-		build.add(Json.createObjectBuilder().add("userid", user.getUserId()));
+		build.add(
+			Json.createObjectBuilder()
+			.add("userid", user.getUserId())
+			.add("name", user.getName())
+		);
+		
 		return build.build();
 	}
 }
