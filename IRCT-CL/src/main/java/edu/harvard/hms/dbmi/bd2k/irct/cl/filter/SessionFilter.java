@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import java.io.IOException;
+import java.security.SignatureException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -21,16 +22,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureException;
 
 /**
  * Creates a session filter for ensuring secure access
@@ -62,7 +62,8 @@ public class SessionFilter implements Filter {
 		logger.log(Level.FINE, "doFilter() Starting");
 		HttpServletRequest request = (HttpServletRequest) req;
 
-		logger.log(Level.INFO, "doFilter() requestURI:"+request.getRequestURI());
+		logger.log(Level.INFO, "doFilter() requestURI:" + request.getRequestURI());
+
 		// Calls to the Security Service can go straight through
 		if (!request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
 			// Get the session and user information
@@ -71,6 +72,7 @@ public class SessionFilter implements Filter {
 
 			// Is a user already associated with a session?
 			if (user == null) {
+				logger.log(Level.SEVERE, "doFilter() Expected user information in session, but it is not there");
 
 				// If no user is associated then validate the authorization
 				// header
@@ -93,14 +95,13 @@ public class SessionFilter implements Filter {
 				session.setAttribute("user", user);
 				session.setAttribute("token", token);
 				session.setAttribute("secureSession", secureSession);
-
 			}
 		} else {
 			String name = validateAuthorizationHeader((HttpServletRequest) req);
 
 			if (name != null) {
 				HttpSession session = ((HttpServletRequest) req).getSession();
-
+				logger.log(Level.INFO, "doFilter() "+name+" is logging in.");
 				User user = sc.getUser(name);
 				Token token = new JWT(((HttpServletRequest) req).getHeader("Authorization"), "", "Bearer",
 						this.clientId);
@@ -112,9 +113,14 @@ public class SessionFilter implements Filter {
 				session.setAttribute("token", token);
 				session.setAttribute("secureSession", secureSession);
 			} else {
-				throw new RuntimeException("Error establising identity from request headers.");
+				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+				res.setContentType("application/json");
+				res.getOutputStream()
+						.write("{\"status\":\"error\",\"message\":\"Error establising identity from request headers.\"}"
+								.getBytes());
+				res.getOutputStream().close();
+				return;
 			}
-
 		}
 		logger.log(Level.FINE, "doFilter() Finished");
 		fc.doFilter(req, res);
@@ -123,6 +129,7 @@ public class SessionFilter implements Filter {
 	private String validateAuthorizationHeader(HttpServletRequest req) {
 		logger.log(Level.FINE, "validateAuthorizationHeader() Starting");
 		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
+
 		if (authorizationHeader != null) {
 			logger.log(Level.FINE, "validateAuthorizationHeader() header:" + authorizationHeader);
 			try {
@@ -143,18 +150,21 @@ public class SessionFilter implements Filter {
 				if (pattern.matcher(scheme).matches()) {
 					token = credentials;
 				}
-				System.err.println("validateAuthorizationHeader() token:" + token);
+				logger.log(Level.FINE, "validateAuthorizationHeader() token:" + token);
 
 				try {
+					logger.log(Level.FINE, "validateAuthorizationHeader()() clientSecret:" + this.clientSecret);
 
-					Jwt<io.jsonwebtoken.Header, Claims> claims = Jwts.parser().setSigningKey(this.clientSecret)
-							.parseClaimsJwt(token);
-
-					System.err.println(claims.toString());
-
+					Algorithm algo = Algorithm.HMAC256(this.clientSecret);
+					JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
+					DecodedJWT jwt = verifier.verify(token);
+					logger.log(Level.FINE, jwt.toString());
+					
+					
 					// OK, we can trust this JWT
-
-				} catch (SignatureException e) {
+					logger.log(Level.INFO, "validateAuthorizationHeader() Token trusted)");
+					return jwt.getClaim("email").asString();
+				} catch (Exception e) {
 					logger.log(Level.SEVERE, "Token exception:" + e.getMessage());
 					e.printStackTrace();
 				}
@@ -213,7 +223,10 @@ public class SessionFilter implements Filter {
 				logger.log(Level.SEVERE,
 						"validateAuthorizationHeader() token validation failed: " + e + "/" + e.getMessage());
 			}
+		} else {
+			logger.log(Level.SEVERE, "validateAuthorizationHeader() Missing 'Authorization' header.");
 		}
+		logger.log(Level.SEVERE, "validateAuthorizationHeader() Finished (null returned)");
 		return null;
 	}
 

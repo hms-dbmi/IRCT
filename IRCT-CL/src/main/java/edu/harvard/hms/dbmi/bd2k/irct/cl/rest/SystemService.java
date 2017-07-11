@@ -54,6 +54,22 @@ public class SystemService {
 	}
 
 	/**
+	 * Returns a JSON Array of supported Data Types by the IRCT core.
+	 *
+	 * @return JSON Array of data types
+	 */
+	@GET
+	@Path("/error")
+	@Produces(MediaType.APPLICATION_JSON)
+	public JsonStructure error() {
+		JsonArrayBuilder build = Json.createArrayBuilder();
+		for (PrimitiveDataType pt : PrimitiveDataType.values()) {
+			build.add(pt.toJson());
+		}
+		return build.build();
+	}
+
+	/**
 	 * Returns a JSON Array of application settings
 	 *
 	 * @return JSON Array of settings (key/value pair)
