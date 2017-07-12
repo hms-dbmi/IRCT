@@ -259,8 +259,9 @@ public class ResourceService {
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
+			System.out.println("*******************************************************getResource");
 			resource = rc.getResource(path.split("/")[1]);
-
+			System.out.println("*******************************************************getResource");
 			resourcePath = new Entity(path);
 		}
 
@@ -273,11 +274,11 @@ public class ResourceService {
 						resource.getRelationshipByName(relationshipString),
 						(SecureSession) session.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
-				log.log(Level.INFO,
+				log.log(Level.SEVERE,
 						"Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
 								+ e.getMessage());
-				return invalidRequest(e.getMessage());
+				return invalidRequest(e.getMessage()+" path:"+path);
 			}
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();

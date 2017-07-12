@@ -160,63 +160,14 @@ public class SessionFilter implements Filter {
 					DecodedJWT jwt = verifier.verify(token);
 					logger.log(Level.FINE, jwt.toString());
 					
-					
 					// OK, we can trust this JWT
 					logger.log(Level.INFO, "validateAuthorizationHeader() Token trusted)");
 					return jwt.getClaim("email").asString();
+					
 				} catch (Exception e) {
-					logger.log(Level.SEVERE, "Token exception:" + e.getMessage());
-					e.printStackTrace();
+					logger.log(Level.SEVERE, "validateAuthorizationHeader() Exception:" + e.getMessage());
 				}
 
-				// byte[] secret = Base64.decodeBase64(this.clientSecret);
-
-				// Map<String, Object> decodedPayload = new JWTVerifier(secret,
-				// this.clientId).verify(token);
-
-				// return (String) decodedPayload.get(this.userField);
-				/*
-				 * try { logger.log(Level.INFO,
-				 * "validateAuthorizationHeader() clientSecret:"+this.
-				 * clientSecret); logger.log(Level.INFO,
-				 * "validateAuthorizationHeader() token       :"+token);
-				 * 
-				 * //Algorithm algorithm =
-				 * com.auth0.jwt.algorithms.Algorithm.HMAC256(Base64.
-				 * decodeBase64(this.clientSecret)); Algorithm algorithm =
-				 * com.auth0.jwt.algorithms.Algorithm.HMAC256(this.clientSecret)
-				 * ;
-				 * 
-				 * JWTVerifier verifier =
-				 * com.auth0.jwt.JWT.require(algorithm).build(); //Reusable
-				 * verifier instance DecodedJWT jwt = verifier.verify(token);
-				 * 
-				 * logger.log(Level.INFO, jwt.getHeader());
-				 * logger.log(Level.INFO, jwt.getIssuer());
-				 * logger.log(Level.INFO, jwt.getKeyId());
-				 * logger.log(Level.INFO, jwt.getPayload());
-				 * logger.log(Level.INFO, jwt.getSubject());
-				 * logger.log(Level.INFO, jwt.toString());
-				 * 
-				 * 
-				 * JWTVerifier jwtVerifier = new
-				 * JWTVerifier(this.clientSecret.getBytes())); Map<String,
-				 * Object> verify = jwtVerifier.verify(token);
-				 * 
-				 * return (String) decodedPayload.get(this.userField);
-				 */
-				/*
-				 * } catch (UnsupportedEncodingException exception){ //UTF-8
-				 * encoding not supported logger.log(Level.SEVERE,
-				 * exception.getClass().getName()+"/"+exception.getMessage());
-				 * exception.printStackTrace();
-				 * 
-				 * } catch (JWTVerificationException exception){ //Invalid
-				 * signature/claims logger.log(Level.SEVERE,
-				 * "validateAuthorizationHeader() " +
-				 * exception.getClass().getName() + "/" + exception.getMessage()
-				 * ); //exception.printStackTrace(); }
-				 */
 
 			} catch (Exception e) {
 				// e.printStackTrace();
