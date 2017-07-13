@@ -10,7 +10,7 @@
 	<error-page>
 		<!-- Uncaught exception -->
 		<error-code>500</error-code>
-		<location>/error.json</location>
+		<location>/unknown.json</location>
 	</error-page>
 	<error-page>
 		<!-- Unsupported servlet method -->

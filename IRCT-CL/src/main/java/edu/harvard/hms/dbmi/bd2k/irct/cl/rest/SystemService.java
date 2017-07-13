@@ -54,6 +54,22 @@ public class SystemService {
 	}
 
 	/**
+	 * Returns a JSON Array of supported Data Types by the IRCT core.
+	 *
+	 * @return JSON Array of data types
+	 */
+	@GET
+	@Path("/error")
+	@Produces(MediaType.APPLICATION_JSON)
+	public JsonStructure error() {
+		JsonArrayBuilder build = Json.createArrayBuilder();
+		for (PrimitiveDataType pt : PrimitiveDataType.values()) {
+			build.add(pt.toJson());
+		}
+		return build.build();
+	}
+
+	/**
 	 * Returns a JSON Array of application settings
 	 *
 	 * @return JSON Array of settings (key/value pair)
@@ -67,9 +83,15 @@ public class SystemService {
 		IRCTApplication app = new IRCTApplication();
 		JsonArrayBuilder build = Json.createArrayBuilder();
 		build.add(Json.createObjectBuilder().add("version", app.getVersion()));
+
+		// Add user details
 		User user = (User) session.getAttribute("user");
-		build.add(Json.createObjectBuilder().add("username", user.getName()));
-		build.add(Json.createObjectBuilder().add("userid", user.getUserId()));
+		build.add(
+			Json.createObjectBuilder()
+			.add("userid", user.getUserId())
+			.add("name", user.getName())
+		);
+		
 		return build.build();
 	}
 }

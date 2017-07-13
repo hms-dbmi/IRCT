@@ -37,7 +37,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 
 /**
  * Creates a REST interface for the resource service
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -61,7 +61,7 @@ public class ResourceService {
 	 * Returns a list of all resources. If a type is chosen then only resources
 	 * of that type will be returned. Type of resources to return can also be
 	 * specified using the type field.
-	 * 
+	 *
 	 * @param type
 	 *            Type
 	 * @return Response
@@ -109,7 +109,7 @@ public class ResourceService {
 
 	/**
 	 * Returns a list of categories that can be searched for
-	 * 
+	 *
 	 * @return Category list
 	 */
 	@GET
@@ -131,7 +131,7 @@ public class ResourceService {
 
 	/**
 	 * Searches the resources for ones that match a category
-	 * 
+	 *
 	 * @param info
 	 *            URI information
 	 * @return List of resources that match that category
@@ -164,7 +164,7 @@ public class ResourceService {
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
-	
+
 	@GET
 	@Path("/find{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -172,7 +172,7 @@ public class ResourceService {
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Entity> entities = null;
 		FindInformationInterface findInformation;
-		
+
 		if(info.getQueryParameters().containsKey("term")) {
 			findInformation = new FindByPath();
 		} else if(info.getQueryParameters().containsKey("ontologyTerm") && info.getQueryParameters().containsKey("ontologyType")) {
@@ -180,7 +180,7 @@ public class ResourceService {
 		} else {
 			return invalidRequest("Find is missing parameters");
 		}
-		
+
 		// Set up path information
 		Resource resource = null;
 		Entity resourcePath = null;
@@ -192,12 +192,12 @@ public class ResourceService {
 
 			resourcePath = new Entity(path);
 		}
-		
+
 		// Load all values into find information object
 		for(String key : info.getQueryParameters().keySet()) {
 			findInformation.setValue(key, info.getQueryParameters().getFirst(key));
 		}
-		
+
 		if(findInformation instanceof FindByPath) {
 			String searchTerm = info.getQueryParameters().getFirst("term");
 			String strategy = "exact";
@@ -216,7 +216,7 @@ public class ResourceService {
 			findInformation.setValue("term", searchTerm);
 			findInformation.setValue("strategy", strategy);
 		}
-		
+
 		// Run find
 		try {
 			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) session.getAttribute("secureSession"));
@@ -226,20 +226,20 @@ public class ResourceService {
 							+ e.getMessage());
 			return invalidRequest(null);
 		}
-		
+
 		if (entities != null) {
 			for (Entity entity : entities) {
 				response.add(entity.toJson());
 			}
 		}
-		
+
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON).build();
 	}
 
 	/**
 	 * Returns a list of entities. This could be from traversing the paths, or
 	 * through searching for a term or an ontology.
-	 * 
+	 *
 	 * @param path
 	 *            Path
 	 * @param relationshipString
@@ -252,7 +252,7 @@ public class ResourceService {
 	public Response path(@PathParam("path") String path, @QueryParam("relationship") String relationshipString) {
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Entity> entities = null;
-		
+
 		Resource resource = null;
 		Entity resourcePath = null;
 
@@ -260,7 +260,6 @@ public class ResourceService {
 			path = "/" + path;
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
-
 			resourcePath = new Entity(path);
 		}
 
@@ -273,11 +272,11 @@ public class ResourceService {
 						resource.getRelationshipByName(relationshipString),
 						(SecureSession) session.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
-				log.log(Level.INFO,
+				log.log(Level.SEVERE,
 						"Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
 								+ e.getMessage());
-				return invalidRequest(e.getMessage());
+				return invalidRequest(e.getMessage()+" path:"+path);
 			}
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();

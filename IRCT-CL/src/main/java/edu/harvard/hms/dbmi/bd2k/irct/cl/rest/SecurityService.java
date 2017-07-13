@@ -38,7 +38,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 
 /**
  * Creates a REST interface for the security service
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -61,16 +61,16 @@ public class SecurityService implements Serializable {
 
 	private final NonceGenerator nonceGenerator = new NonceGenerator();
 	private String state;
-	
+
 	@javax.annotation.Resource(mappedName ="java:global/redirect_on_success")
 	private String redirectOnSuccess;
-	
+
 	@javax.annotation.Resource(mappedName ="java:global/domain")
 	private String domain;
-	
+
 	@javax.annotation.Resource(mappedName ="java:global/client_id")
 	private String clientId;
-	
+
 	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientSecret;
 	private User user;
@@ -86,7 +86,7 @@ public class SecurityService implements Serializable {
 
 	/**
 	 * Creates a state and keeps it associated with the users http session
-	 * 
+	 *
 	 * @return A JSON Object containing the state information
 	 */
 	@GET
@@ -106,7 +106,7 @@ public class SecurityService implements Serializable {
 
 	/**
 	 * Receives the callback from the authentication provider and validates it
-	 * 
+	 *
 	 * @param code
 	 *            Identity code
 	 * @param state
@@ -202,25 +202,28 @@ public class SecurityService implements Serializable {
 
 	/**
 	 * Creates a secure key if the user is inside a valid session
-	 * 
+	 *
 	 * @return A secure generated random key
 	 */
 	@GET
 	@Path("/createKey")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createKey() {
+
 		JsonObjectBuilder build = Json.createObjectBuilder();
+
 		if((this.user == null) && (session.getAttribute("user") != null)) {
 			this.user = (User) session.getAttribute("user");
 			this.token = (Token) session.getAttribute("token");
 		}
+
 		String key = sc.createKey(this.user, this.token);
 		// IF USER IS LOGGED IN
 		if (key != null) {
 			build.add("key", key);
 		} else {
 			build.add("status", "fail");
-			build.add("message", "Unable to generate key");
+			build.add("message", "Unable to generate key for user:"+this.user+" and token:"+this.token);
 			return Response.status(Response.Status.FORBIDDEN)
 					.entity(build.build()).build();
 		}
@@ -230,7 +233,7 @@ public class SecurityService implements Serializable {
 
 	/**
 	 * Starts a session if presented with a valid key
-	 * 
+	 *
 	 * @param key
 	 *            A session key
 	 * @return A status message stating if a new session has started
@@ -265,7 +268,7 @@ public class SecurityService implements Serializable {
 
 	/**
 	 * Ends a session if currently within one
-	 * 
+	 *
 	 * @return A status message stating if the session has ended.
 	 */
 	@GET
