@@ -34,7 +34,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a session filter for ensuring secure access
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -135,11 +135,11 @@ public class SessionFilter implements Filter {
 			try {
 
 				String[] parts = authorizationHeader.split(" ");
-				Logger.getGlobal().log(Level.INFO, parts[0] + "/" + parts[1]);
 
 				if (parts.length != 2) {
 					return null;
 				}
+				logger.log(Level.INFO, "validateAuthorizationHeader() "+parts[0] + "/" + parts[1]);
 
 				String scheme = parts[0];
 				String credentials = parts[1];
@@ -159,11 +159,11 @@ public class SessionFilter implements Filter {
 					JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 					DecodedJWT jwt = verifier.verify(token);
 					logger.log(Level.FINE, jwt.toString());
-					
+
 					// OK, we can trust this JWT
 					logger.log(Level.INFO, "validateAuthorizationHeader() Token trusted)");
 					return jwt.getClaim("email").asString();
-					
+
 				} catch (Exception e) {
 					logger.log(Level.SEVERE, "validateAuthorizationHeader() Exception:" + e.getMessage());
 				}
