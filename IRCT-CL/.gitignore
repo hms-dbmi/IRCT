@@ -31,3 +31,7 @@
 .settings/org.jboss.ide.eclipse.as.core.prefs
 
 .metadata/src/main/webapp/WEB-INF/faces-config.pageflow
+
+.DS_Store
+
+src/main/.DS_Store
