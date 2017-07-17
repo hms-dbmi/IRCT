@@ -103,21 +103,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-install-plugin</artifactId> 
 				<version>2.5.2</version>
-				<executions>
-					<execution>
-						<phase>initialize</phase> 
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-						<configuration>
-							<groupId>com.oracle.jdbc</groupId>
-							<artifactId>ojdbc6</artifactId>
-							<version>1.0</version>
-							<packaging>jar</packaging>
-							<file>${basedir}/src/main/resources/lib/ojdbc6.jar</file>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
