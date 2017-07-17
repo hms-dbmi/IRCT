@@ -52,7 +52,7 @@ public class ResourceService {
 	private PathController pc;
 
 	@Inject
-	Logger log;
+	Logger logger;
 
 	@Inject
 	private HttpSession session;
@@ -142,9 +142,12 @@ public class ResourceService {
 	public Response search(@Context UriInfo info) {
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
+				
+		logger.log(Level.FINE, "/search queryString:"+info.getQueryParameters().keySet().toString());
+		
 		for (String categoryName : info.getQueryParameters().keySet()) {
 			List<String> values = info.getQueryParameters().get(categoryName);
-
+			logger.log(Level.FINE, "/search is ["+categoryName+"] valid?");
 			if (!rc.isValidCategory(categoryName)) {
 				JsonObjectBuilder build = Json.createObjectBuilder();
 				build.add("status", "Invalid resource category");
@@ -221,9 +224,7 @@ public class ResourceService {
 		try {
 			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) session.getAttribute("secureSession"));
 		} catch (ResourceInterfaceException e) {
-			log.log(Level.INFO,
-					"Error in /resourceService/find"
-							+ e.getMessage());
+			logger.log(Level.SEVERE, "/find Exception:" + e.getMessage());
 			return invalidRequest(null);
 		}
 
@@ -259,8 +260,11 @@ public class ResourceService {
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
+			logger.log(Level.FINE, "/path "+path.toString());
 			resource = rc.getResource(path.split("/")[1]);
+			System.out.println(resource.toString());
 			resourcePath = new Entity(path);
+			logger.log(Level.FINE, "/path resourcePath:"+resourcePath.toString());
 		}
 
 		if (resource != null) {
@@ -268,11 +272,12 @@ public class ResourceService {
 				relationshipString = "child";
 			}
 			try {
+				logger.log(Level.FINE, "/path traversing resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
 				entities = pc.traversePath(resource, resourcePath,
 						resource.getRelationshipByName(relationshipString),
 						(SecureSession) session.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
-				log.log(Level.SEVERE,
+				logger.log(Level.SEVERE,
 						"Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
 								+ e.getMessage());
@@ -281,7 +286,7 @@ public class ResourceService {
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();
 		} else {
-			return invalidRequest(null);
+			return invalidRequest("Resource is null and Path is missing.");
 		}
 
 		if (entities != null) {
