@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -41,8 +43,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -113,7 +115,8 @@ public class I2B2XMLResourceImplementation implements
 	protected CRCCell crcCell;
 	protected PMCell pmCell;
 	protected ONTCell ontCell;
-
+	Logger logger;
+	
 	protected ResourceState resourceState;
 
 	@Override
@@ -171,6 +174,8 @@ public class I2B2XMLResourceImplementation implements
 	public List<Entity> getPathRelationship(Entity path,
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
+		logger.log(Level.FINE, "getPathRelationship(`"+path.toString()+"`,`"+relationship.toString()+"`)");
+		
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
 		HttpClient client = createClient(session);
@@ -179,6 +184,7 @@ public class I2B2XMLResourceImplementation implements
 
 		try {
 			if (relationship == I2B2OntologyRelationship.CHILD) {
+				logger.log(Level.FINE, "getPathRelationship()");
 				// If first then get projects
 				if (pathComponents.length == 2) {
 					pmCell = createPMCell();
@@ -198,10 +204,9 @@ public class I2B2XMLResourceImplementation implements
 					}
 
 				} else {
+					logger.log(Level.FINE, "getPathRelationship()");
 					ontCell = createOntCell(pathComponents[2]);
-
 					ConceptsType conceptsType = null;
-
 					if (pathComponents.length == 3) {
 						// If beyond second then get ontology categories
 						conceptsType = ontCell.getCategories(client, false,
