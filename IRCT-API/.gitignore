@@ -16,3 +16,5 @@
 .settings/org.eclipse.m2e.wtp.prefs
 
 .settings/org.eclipse.wst.validation.prefs
+
+.DS_Store

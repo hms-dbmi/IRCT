@@ -6,6 +6,8 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
@@ -31,6 +33,9 @@ public class ResourceController {
 	private IRCTApplication irctApp;
 
 	private List<String> categories;
+	
+	@Inject
+	Logger logger;
 
 	@PostConstruct
 	public void init() {
@@ -141,6 +146,11 @@ public class ResourceController {
 	 * @return Category Validity
 	 */
 	public boolean isValidCategory(String categoryName) {
+		if (this.categories == null) {
+			logger.log(Level.FINE, "isValidCategory(`"+categoryName+"`) missing `categories` list.");
+			return false;
+		}
+		logger.log(Level.FINE, "isValidCategory(`"+categoryName+"`) in "+this.categories.toString());
 		return this.categories.contains(categoryName);
 	}
 
