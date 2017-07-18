@@ -6,15 +6,4 @@
 	<session-config>
 		<session-timeout>120</session-timeout>
 	</session-config>
-
-	<error-page>
-		<!-- Uncaught exception -->
-		<error-code>500</error-code>
-		<location>/unknown.json</location>
-	</error-page>
-	<error-page>
-		<!-- Unsupported servlet method -->
-		<error-code>503</error-code>
-		<location>/error.json</location>
-	</error-page>
 </web-app>
