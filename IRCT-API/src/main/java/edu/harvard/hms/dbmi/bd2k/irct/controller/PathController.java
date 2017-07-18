@@ -5,19 +5,20 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 
 /**
  * A stateless controller that manages the relationships, and paths for a
@@ -33,7 +34,7 @@ public class PathController {
 	private ResourceController rc;
 
 	@Inject
-	Logger log;
+	Logger logger;
 	
 	@Inject
 	private IRCTEventListener irctEventListener;
@@ -56,11 +57,16 @@ public class PathController {
 	public List<Entity> traversePath(Resource resource, Entity resourcePath,
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
+		logger.log(Level.FINE, "traversePath() resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
+		
 		if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(
 					resourcePath, relationship, session);
+		} else {
+			logger.log(Level.SEVERE, "traversePath() resource"+resource.getName()+" does not implement PathResource");
 		}
+		logger.log(Level.FINE, "traversePath() returning NULL");
 		return null;
 	}
 
@@ -110,7 +116,6 @@ public class PathController {
 		
 		irctEventListener.afterFind(matches, findInformation, session);
 		
-		
 		return matches;
 	}
 
@@ -121,7 +126,7 @@ public class PathController {
 		try {
 			entities = resource.find(resourcePath, findInformation, session);
 		} catch (Exception e) {
-			log.info("Unable to search for term on resource " + resource
+			logger.log(Level.SEVERE, "find() Unable to search for term on resource " + resource
 					+ " message: " + e.getMessage());
 		}
 		return entities;

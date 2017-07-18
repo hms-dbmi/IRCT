@@ -10,6 +10,7 @@ import java.util.Date;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.persistence.CascadeType;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -45,7 +46,7 @@ public class Result {
 	@Transient
 	private Executable executable;
 
-	@ManyToOne
+	@ManyToOne(cascade=CascadeType.MERGE)
 	private User user;
 
 	@Temporal(TemporalType.TIMESTAMP)
