@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.ejb.Singleton;
 
@@ -46,6 +48,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
  */
 @Singleton
 public class IRCTEventListener {
+	Logger logger = Logger.getGlobal();
 	private Map<String, List<IRCTEvent>> events;
 
 	/**
@@ -300,6 +303,8 @@ public class IRCTEventListener {
 	 *            Result
 	 */
 	public void beforeGetResult(User user, Long resultId) {
+		logger.log(Level.FINE, "beforeGetResult() ");
+		
 		List<IRCTEvent> irctEvents = events.get("BeforeGetResult");
 		if (irctEvents == null)
 			return;
