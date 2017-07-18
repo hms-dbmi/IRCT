@@ -225,7 +225,7 @@ public class ResourceService {
 			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) session.getAttribute("secureSession"));
 		} catch (ResourceInterfaceException e) {
 			logger.log(Level.SEVERE, "/find Exception:" + e.getMessage());
-			return invalidRequest(null);
+			return invalidRequest(e.getMessage());
 		}
 
 		if (entities != null) {
@@ -260,12 +260,12 @@ public class ResourceService {
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
-			logger.log(Level.FINE, "/path "+path.toString());
+			logger.log(Level.FINE, "/path path:"+path.toString());
 			resource = rc.getResource(path.split("/")[1]);
-			System.out.println(resource.toString());
-			resourcePath = new Entity(path);
-			logger.log(Level.FINE, "/path resourcePath:"+resourcePath.toString());
+			resourcePath = new Entity(path);		
 		}
+		logger.log(Level.FINE, "/path resource:"+(resource==null?"NULL":resource.getName()+" ontologyType:"+resource.getOntologyType().toString()));
+		logger.log(Level.FINE, "/path resourcePath:"+(resourcePath==null?"NULL":resourcePath.getName()));
 
 		if (resource != null) {
 			if (relationshipString == null) {
@@ -281,7 +281,7 @@ public class ResourceService {
 						"Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
 								+ e.getMessage());
-				return invalidRequest(e.getMessage()+" path:"+path);
+				return invalidRequest(e.toString()+"/"+e.getMessage()+" path:"+path);
 			}
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();
