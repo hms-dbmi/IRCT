@@ -423,7 +423,7 @@ public class QueryController {
 							&& (!predicateField.getPermittedValues().contains(
 									queryFieldValue))) {
 						throw new QueryException(
-								"The field value is not of an allowed type");
+								"The field value ```"+queryFieldValue+"``` is not of an allowed type. Only allowed:"+predicateField.getPermittedValues().toString());
 					}
 				}
 				

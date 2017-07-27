@@ -57,14 +57,18 @@ public class PathController {
 	public List<Entity> traversePath(Resource resource, Entity resourcePath,
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
-		logger.log(Level.FINE, "traversePath() resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
+		logger.log(Level.FINE, "traversePath() resource:"+resource.getName()+" resourcePath:"+resourcePath.toString());
+		
+		if (resource.getImplementingInterface() == null) {
+			logger.log(Level.FINE, "traversePath() is an interface implementing NULL");
+		}
 		
 		if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(
 					resourcePath, relationship, session);
 		} else {
-			logger.log(Level.SEVERE, "traversePath() resource"+resource.getName()+" does not implement PathResource");
+			logger.log(Level.SEVERE, "traversePath() resource ```"+resource.getName()+"``` does not implement PathResource");
 		}
 		logger.log(Level.FINE, "traversePath() returning NULL");
 		return null;

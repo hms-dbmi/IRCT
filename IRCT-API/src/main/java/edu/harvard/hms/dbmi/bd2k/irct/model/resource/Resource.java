@@ -6,6 +6,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -111,8 +112,15 @@ public class Resource implements Serializable {
 	 * @throws ResourceInterfaceException Throws a resource interface
 	 */
 	public void setup() throws ResourceInterfaceException {
-		implementingInterface.setup(this.parameters);
-		this.setSetup(true);
+		boolean isDoneSettingUp = false;
+		try {
+			implementingInterface.setup(this.parameters);
+			isDoneSettingUp = true;
+		} catch (Exception e) {
+			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
+			e.printStackTrace();
+		}
+		this.setSetup(isDoneSettingUp);
 	}
 
 	/**

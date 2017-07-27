@@ -14,6 +14,8 @@ import java.util.logging.Logger;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.NonUniqueResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -82,6 +84,7 @@ public class SecurityController {
 	 *         not valid
 	 */
 	public SecureSession validateKey(String key) {
+		
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<SecureSession> cq = cb.createQuery(SecureSession.class);
 		Root<SecureSession> secureSession = cq.from(SecureSession.class);
@@ -117,19 +120,22 @@ public class SecurityController {
 	 *            User Id
 	 * @return User
 	 */
-	public User getUser(String userId) {
+	public User ensureUserExists(String userId) {
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<User> cq = cb.createQuery(User.class);
 		Root<User> userRoot = cq.from(User.class);
 		cq.where(cb.equal(userRoot.get("userId"), userId));
 		cq.select(userRoot);
-		List<User> users = entityManager.createQuery(cq).getResultList();
-
-		if (users == null || users.isEmpty()) {
-			return new User((String) userId);
+		User user;
+		try{
+			user = entityManager.createQuery(cq).getSingleResult();
+		}catch(NoResultException e){
+			user = new User(userId);
+			entityManager.persist(user);
+		}catch(NonUniqueResultException e){
+			throw new RuntimeException("Duplicate User Found : " + userId, e);
 		}
-
-		return users.get(0);
+		return user;
 	}
 
 	private final String generateString() {

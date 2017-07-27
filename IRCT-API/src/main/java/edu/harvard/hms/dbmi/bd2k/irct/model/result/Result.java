@@ -46,7 +46,7 @@ public class Result {
 	@Transient
 	private Executable executable;
 
-	@ManyToOne(cascade=CascadeType.MERGE)
+	//@ManyToOne(cascade = CascadeType.ALL)
 	private User user;
 
 	@Temporal(TemporalType.TIMESTAMP)

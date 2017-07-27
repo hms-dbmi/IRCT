@@ -36,8 +36,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
  * The execution controller is a stateless controller that manages the
  * executions of different processes, queries, and joins by creating an
  * execution plan and running it.
- * 
- * 
+ *
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -52,13 +52,13 @@ public class ExecutionController {
 
 	@Resource(name = "DefaultManagedExecutorService")
 	private ManagedExecutorService mes;
-	
+
 	@Inject
 	private ResourceController rc;
-	
+
 	/**
 	 * Runs the process
-	 * 
+	 *
 	 * @param process
 	 *            Process to run
 	 * @param secureSession Session to run it in
@@ -93,7 +93,7 @@ public class ExecutionController {
 
 	/**
 	 * Run a query by creating an execution plan
-	 * 
+	 *
 	 * @param query
 	 *            Query
 	 * @param secureSession Session to run it in
@@ -103,15 +103,16 @@ public class ExecutionController {
 	 */
 	public Long runQuery(Query query, SecureSession secureSession)
 			throws PersistableException {
+
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
-		if(secureSession != null) {
-			newResult.setUser(secureSession.getUser());
-		}
+
+		// Add the current user to the query.
+		newResult.setUser(secureSession.getUser());
 
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
-		
+
 		QueryAction qa = new QueryAction();
 		edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
 		if(!resource.isSetup()) {
@@ -132,7 +133,7 @@ public class ExecutionController {
 
 	/**
 	 * Run a join by creating an execution plan
-	 * 
+	 *
 	 * @param join
 	 *            Join to run
 	 * @param secureSession Session to run it in
@@ -147,10 +148,10 @@ public class ExecutionController {
 		if(secureSession != null) {
 			newResult.setUser(secureSession.getUser());
 		}
-		
+
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
-		
+
 		JoinAction ja = new JoinAction();
 		ja.setup(join);
 
@@ -166,7 +167,7 @@ public class ExecutionController {
 
 	/**
 	 * Runs an execution plan
-	 * 
+	 *
 	 * @param executionPlan
 	 *            Execution Plan
 	 * @param result
@@ -184,15 +185,15 @@ public class ExecutionController {
 				try {
 					result.setStartTime(new Date());
 					executionPlan.run();
-					
+
 					Result finalResult = executionPlan.getResults();
-					
+
 					if ((finalResult.getResultStatus() == ResultStatus.COMPLETE) && (finalResult.getData() instanceof Persistable)) {
 						result.setDataType(finalResult.getDataType());
 						result.setData(finalResult.getData());
 						result.setResultSetLocation(finalResult.getResultSetLocation());
 						result.setMessage(finalResult.getMessage());
-						
+
 						if(((Persistable) result.getData()).isPersisted()) {
 							((Persistable) result.getData()).merge();
 						} else {
@@ -203,7 +204,7 @@ public class ExecutionController {
 						result.setResultStatus(ResultStatus.ERROR);
 						result.setMessage(finalResult.getMessage());
 					}
-					
+
 					result.setEndTime(new Date());
 					UserTransaction userTransaction = lookup();
 					userTransaction.begin();
@@ -217,7 +218,7 @@ public class ExecutionController {
 					log.info(e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
 				} finally {
-					
+
 				}
 				return result;
 			}

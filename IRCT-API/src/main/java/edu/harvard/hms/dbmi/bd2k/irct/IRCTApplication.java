@@ -187,21 +187,25 @@ public class IRCTApplication {
 	 */
 	private void loadResources() {
 		setResources(new HashMap<String, Resource>());
+		
 		// Run JPA Query to load the resources
 		CriteriaBuilder cb = oem.getCriteriaBuilder();
 		CriteriaQuery<Resource> criteria = cb.createQuery(Resource.class);
 		Root<Resource> load = criteria.from(Resource.class);
 		criteria.select(load);
+		log.info("loadResources() "+criteria.toString());
 		for (Resource resource : oem.createQuery(criteria).getResultList()) {
 			try {
+				log.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());
 				resource.setup();
+				log.info("loadResources() resource ```"+resource.getName()+"``` has been loaded");
 				this.resources.put(resource.getName(), resource);
 			} catch (ResourceInterfaceException e) {
+				log.warning("loadResources() Exception: "+e.getMessage());
 				e.printStackTrace();
 			}
-
 		}
-		log.info("Loaded " + this.resources.size() + " resources");
+		log.info("loadResources() Loaded " + this.resources.size() + " resources");
 	}
 
 	/**
