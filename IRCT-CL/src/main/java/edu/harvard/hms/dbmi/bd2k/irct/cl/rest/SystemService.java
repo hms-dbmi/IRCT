@@ -80,8 +80,8 @@ public class SystemService {
 	public JsonStructure about() {
 		log.log(Level.FINE, "/about URL");
 
-		IRCTApplication app = new IRCTApplication();
 		JsonArrayBuilder build = Json.createArrayBuilder();
+		IRCTApplication app = new IRCTApplication();
 		build.add(Json.createObjectBuilder().add("version", app.getVersion()));
 
 		// Add user details
@@ -91,7 +91,6 @@ public class SystemService {
 			.add("userid", user.getUserId())
 			.add("name", user.getName())
 		);
-		
 		return build.build();
 	}
 }

@@ -71,9 +71,13 @@ public class ResourceService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
 		JsonArrayBuilder response = Json.createArrayBuilder();
+		
+		logger.info("/resources");
 
 		List<Resource> returnResources = null;
 		if (type == null || type.isEmpty()) {
+			logger.info("/resources get all types of resources");
+
 			returnResources = rc.getResources();
 		} else {
 			switch (type.toLowerCase()) {
@@ -261,10 +265,18 @@ public class ResourceService {
 			path = "/" + path;
 			path = path.substring(1);
 			logger.log(Level.FINE, "/path path:"+path.toString());
+			
+			logger.log(Level.FINE, "/path call getResource("+path.split("/")[1]+")");
 			resource = rc.getResource(path.split("/")[1]);
+			
+			logger.log(Level.FINE, "/path create Entity("+path+")");
 			resourcePath = new Entity(path);		
 		}
-		logger.log(Level.FINE, "/path resource:"+(resource==null?"NULL":resource.getName()+" ontologyType:"+resource.getOntologyType().toString()));
+		
+		logger.log(Level.FINE, "/path resource {\"name\":\""+(resource==null?"NULL":resource.getName()+"\", "+
+				"\"ontologyType\":\""+resource.getOntologyType().toString()+"\"}"));
+		//logger.log(Level.FINE, "/path resource "+resource.toJson().toString());
+		
 		logger.log(Level.FINE, "/path resourcePath:"+(resourcePath==null?"NULL":resourcePath.getName()));
 
 		if (resource != null) {

@@ -5,7 +5,11 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
@@ -13,8 +17,11 @@ import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -29,6 +36,9 @@ import us.monoid.web.Resty;
 import static us.monoid.web.Resty.content;
 
 import com.auth0.NonceGenerator;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT;
@@ -46,6 +56,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 @SessionScoped
 @ManagedBean
 public class SecurityService implements Serializable {
+
+	Logger logger = Logger.getLogger(this.getClass().getName());
 
 	private static final long serialVersionUID = 8769258362839602228L;
 
@@ -91,6 +103,7 @@ public class SecurityService implements Serializable {
 	 */
 	@GET
 	@Path("/createState")
+	@Deprecated
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonStructure createState() {
 		JsonObjectBuilder build = Json.createObjectBuilder();
@@ -117,6 +130,7 @@ public class SecurityService implements Serializable {
 	 */
 	@GET
 	@Path("/callback")
+	@Deprecated
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response callback(@QueryParam(value = "code") String code,
 			@QueryParam(value = "state") String state,
@@ -197,7 +211,7 @@ public class SecurityService implements Serializable {
 
 		String userEmail = userInfo.getString("email");
 
-		return sc.getUser(userEmail);
+		return sc.ensureUserExists(userEmail);
 	}
 
 	/**
@@ -208,16 +222,43 @@ public class SecurityService implements Serializable {
 	@GET
 	@Path("/createKey")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createKey() {
+	public Response createKey(@Context HttpServletRequest req) {
 
 		JsonObjectBuilder build = Json.createObjectBuilder();
 
-		if((this.user == null) && (session.getAttribute("user") != null)) {
-			this.user = (User) session.getAttribute("user");
-			this.token = (Token) session.getAttribute("token");
-		}
+//		if((this.user == null) && (session.getAttribute("user") != null)) {
+//			this.user = (User) session.getAttribute("user");
+//			this.token = (Token) session.getAttribute("token");
+//		}
 
-		String key = sc.createKey(this.user, this.token);
+		
+		User userObject;
+		try {
+			userObject = sc.ensureUserExists(extractEmailFromJWT(req));
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			
+			build.add("status", "fail");
+			build.add("message", "JWT token is not a token.");
+			return Response.status(Response.Status.FORBIDDEN)
+					.entity(build.build()).build();
+			
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			
+			build.add("status", "fail");
+			build.add("message", "Invalid encoding for JWT token handling");
+			return Response.status(Response.Status.FORBIDDEN)
+					.entity(build.build()).build();
+			
+		}
+		
+		// TODO : This is evil, we should not even know how to create a valid tranSMART token.
+		Token tokenObject = createTokenObject(req);
+		
+		String key = sc.createKey(userObject, tokenObject);
 		// IF USER IS LOGGED IN
 		if (key != null) {
 			build.add("key", key);
@@ -231,6 +272,63 @@ public class SecurityService implements Serializable {
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 
+	public Token createTokenObject(ServletRequest req) {
+		Token tokenObject = new JWT(((HttpServletRequest)req).getHeader("Authorization"), "", "Bearer",
+				this.clientId);
+		return tokenObject;
+	}
+
+	private String extractEmailFromJWT(HttpServletRequest req) 
+			throws IllegalArgumentException, UnsupportedEncodingException {
+		Algorithm algo = Algorithm.HMAC256(this.clientSecret);
+		JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
+		DecodedJWT jwt = verifier.verify(extractToken(req));
+		logger.log(Level.FINE, jwt.toString());
+
+		// OK, we can trust this JWT
+		logger.log(Level.INFO, "validateAuthorizationHeader() Token trusted)");
+		return jwt.getClaim("email").asString();
+	}
+
+	private String extractToken(HttpServletRequest req) {
+		logger.log(Level.FINE, "extractToken() Starting");
+		String token = null;
+		
+		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
+
+		if (authorizationHeader != null) {
+			logger.log(Level.FINE, "extractToken() header:" + authorizationHeader);
+			try {
+
+				String[] parts = authorizationHeader.split(" ");
+
+				if (parts.length != 2) {
+					return null;
+				}
+				logger.log(Level.INFO, "extractToken() "+parts[0] + "/" + parts[1]);
+
+				String scheme = parts[0];
+				String credentials = parts[1];
+
+				Pattern pattern = Pattern.compile("^Bearer$", Pattern.CASE_INSENSITIVE);
+				if (pattern.matcher(scheme).matches()) {
+					token = credentials;
+				}
+				logger.log(Level.FINE, "extractToken() token:" + token);
+
+			} catch (Exception e) {
+				// e.printStackTrace();
+				logger.log(Level.SEVERE,
+						"extractToken() token validation failed: " + e + "/" + e.getMessage());
+			}
+		} else {
+			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found and no current SecureSession exists for the user."));
+		}
+		logger.log(Level.SEVERE, "extractToken() Finished (null returned)");
+		
+		return token;
+	}
+	
 	/**
 	 * Starts a session if presented with a valid key
 	 *
@@ -263,7 +361,6 @@ public class SecurityService implements Serializable {
 		session.setAttribute("secureSession", ss);
 		build.add("status", "success");
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
-
 	}
 
 	/**
