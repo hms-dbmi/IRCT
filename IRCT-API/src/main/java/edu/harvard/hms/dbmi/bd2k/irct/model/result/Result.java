@@ -10,18 +10,18 @@ import java.util.Date;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.persistence.CascadeType;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.persistence.ManyToOne;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.Transient;
-import javax.persistence.SequenceGenerator;
+
+import org.apache.commons.logging.impl.Log4JLogger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
@@ -41,6 +41,8 @@ public class Result {
 	@GeneratedValue(generator = "resultSequencer")
 	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
 	private Long id;
+	
+	private Log4JLogger logger = new Log4JLogger();
 
 	// TODO: REMOVE TRANSIENT
 	@Transient
@@ -93,13 +95,15 @@ public class Result {
 	 * @return JSON Representation
 	 */
 	public JsonObject toJson(int depth) {
+		logger.debug("toJson("+depth+")");
+		
 		depth--;
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
 		jsonBuilder.add("id", this.id);
 		jsonBuilder.add("status", this.resultStatus.toString());
 		DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		jsonBuilder.add("runTime", formatter.format(new Date()));
-
+		logger.debug("toJson("+depth+") build");
 		return jsonBuilder.build();
 	}
 
@@ -300,7 +304,12 @@ public class Result {
 	 * @return Message
 	 */
 	public String getMessage() {
-		return message;
+		logger.debug("getMessage()");
+		if (this.message.length() > 255) {
+			this.message = this.message.substring(0, 252) + "...";
+		}
+		logger.debug("getMessage() returning "+this.message);
+		return this.message;
 	}
 
 	/**
@@ -308,7 +317,13 @@ public class Result {
 	 * @param message Message
 	 */
 	public void setMessage(String message) {
-		this.message = message;
+		logger.debug("setMessage() "+message);
+		if (message.length() > 255) {
+			logger.debug("setMessage() message is too long. chopping off");
+			this.message = message.substring(0, 252) + "...";
+		} else {
+			this.message = message;
+		}
 	}
 
 

@@ -6,6 +6,8 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -43,6 +45,9 @@ public class ResultController {
 
 	@Inject
 	private IRCTApplication irctApp;
+	
+	@Inject
+	private Logger logger;
 	
 	@Inject
 	private IRCTEventListener irctEventListener;
@@ -133,15 +138,20 @@ public class ResultController {
 	 */
 	public ResultDataStream getResultDataStream(User user, Long resultId,
 			String format) {
+		
+		logger.log(Level.FINE, "getResultDataStream() user:"+user.getName()+" resultId:"+resultId+" format:"+(format==null?"NULL":format));
 		ResultDataStream rds = new ResultDataStream();
 		List<Result> results = getResults(user, resultId);
 
 		if (results == null || results.size() == 0) {
 			rds.setMessage("Unable to find result");
 			return rds;
+		} else {
+			logger.log(Level.FINE, "getResultDataStream() there are ```"+results.size()+"``` results found.");
 		}
 		Result result = results.get(0);
 		
+		logger.log(Level.FINE, "getResultDataStream() The first result status is "+result.getResultStatus().name());
 		if(result.getResultStatus() != ResultStatus.AVAILABLE) {
 			rds.setMessage("Result is not available");
 			return rds;
@@ -149,6 +159,8 @@ public class ResultController {
 		
 		ResultDataConverter rdc = irctApp.getResultDataConverter(
 				result.getDataType(), format);
+		
+		logger.log(Level.FINE, "getResultDataStream() ResultDataConverter has been retrieved");
 		if (rdc == null) {
 			rds.setMessage("Unable to find format");
 			return rds;
@@ -219,10 +231,14 @@ public class ResultController {
 	 */
 	public Result createResult(ResultDataType resultDataType)
 			throws PersistableException {
+		logger.log(Level.FINE, "createResult() "+resultDataType.toString());
+		
 		Result result = new Result();
 		entityManager.persist(result);
+		
 		result.setDataType(resultDataType);
 		result.setStartTime(new Date());
+		
 		if (resultDataType == ResultDataType.TABULAR) {
 			FileResultSet frs = new FileResultSet();
 			frs.persist(irctApp.getResultDataFolder()
@@ -231,7 +247,7 @@ public class ResultController {
 					+ "/" + result.getId());
 			result.setData(frs);
 		} else if (resultDataType == ResultDataType.JSON) {
-
+			logger.log(Level.FINE, "createResult() JSON DataType is NOT persisted!!!");
 		} else {
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage("Unknown Result Data Type");
