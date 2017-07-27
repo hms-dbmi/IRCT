@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.json.Json;
@@ -63,8 +64,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String transmartURL;
 
-	final static Logger logger = Logger.getLogger("I2B2TranSMARTResourceImplementation");
-
+	final static Logger logger = Logger.getGlobal();
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
@@ -315,7 +315,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(url);
-			logger.log(Level,FINE, "runClinicalDataQuery() url:"+url);
+			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
 			JsonParser parser = Json.createParser(response.getEntity()
@@ -515,8 +515,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 
 		} catch (URISyntaxException | JsonException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.log(Level.SEVERE, "searchObservationOnly() Exception: "+e.getMessage());
 		}
 
 		return entities;
@@ -530,8 +529,6 @@ public class I2B2TranSMARTResourceImplementation extends
 				singleReturnPathComponents.length)) {
 			singleReturnMyPath += "\\" + pathComponent;
 		}
-
-		// singleReturnMyPath += "\\";
 
 		return singleReturnMyPath;
 	}
