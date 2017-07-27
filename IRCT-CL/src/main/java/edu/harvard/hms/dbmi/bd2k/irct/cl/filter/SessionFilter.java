@@ -121,6 +121,7 @@ public class SessionFilter implements Filter {
 		
 		boolean isValidated = false;
 		try {
+			logger.log(Level.FINE, "validateAuthorizationHeader() validating with un-decoded secret.");
 			Algorithm algo = Algorithm.HMAC256(this.clientSecret.getBytes("UTF-8"));
 			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 			DecodedJWT jwt = verifier.verify(tokenString);
@@ -128,19 +129,23 @@ public class SessionFilter implements Filter {
 			userEmail = jwt.getClaim("email").asString();
 
 		} catch (Exception e) {
-			logger.log(Level.WARNING, "Failed first validation of JWT token. Trying it with decoding the secret");
+			logger.log(Level.WARNING, "validateAuthorizationHeader() First validation with undecoded secret has failed. "+e.getMessage());
 		}
 		
 		// If the first try, with decoding the clientSecret fails, due to whatever reason,
 		// try to use a different algorithm, where the clientSecret does not get decoded
 		if (!isValidated) {
 			try {
+				logger.log(Level.FINE, "validateAuthorizationHeader() validating secret while de-coding it first.");
 				Algorithm algo = Algorithm.HMAC256(Base64.decodeBase64(this.clientSecret.getBytes("UTF-8")));
 				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 				DecodedJWT jwt = verifier.verify(tokenString);
 				isValidated = true;
+				
 				userEmail = jwt.getClaim("email").asString();
 			} catch (Exception e) {
+				logger.log(Level.FINE, "validateAuthorizationHeader() Second validation has failed as well."+e.getMessage());
+				
 				throw new NotAuthorizedException(Response.status(401)
 						.entity("Could not validate with a plain, not-encoded client secret. "+e.getMessage()));
 			}
@@ -151,7 +156,7 @@ public class SessionFilter implements Filter {
 			throw new NotAuthorizedException(Response.status(401)
 					.entity("Could not validate the JWT token passed in."));
 		}
-		
+		logger.log(Level.FINE, "validateAuthorizationHeader() Finished. Returning userEmail:"+userEmail);
 		return userEmail;
 	}
 
