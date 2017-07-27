@@ -4,6 +4,8 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -43,6 +45,9 @@ public class ResultService {
 
 	@Inject
 	private HttpSession session;
+	
+	@Inject
+	private Logger logger;
 
 	/**
 	 * Returns a list of available results for that user
@@ -147,25 +152,31 @@ public class ResultService {
 	public Response download(@PathParam("resultId") Long resultId,
 			@PathParam("format") String format,
 			@QueryParam("download") String download) {
+		
+		logger.log(Level.FINE, "/result format:"+(format==null?"null":format)+" download:"+(download==null?"null":download));
 		User user = (User) session.getAttribute("user");
 
 		ResultDataStream rds = rc.getResultDataStream(user, resultId, format);
+		
 		if ((rds == null) || (rds.getMediaType() == null)) {
+			logger.log(Level.FINE, "/result rds or mediaType is null");
+			
 			JsonObjectBuilder jsonResponse = Json.createObjectBuilder();
-			jsonResponse.add("message", "Unable to retrieve result");
+			jsonResponse.add("message", "Unable to retrieve result.");
 			return Response
 					.ok(jsonResponse.build(), MediaType.APPLICATION_JSON)
 					.build();
 		}
 
 		if ((download != null) && (download.equalsIgnoreCase("Yes"))) {
+			logger.log(Level.FINE, "/result initiate download with mediaType:"+rds.getMediaType().toString());
 			return Response
 					.ok(rds.getResult(), rds.getMediaType())
 					.header("Content-Disposition",
 							"attachment; filename=IRCT-" + resultId
 									+ rds.getFileExtension()).build();
 		}
-
+		logger.log(Level.FINE, "/result returning");
 		return Response.ok(rds.getResult(), rds.getMediaType()).build();
 	}
 }
