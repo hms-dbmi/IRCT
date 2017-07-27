@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import static us.monoid.web.Resty.content;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
@@ -21,7 +21,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -30,21 +29,17 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import us.monoid.json.JSONException;
-import us.monoid.json.JSONObject;
-import us.monoid.web.Resty;
-import static us.monoid.web.Resty.content;
-
 import com.auth0.NonceGenerator;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
 
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import us.monoid.json.JSONException;
+import us.monoid.json.JSONObject;
+import us.monoid.web.Resty;
 
 /**
  * Creates a REST interface for the security service
@@ -225,16 +220,10 @@ public class SecurityService implements Serializable {
 	public Response createKey(@Context HttpServletRequest req) {
 
 		JsonObjectBuilder build = Json.createObjectBuilder();
-
-//		if((this.user == null) && (session.getAttribute("user") != null)) {
-//			this.user = (User) session.getAttribute("user");
-//			this.token = (Token) session.getAttribute("token");
-//		}
-
 		
 		User userObject;
 		try {
-			userObject = sc.ensureUserExists(extractEmailFromJWT(req));
+			userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
 		} catch (IllegalArgumentException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -278,56 +267,7 @@ public class SecurityService implements Serializable {
 		return tokenObject;
 	}
 
-	private String extractEmailFromJWT(HttpServletRequest req) 
-			throws IllegalArgumentException, UnsupportedEncodingException {
-		Algorithm algo = Algorithm.HMAC256(this.clientSecret);
-		JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-		DecodedJWT jwt = verifier.verify(extractToken(req));
-		logger.log(Level.FINE, jwt.toString());
-
-		// OK, we can trust this JWT
-		logger.log(Level.INFO, "validateAuthorizationHeader() Token trusted)");
-		return jwt.getClaim("email").asString();
-	}
-
-	private String extractToken(HttpServletRequest req) {
-		logger.log(Level.FINE, "extractToken() Starting");
-		String token = null;
-		
-		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
-
-		if (authorizationHeader != null) {
-			logger.log(Level.FINE, "extractToken() header:" + authorizationHeader);
-			try {
-
-				String[] parts = authorizationHeader.split(" ");
-
-				if (parts.length != 2) {
-					return null;
-				}
-				logger.log(Level.INFO, "extractToken() "+parts[0] + "/" + parts[1]);
-
-				String scheme = parts[0];
-				String credentials = parts[1];
-
-				Pattern pattern = Pattern.compile("^Bearer$", Pattern.CASE_INSENSITIVE);
-				if (pattern.matcher(scheme).matches()) {
-					token = credentials;
-				}
-				logger.log(Level.FINE, "extractToken() token:" + token);
-
-			} catch (Exception e) {
-				// e.printStackTrace();
-				logger.log(Level.SEVERE,
-						"extractToken() token validation failed: " + e + "/" + e.getMessage());
-			}
-		} else {
-			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found and no current SecureSession exists for the user."));
-		}
-		logger.log(Level.SEVERE, "extractToken() Finished (null returned)");
-		
-		return token;
-	}
+	
 	
 	/**
 	 * Starts a session if presented with a valid key

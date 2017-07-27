@@ -33,6 +33,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.rest.SecurityService;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
@@ -82,7 +83,7 @@ public class SessionFilter implements Filter {
 			
 			try {
 				User user = session.getAttribute("user") == null ? 
-						sc.ensureUserExists(validateAuthorizationHeader((HttpServletRequest) req)) 
+						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
 						: (User)session.getAttribute("user");
 				Token token = session.getAttribute("token") == null ? 
 						ss.createTokenObject(req)
@@ -111,86 +112,6 @@ public class SessionFilter implements Filter {
 		session.setAttribute("user", user);
 		session.setAttribute("token", token);
 		session.setAttribute("secureSession", secureSession);
-	}
-	
-	private String validateAuthorizationHeader(HttpServletRequest req) throws IllegalArgumentException, UnsupportedEncodingException, com.auth0.jwt.exceptions.SignatureVerificationException {
-		logger.log(Level.FINE, "validateAuthorizationHeader() with secret:"+this.clientSecret);
-		
-		String tokenString = extractToken(req);
-		String userEmail = null;
-		
-		boolean isValidated = false;
-		try {
-			logger.log(Level.FINE, "validateAuthorizationHeader() validating with un-decoded secret.");
-			Algorithm algo = Algorithm.HMAC256(this.clientSecret.getBytes("UTF-8"));
-			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-			DecodedJWT jwt = verifier.verify(tokenString);
-			isValidated = true;
-			userEmail = jwt.getClaim("email").asString();
-
-		} catch (Exception e) {
-			logger.log(Level.WARNING, "validateAuthorizationHeader() First validation with undecoded secret has failed. "+e.getMessage());
-		}
-		
-		// If the first try, with decoding the clientSecret fails, due to whatever reason,
-		// try to use a different algorithm, where the clientSecret does not get decoded
-		if (!isValidated) {
-			try {
-				logger.log(Level.FINE, "validateAuthorizationHeader() validating secret while de-coding it first.");
-				Algorithm algo = Algorithm.HMAC256(Base64.decodeBase64(this.clientSecret.getBytes("UTF-8")));
-				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-				DecodedJWT jwt = verifier.verify(tokenString);
-				isValidated = true;
-				
-				userEmail = jwt.getClaim("email").asString();
-			} catch (Exception e) {
-				logger.log(Level.FINE, "validateAuthorizationHeader() Second validation has failed as well."+e.getMessage());
-				
-				throw new NotAuthorizedException(Response.status(401)
-						.entity("Could not validate with a plain, not-encoded client secret. "+e.getMessage()));
-			}
-		}
-		
-		if (!isValidated) {
-			// If we get here, it means we could not validated the JWT token. Total failure.
-			throw new NotAuthorizedException(Response.status(401)
-					.entity("Could not validate the JWT token passed in."));
-		}
-		logger.log(Level.FINE, "validateAuthorizationHeader() Finished. Returning userEmail:"+userEmail);
-		return userEmail;
-	}
-
-	private String extractToken(HttpServletRequest req) {
-		logger.log(Level.FINE, "extractToken() Starting");
-		String token = null;
-
-		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
-
-		if (authorizationHeader != null) {
-			logger.log(Level.FINE, "extractToken() header:" + authorizationHeader);
-
-			String[] parts = authorizationHeader.split(" ");
-
-			if (parts.length != 2) {
-				throw new NotAuthorizedException(Response.status(401)
-						.entity("Invalid formatting of ```Authorization``` header. Only Bearer type header accepted."));
-			}
-			logger.log(Level.FINE, "extractToken() " + parts[0] + "/" + parts[1]);
-
-			String scheme = parts[0];
-			String credentials = parts[1];
-
-			Pattern pattern = Pattern.compile("^Bearer$", Pattern.CASE_INSENSITIVE);
-			if (pattern.matcher(scheme).matches()) {
-				token = credentials;
-			}
-			logger.log(Level.FINE, "extractToken() token:" + token);
-		} else {
-			throw new NotAuthorizedException(Response.status(401)
-					.entity("No Authorization header found and no current SecureSession exists for the user."));
-		}
-		logger.log(Level.FINE, "extractToken() Finished. Token:" + token);
-		return token;
 	}
 
 	@Override
