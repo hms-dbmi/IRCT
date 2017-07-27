@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -36,7 +35,6 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
@@ -93,14 +91,15 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 /**
  * A resource implementation of a resource that communicates with the i2b2
  * servers via XML
- * 
- * 
+ *
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
-public class I2B2XMLResourceImplementation implements
-		QueryResourceImplementationInterface,
-		PathResourceImplementationInterface {
+public class I2B2XMLResourceImplementation
+		implements QueryResourceImplementationInterface, PathResourceImplementationInterface {
+
+	java.util.logging.Logger logger = java.util.logging.Logger.getGlobal();
 
 	protected String resourceName;
 	protected String resourceURL;
@@ -115,31 +114,57 @@ public class I2B2XMLResourceImplementation implements
 	protected CRCCell crcCell;
 	protected PMCell pmCell;
 	protected ONTCell ontCell;
-	Logger logger;
-	
+
 	protected ResourceState resourceState;
 
+	private void log_debug(String msg) {
+		logger.log(Level.FINE, msg);
+	}
+
 	@Override
-	public void setup(Map<String, String> parameters)
-			throws ResourceInterfaceException {
-		String[] strArray = { "resourceName", "resourceURL", "domain" };
-		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
-			throw new ResourceInterfaceException("Missing parameters");
+	public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
+
+		if (!parameters.keySet().contains("resourceName")) {
+			throw new ResourceInterfaceException("Missing ```resourceName``` parameter. It is mandatory");
+		}
+
+		if (!parameters.keySet().contains("resourceURL")) {
+			throw new ResourceInterfaceException("Missing ```resourceURL``` parameter. It is mandatory.");
+		}
+
+		if (!parameters.keySet().contains("domain")) {
+			throw new ResourceInterfaceException("Missing ```domain``` parameter. It is mandatory");
 		}
 
 		this.resourceName = parameters.get("resourceName");
+		logger.log(Level.FINE, "setup() resourceName:" + (this.resourceName != null ? this.resourceName : "NULL"));
+
 		this.resourceURL = parameters.get("resourceURL");
+		logger.log(Level.FINE, "setup() resourceURL:" + (this.resourceName != null ? this.resourceURL : "NULL"));
+
 		this.domain = parameters.get("domain");
+		logger.log(Level.FINE, "setup() domain:" + (this.resourceName != null ? this.domain : "NULL"));
+
 		this.clientId = parameters.get("clientId");
+		logger.log(Level.FINE, "setup() clientId:" + (this.clientId != null ? this.clientId : "NULL"));
+
 		this.namespace = parameters.get("namespace");
+		logger.log(Level.FINE, "setup() namespace:" + (this.namespace != null ? this.namespace : "NULL"));
+
 		this.proxyURL = parameters.get("proxyURL");
+		logger.log(Level.FINE, "setup() proxyURL:" + (this.proxyURL != null ? this.proxyURL : "NULL"));
+
 		String certificateString = parameters.get("ignoreCertificate");
+		logger.log(Level.FINE, "certificateString:" + (certificateString != null ? certificateString : "NULL"));
 
 		if (this.proxyURL == null) {
 			this.useProxy = false;
 			this.userName = parameters.get("username");
 			this.password = parameters.get("password");
+			logger.log(Level.FINE, "setup() Since no proxyURL has been specified. using username/password [" + this.userName + "/"
+					+ this.password + "]");
 		} else {
+			logger.log(Level.FINE, "setup() Using proxyURL to connect to i2b2??? We shall see ;)");
 			this.useProxy = true;
 		}
 
@@ -148,20 +173,29 @@ public class I2B2XMLResourceImplementation implements
 		} else {
 			this.ignoreCertificate = false;
 		}
+		logger.log(Level.FINE,
+				"setup() Based on some stupid logic, it took is this long to determined that ```ignoreCeriticate``` is "
+						+ (this.ignoreCertificate ? "TRUE" : "FALSE"));
 
 		// Setup Cells
 		try {
+			logger.log(Level.FINE, "setup() Setting up CRCCell");
 			crcCell = new CRCCell();
+			logger.log(Level.FINE, "setup() Setting up ONTCell");
 			ontCell = new ONTCell();
+			logger.log(Level.FINE, "setup() Setting up PMCell");
 			pmCell = new PMCell();
+			logger.log(Level.FINE, "setup() calling crcCell.setup()");
 			crcCell.setup();
+			logger.log(Level.FINE, "setup() calling ontCell.setup()");
 			ontCell.setup();
+			logger.log(Level.FINE, "setup() calling pmCell.setup()");
 			pmCell.setup();
-
+			logger.log(Level.FINE, "setup() finished setting up everything. Zoom-zoom...");
 		} catch (JAXBException e) {
+			logger.log(Level.SEVERE,  "setup() Exception: "+e.getMessage());
 			throw new ResourceInterfaceException(e);
 		}
-
 		resourceState = ResourceState.READY;
 	}
 
@@ -171,11 +205,13 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
-		logger.log(Level.FINE, "getPathRelationship(`"+path.toString()+"`,`"+relationship.toString()+"`)");
-		
+		logger.log(Level.FINE, "getPathRelationship() Starting");
+		logger.log(Level.FINE,
+					"getPathRelationship() path:" + (path==null?"NULL":path.getName() + path.getDisplayName() + path.getDescription()));
+		logger.log(Level.FINE, "getPathRelationship() relationship:" + (relationship == null?"NULL":relationship.getName()));
+
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
 		HttpClient client = createClient(session);
@@ -184,13 +220,18 @@ public class I2B2XMLResourceImplementation implements
 
 		try {
 			if (relationship == I2B2OntologyRelationship.CHILD) {
-				logger.log(Level.FINE, "getPathRelationship()");
+				logger.log(Level.FINE, "getPathRelationship() I2B2OntologyRelationship.CHILD, with "+pathComponents.length+" components.");
+
 				// If first then get projects
 				if (pathComponents.length == 2) {
+					logger.log(Level.FINE, "getPathRelationship() creating PMCell.");
 					pmCell = createPMCell();
-					ConfigureType configureType = pmCell.getUserConfiguration(
-							client, null, new String[] { "undefined" });
+
+					ConfigureType configureType = pmCell.getUserConfiguration(client, null,
+							new String[] { "undefined" });
 					for (ProjectType pt : configureType.getUser().getProject()) {
+						logger.log(Level.FINE, "getPathRelationship() ProjectType:"+pt.getName()+" "+pt.getDescription());
+
 						Entity entity = new Entity();
 						if (pt.getPath() == null) {
 							entity.setPui(path.getPui() + "/" + URLEncoder.encode(pt.getName(), "UTF-8"));
@@ -204,35 +245,31 @@ public class I2B2XMLResourceImplementation implements
 					}
 
 				} else {
-					logger.log(Level.FINE, "getPathRelationship()");
 					ontCell = createOntCell(pathComponents[2]);
 					ConceptsType conceptsType = null;
 					if (pathComponents.length == 3) {
 						// If beyond second then get ontology categories
-						conceptsType = ontCell.getCategories(client, false,
-								false, true, "core");
+						conceptsType = ontCell.getCategories(client, false, false, true, "core");
 					} else {
 						// If second then get categories
 						String myPath = "\\";
-						for (String pathComponent : Arrays.copyOfRange(
-								pathComponents, 3, pathComponents.length)) {
+						for (String pathComponent : Arrays.copyOfRange(pathComponents, 3, pathComponents.length)) {
 							myPath += "\\" + pathComponent;
 						}
-						basePath = pathComponents[0] + "/" + pathComponents[1]
-								+ "/" + pathComponents[2];
+						basePath = pathComponents[0] + "/" + pathComponents[1] + "/" + pathComponents[2];
 
-						conceptsType = ontCell.getChildren(client, myPath,
-								false, false, false, -1, "core");
+						conceptsType = ontCell.getChildren(client, myPath, false, false, false, -1, "core");
 
 					}
 					// Convert ConceptsType to Entities
-					entities = convertConceptsTypeToEntities(basePath,
-							conceptsType);
+					entities = convertConceptsTypeToEntities(basePath, conceptsType);
 				}
 
 			} else if (relationship == I2B2OntologyRelationship.MODIFIER) {
-				String resourcePath = getResourcePathFromPUI(basePath);
+				log_debug("getPathRelationship() I2B2OntologyRelationship.MODIFIER, with basePath(pui):"+(basePath==null?"NULL":basePath));
 
+				String resourcePath = getResourcePathFromPUI(basePath);
+				log_debug("getPathRelationship() resourcePath:"+resourcePath);
 				if (resourcePath == null) {
 					return entities;
 				}
@@ -241,10 +278,9 @@ public class I2B2XMLResourceImplementation implements
 					resourcePath += '\\';
 				}
 				ontCell = createOntCell(pathComponents[2]);
-				ModifiersType modifiersType = ontCell.getModifiers(client,
-						false, false, null, -1, resourcePath, false, null);
-				entities = convertModifiersTypeToEntities(basePath,
-						modifiersType);
+				ModifiersType modifiersType = ontCell.getModifiers(client, false, false, null, -1, resourcePath, false,
+						null);
+				entities = convertModifiersTypeToEntities(basePath, modifiersType);
 			} else if (relationship == I2B2OntologyRelationship.TERM) {
 				String resourcePath = getResourcePathFromPUI(basePath);
 
@@ -259,12 +295,10 @@ public class I2B2XMLResourceImplementation implements
 
 				ConceptsType conceptsType = null;
 
-				conceptsType = ontCell.getTermInfo(client, true, resourcePath,
-						true, -1, true, "core");
+				conceptsType = ontCell.getTermInfo(client, true, resourcePath, true, -1, true, "core");
 				entities = convertConceptsTypeToEntities(basePath, conceptsType);
 			} else {
-				throw new ResourceInterfaceException(relationship.toString()
-						+ " not supported by this resource");
+				throw new ResourceInterfaceException(relationship.toString() + " not supported by this resource");
 			}
 		} catch (Exception e) {
 			throw new ResourceInterfaceException(e.getMessage());
@@ -274,28 +308,23 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+	public List<Entity> find(Entity path, FindInformationInterface findInformation, SecureSession session)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
 		if (findInformation instanceof FindByPath) {
-			returns = searchPaths(path, ((FindByPath) findInformation)
-					.getValues().get("term"), ((FindByPath) findInformation)
-					.getValues().get("strategy"), session);
+			returns = searchPaths(path, ((FindByPath) findInformation).getValues().get("term"),
+					((FindByPath) findInformation).getValues().get("strategy"), session);
 		} else if (findInformation instanceof FindByOntology) {
-			String ontologyTerm = ((FindByOntology) findInformation)
-					.getValues().get("ontologyTerm");
-			String ontologyType = ((FindByOntology) findInformation)
-					.getValues().get("ontologyType");
+			String ontologyTerm = ((FindByOntology) findInformation).getValues().get("ontologyTerm");
+			String ontologyType = ((FindByOntology) findInformation).getValues().get("ontologyType");
 			returns = searchOntology(path, ontologyType, ontologyTerm, session);
 		}
 
 		return returns;
 	}
 
-	public List<Entity> searchPaths(Entity path, String searchTerm,
-			String strategy, SecureSession session)
+	public List<Entity> searchPaths(Entity path, String searchTerm, String strategy, SecureSession session)
 			throws ResourceInterfaceException {
 
 		List<Entity> entities = new ArrayList<Entity>();
@@ -304,52 +333,38 @@ public class I2B2XMLResourceImplementation implements
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
 				pmCell = createPMCell();
-				ConfigureType configureType = pmCell.getUserConfiguration(
-						client, null, new String[] { "undefined" });
+				ConfigureType configureType = pmCell.getUserConfiguration(client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
-					for (ConceptType category : getCategories(client,
-							pt.getId()).getConcept()) {
+					for (ConceptType category : getCategories(client, pt.getId()).getConcept()) {
 
-						String categoryName = converti2b2Path(category.getKey())
-								.split("/")[1];
+						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
 
-						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName + "/" + pt.getId(),
-								runNameSearch(client, pt.getId(), categoryName,
-										strategy, searchTerm)));
+						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pt.getId(),
+								runNameSearch(client, pt.getId(), categoryName, strategy, searchTerm)));
 					}
 				}
 			} else {
 				String[] pathComponents = path.getPui().split("/");
 				if (pathComponents.length == 3) {
 					// Get All Categories
-					for (ConceptType category : getCategories(client,
-							pathComponents[2]).getConcept()) {
-						String categoryName = converti2b2Path(category.getKey())
-								.split("/")[1];
-						entities.addAll(convertConceptsTypeToEntities(
-								"/" + this.resourceName + "/"
-										+ pathComponents[2],
-								runNameSearch(client, pathComponents[2],
-										categoryName, strategy, searchTerm)));
+					for (ConceptType category : getCategories(client, pathComponents[2]).getConcept()) {
+						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
+						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
+								runNameSearch(client, pathComponents[2], categoryName, strategy, searchTerm)));
 					}
 				} else {
 					// Run request
-					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName + "/" + pathComponents[2],
-							runNameSearch(client, pathComponents[2],
-									pathComponents[3], strategy, searchTerm)));
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
+							runNameSearch(client, pathComponents[2], pathComponents[3], strategy, searchTerm)));
 				}
 			}
-		} catch (JAXBException | UnsupportedOperationException
-				| I2B2InterfaceException | IOException e) {
+		} catch (JAXBException | UnsupportedOperationException | I2B2InterfaceException | IOException e) {
 			throw new ResourceInterfaceException(e.getMessage());
 		}
 		return entities;
 	}
 
-	public List<Entity> searchOntology(Entity path, String ontologyType,
-			String ontologyTerm, SecureSession session)
+	public List<Entity> searchOntology(Entity path, String ontologyType, String ontologyTerm, SecureSession session)
 			throws ResourceInterfaceException {
 		List<Entity> entities = new ArrayList<Entity>();
 		HttpClient client = createClient(session);
@@ -357,41 +372,32 @@ public class I2B2XMLResourceImplementation implements
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
 				pmCell = createPMCell();
-				ConfigureType configureType = pmCell.getUserConfiguration(
-						client, null, new String[] { "undefined" });
+				ConfigureType configureType = pmCell.getUserConfiguration(client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
-					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName + "/" + pt.getId(),
-							runCategorySearch(client, pt.getId(), null,
-									ontologyType, ontologyTerm)));
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pt.getId(),
+							runCategorySearch(client, pt.getId(), null, ontologyType, ontologyTerm)));
 				}
 			} else {
 				String[] pathComponents = path.getPui().split("/");
 				if (pathComponents.length == 3) {
 					// Get All Categories
-					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName + "/" + pathComponents[2],
-							runCategorySearch(client, pathComponents[2], null,
-									ontologyType, ontologyTerm)));
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
+							runCategorySearch(client, pathComponents[2], null, ontologyType, ontologyTerm)));
 				} else {
 					// Run request
-					entities.addAll(convertConceptsTypeToEntities(
-							"/" + this.resourceName + "/" + pathComponents[2],
-							runCategorySearch(client, pathComponents[2],
-									pathComponents[3], ontologyType,
+					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
+							runCategorySearch(client, pathComponents[2], pathComponents[3], ontologyType,
 									ontologyTerm)));
 				}
 			}
-		} catch (JAXBException | UnsupportedOperationException
-				| I2B2InterfaceException | IOException e) {
+		} catch (JAXBException | UnsupportedOperationException | I2B2InterfaceException | IOException e) {
 			throw new ResourceInterfaceException(e.getMessage());
 		}
 		return entities;
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query query, Result result)
-			throws ResourceInterfaceException {
+	public Result runQuery(SecureSession session, Query query, Result result) throws ResourceInterfaceException {
 		// Initial setup
 		HttpClient client = createClient(session);
 		result.setResultStatus(ResultStatus.CREATED);
@@ -408,8 +414,7 @@ public class I2B2XMLResourceImplementation implements
 				if (clause instanceof WhereClause) {
 					// Get the projectId if it isn't already set
 					if (projectId.equals("")) {
-						String[] pathComponents = ((WhereClause) clause)
-								.getField().getPui().split("/");
+						String[] pathComponents = ((WhereClause) clause).getField().getPui().split("/");
 						projectId = pathComponents[2];
 					}
 					WhereClause whereClause = (WhereClause) clause;
@@ -450,17 +455,12 @@ public class I2B2XMLResourceImplementation implements
 
 		try {
 			crcCell = createCRCCell(projectId, session.getUser().getName());
-			MasterInstanceResultResponseType mirrt = crcCell
-					.runQueryInstanceFromQueryDefinition(client, null, null,
-							"IRCT", null, "ANY", 0, roolt,
-							panels.toArray(new PanelType[panels.size()]));
+			MasterInstanceResultResponseType mirrt = crcCell.runQueryInstanceFromQueryDefinition(client, null, null,
+					"IRCT", null, "ANY", 0, roolt, panels.toArray(new PanelType[panels.size()]));
 
-			String resultId = mirrt.getQueryResultInstance().get(0)
-					.getResultInstanceId();
-			String queryId = mirrt.getQueryResultInstance().get(0)
-					.getQueryInstanceId();
-			result.setResourceActionId(projectId + "|" + queryId + "|"
-					+ resultId);
+			String resultId = mirrt.getQueryResultInstance().get(0).getResultInstanceId();
+			String queryId = mirrt.getQueryResultInstance().get(0).getQueryInstanceId();
+			result.setResourceActionId(projectId + "|" + queryId + "|" + resultId);
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			result.setResultStatus(ResultStatus.ERROR);
@@ -470,8 +470,7 @@ public class I2B2XMLResourceImplementation implements
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
-			throws ResourceInterfaceException {
+	public Result getResults(SecureSession session, Result result) throws ResourceInterfaceException {
 
 		try {
 			result = checkForResult(session, result);
@@ -486,14 +485,12 @@ public class I2B2XMLResourceImplementation implements
 			String resultId = resultInstanceId.split("\\|")[2];
 
 			// Get PDO List
-			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client,
-					resultId, 0, 100000, false, false, false,
+			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
 					OutputOptionSelectType.USING_INPUT_LIST);
 
 			result = convertPatientSetToResultSet(pdrt, result);
 			result.setResultStatus(ResultStatus.COMPLETE);
-		} catch (JAXBException | I2B2InterfaceException | IOException
-				| ResultSetException | PersistableException e) {
+		} catch (JAXBException | I2B2InterfaceException | IOException | ResultSetException | PersistableException e) {
 			result.setMessage(e.getLocalizedMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
@@ -503,7 +500,7 @@ public class I2B2XMLResourceImplementation implements
 
 	/**
 	 * Checks to see if the result is available
-	 * 
+	 *
 	 * @param session
 	 *            Current Session
 	 * @param result
@@ -518,15 +515,12 @@ public class I2B2XMLResourceImplementation implements
 		String queryId = resultInstanceId.split("\\|")[1];
 
 		try {
-			CRCCell crcCell = createCRCCell(projectId, session.getUser()
-					.getName());
+			CRCCell crcCell = createCRCCell(projectId, session.getUser().getName());
 
 			// Is Query Master List Complete?
 
-			InstanceResponseType instanceResponse = crcCell
-					.getQueryInstanceListFromQueryId(client, queryId);
-			String instanceResultStatusType = instanceResponse
-					.getQueryInstance().get(0).getQueryStatusType().getName();
+			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
+			String instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
 
 			switch (instanceResultStatusType) {
 			case "RUNNING":
@@ -542,11 +536,9 @@ public class I2B2XMLResourceImplementation implements
 			// Is Query Result instance list complete?
 
 			QueryResultInstanceType queryResultInstance = crcCell
-					.getQueryResultInstanceListFromQueryInstanceId(client,
-							queryId).get(0);
+					.getQueryResultInstanceListFromQueryInstanceId(client, queryId).get(0);
 
-			String queryResultInstanceStatusType = queryResultInstance
-					.getQueryStatusType().getName();
+			String queryResultInstanceStatusType = queryResultInstance.getQueryStatusType().getName();
 			switch (queryResultInstanceStatusType) {
 			case "RUNNING":
 				result.setResultStatus(ResultStatus.RUNNING);
@@ -579,8 +571,7 @@ public class I2B2XMLResourceImplementation implements
 	// Utility Methods
 	// -------------------------------------------------------------------------
 
-	private ItemType createItemTypeFromWhereClause(WhereClause whereClause)
-			throws DatatypeConfigurationException {
+	private ItemType createItemTypeFromWhereClause(WhereClause whereClause) throws DatatypeConfigurationException {
 		ItemType item = new ItemType();
 		String myPath = getPathFromField(whereClause.getField());
 
@@ -589,37 +580,28 @@ public class I2B2XMLResourceImplementation implements
 
 		item.setItemIsSynonym(false);
 		if (whereClause.getPredicateType() != null) {
-			if (whereClause.getPredicateType().getName()
-					.equals("CONSTRAIN_MODIFIER")) {
+			if (whereClause.getPredicateType().getName().equals("CONSTRAIN_MODIFIER")) {
 				item.setConstrainByModifier(createConstrainByModifier(whereClause));
-			} else if (whereClause.getPredicateType().getName()
-					.equals("CONSTRAIN_VALUE")) {
-				item.getConstrainByValue().add(
-						createConstrainByValue(whereClause, whereClause
-								.getField().getDataType()));
-			} else if (whereClause.getPredicateType().getName()
-					.equals("CONSTRAIN_DATE")) {
-				item.getConstrainByDate().add(
-						createConstrainByDate(whereClause));
+			} else if (whereClause.getPredicateType().getName().equals("CONSTRAIN_VALUE")) {
+				item.getConstrainByValue()
+						.add(createConstrainByValue(whereClause, whereClause.getField().getDataType()));
+			} else if (whereClause.getPredicateType().getName().equals("CONSTRAIN_DATE")) {
+				item.getConstrainByDate().add(createConstrainByDate(whereClause));
 			}
 		}
 		return item;
 	}
 
-	private ItemType.ConstrainByValue createConstrainByValue(
-			WhereClause whereClause, DataType dataType) {
+	private ItemType.ConstrainByValue createConstrainByValue(WhereClause whereClause, DataType dataType) {
 		ItemType.ConstrainByValue cbv = new ItemType.ConstrainByValue();
 		// value_operator
-		cbv.setValueOperator(ConstrainOperatorType.fromValue(whereClause
-				.getStringValues().get("OPERATOR")));
+		cbv.setValueOperator(ConstrainOperatorType.fromValue(whereClause.getStringValues().get("OPERATOR")));
 		// value_constraint
 		cbv.setValueConstraint(whereClause.getStringValues().get("CONSTRAINT"));
 		// value_unit_of_measure
-		cbv.setValueUnitOfMeasure(whereClause.getStringValues().get(
-				"UNIT_OF_MEASURE"));
+		cbv.setValueUnitOfMeasure(whereClause.getStringValues().get("UNIT_OF_MEASURE"));
 		// value_type
-		if ((dataType.toString().equals("INTEGER"))
-				|| (dataType.toString().equals("LONG"))) {
+		if ((dataType.toString().equals("INTEGER")) || (dataType.toString().equals("LONG"))) {
 			cbv.setValueType(ConstrainValueType.NUMBER);
 		} else if (dataType.toString().equals("STRING")) {
 			cbv.setValueType(ConstrainValueType.TEXT);
@@ -628,36 +610,30 @@ public class I2B2XMLResourceImplementation implements
 		return cbv;
 	}
 
-	private ItemType.ConstrainByModifier createConstrainByModifier(
-			WhereClause whereClause) {
-		String modifierPath = getPathFromString(whereClause.getStringValues()
-				.get("MODIFIER_KEY"));
+	private ItemType.ConstrainByModifier createConstrainByModifier(WhereClause whereClause) {
+		String modifierPath = getPathFromString(whereClause.getStringValues().get("MODIFIER_KEY"));
 		ItemType.ConstrainByModifier cbm = new ItemType.ConstrainByModifier();
 		cbm.setModifierKey(modifierPath);
 		return cbm;
 	}
 
-	private ItemType.ConstrainByDate createConstrainByDate(
-			WhereClause whereClause) throws DatatypeConfigurationException {
+	private ItemType.ConstrainByDate createConstrainByDate(WhereClause whereClause)
+			throws DatatypeConfigurationException {
 		ItemType.ConstrainByDate cbd = new ItemType.ConstrainByDate();
 		ConstrainDateType from = new ConstrainDateType();
-		from.setInclusive(InclusiveType.fromValue(whereClause.getStringValues()
-				.get("FROM_INCLUSIVE")));
-		from.setTime(ConstrainDateTimeType.fromValue(whereClause
-				.getStringValues().get("FROM_TIME")));
+		from.setInclusive(InclusiveType.fromValue(whereClause.getStringValues().get("FROM_INCLUSIVE")));
+		from.setTime(ConstrainDateTimeType.fromValue(whereClause.getStringValues().get("FROM_TIME")));
 
-		from.setValue(DatatypeFactory.newInstance().newXMLGregorianCalendar(
-				whereClause.getStringValues().get("FROM_DATE")));
+		from.setValue(
+				DatatypeFactory.newInstance().newXMLGregorianCalendar(whereClause.getStringValues().get("FROM_DATE")));
 
 		cbd.setDateFrom(from);
 
 		ConstrainDateType to = new ConstrainDateType();
-		to.setInclusive(InclusiveType.fromValue(whereClause.getStringValues()
-				.get("TO_INCLUSIVE")));
-		to.setTime(ConstrainDateTimeType.fromValue(whereClause
-				.getStringValues().get("TO_TIME")));
-		to.setValue(DatatypeFactory.newInstance().newXMLGregorianCalendar(
-				whereClause.getStringValues().get("TO_DATE")));
+		to.setInclusive(InclusiveType.fromValue(whereClause.getStringValues().get("TO_INCLUSIVE")));
+		to.setTime(ConstrainDateTimeType.fromValue(whereClause.getStringValues().get("TO_TIME")));
+		to.setValue(
+				DatatypeFactory.newInstance().newXMLGregorianCalendar(whereClause.getStringValues().get("TO_DATE")));
 		cbd.setDateTo(to);
 		return cbd;
 	}
@@ -670,19 +646,16 @@ public class I2B2XMLResourceImplementation implements
 		}
 		String myPath = "";
 
-		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3,
-				pathComponents.length)) {
+		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3, pathComponents.length)) {
 			myPath += "\\" + pathComponent;
 		}
 
 		return myPath;
 	}
 
-	private Result convertPatientSetToResultSet(
-			PatientDataResponseType patientDataResponse, Result result)
+	private Result convertPatientSetToResultSet(PatientDataResponseType patientDataResponse, Result result)
 			throws ResultSetException, PersistableException {
-		PatientSet patientSet = patientDataResponse.getPatientData()
-				.getPatientSet();
+		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
 
 		FileResultSet mrs = (FileResultSet) result.getData();
 
@@ -703,8 +676,7 @@ public class I2B2XMLResourceImplementation implements
 
 		for (PatientType patientType : patientSet.getPatient()) {
 			mrs.appendRow();
-			mrs.updateString("Patient Id", patientType.getPatientId()
-					.getValue());
+			mrs.updateString("Patient Id", patientType.getPatientId().getValue());
 			for (ParamType paramType : patientType.getParam()) {
 				mrs.updateString(paramType.getColumn(), paramType.getValue());
 			}
@@ -721,8 +693,7 @@ public class I2B2XMLResourceImplementation implements
 	private String getPathFromString(String pathString) {
 		String[] pathComponents = pathString.split("/");
 		String myPath = "\\";
-		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3,
-				pathComponents.length)) {
+		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3, pathComponents.length)) {
 			myPath += "\\" + pathComponent;
 		}
 		if (pathString.endsWith("/")) {
@@ -745,15 +716,14 @@ public class I2B2XMLResourceImplementation implements
 		return panel;
 	}
 
-	private List<Entity> convertConceptsTypeToEntities(String basePath,
-			ConceptsType conceptsType) throws UnsupportedEncodingException {
+	private List<Entity> convertConceptsTypeToEntities(String basePath, ConceptsType conceptsType)
+			throws UnsupportedEncodingException {
 		List<Entity> returns = new ArrayList<Entity>();
 		for (ConceptType concept : conceptsType.getConcept()) {
 			Entity returnEntity = new Entity();
 			returnEntity.setName(concept.getName());
 			String appendPath = converti2b2Path(concept.getKey());
 			returnEntity.setPui(basePath + appendPath);
-			
 
 			if (concept.getVisualattributes().startsWith("L")) {
 				returnEntity.setDataType(PrimitiveDataType.STRING);
@@ -792,31 +762,24 @@ public class I2B2XMLResourceImplementation implements
 			attributes.put("valuetypeCd", concept.getValuetypeCd());
 			ModifierType modifier = concept.getModifier();
 			if (modifier != null) {
-				attributes.put("modifier.level",
-						Integer.toString(modifier.getLevel()));
-				attributes.put("modifier.appliedPath",
-						modifier.getAppliedPath());
+				attributes.put("modifier.level", Integer.toString(modifier.getLevel()));
+				attributes.put("modifier.appliedPath", modifier.getAppliedPath());
 				attributes.put("modifier.key", modifier.getKey());
 				attributes.put("modifier.fullname", modifier.getFullname());
 				attributes.put("modifier.name", modifier.getName());
-				attributes.put("modifier.visualattributes",
-						modifier.getVisualattributes());
+				attributes.put("modifier.visualattributes", modifier.getVisualattributes());
 				attributes.put("modifier.synonymCd", modifier.getSynonymCd());
-				attributes.put("modifier.totalnum", modifier.getTotalnum()
-						.toString());
+				attributes.put("modifier.totalnum", modifier.getTotalnum().toString());
 				attributes.put("modifier.basecode", modifier.getBasecode());
-				attributes.put("modifier.facttablecolumn",
-						modifier.getFacttablecolumn());
+				attributes.put("modifier.facttablecolumn", modifier.getFacttablecolumn());
 				attributes.put("modifier.tablename", modifier.getTablename());
 				attributes.put("modifier.columnname", modifier.getColumnname());
-				attributes.put("modifier.columndatatype",
-						modifier.getColumndatatype());
+				attributes.put("modifier.columndatatype", modifier.getColumndatatype());
 				attributes.put("modifier.operator", modifier.getOperator());
 				attributes.put("modifier.dimcode", modifier.getDimcode());
 				attributes.put("modifier.comment", modifier.getComment());
 				attributes.put("modifier.tooltip", modifier.getTooltip());
-				attributes.put("modifier.sourcesystemCd",
-						modifier.getSourcesystemCd());
+				attributes.put("modifier.sourcesystemCd", modifier.getSourcesystemCd());
 			}
 
 			returnEntity.setAttributes(attributes);
@@ -826,8 +789,8 @@ public class I2B2XMLResourceImplementation implements
 		return returns;
 	}
 
-	private List<Entity> convertModifiersTypeToEntities(String basePath,
-			ModifiersType modifiersType) throws UnsupportedEncodingException {
+	private List<Entity> convertModifiersTypeToEntities(String basePath, ModifiersType modifiersType)
+			throws UnsupportedEncodingException {
 		List<Entity> returns = new ArrayList<Entity>();
 		if (modifiersType == null) {
 			return returns;
@@ -861,8 +824,7 @@ public class I2B2XMLResourceImplementation implements
 			attributes.put("tableName", modifier.getTablename());
 			attributes.put("toolTip", modifier.getTooltip());
 			if (modifier.getTotalnum() != null) {
-				attributes.put("totalNum",
-						Integer.toString(modifier.getTotalnum()));
+				attributes.put("totalNum", Integer.toString(modifier.getTotalnum()));
 			}
 			// attributes.put("updateDate", modifier.getUpdateDate());
 			attributes.put("visualAttributes", modifier.getVisualattributes());
@@ -876,90 +838,83 @@ public class I2B2XMLResourceImplementation implements
 	protected String converti2b2Path(String i2b2Path) throws UnsupportedEncodingException {
 		String[] components = i2b2Path.split("\\\\");
 		String escapedPath = "/";
-		for(String component : components) {
-			if(!component.isEmpty()) {
+		for (String component : components) {
+			if (!component.isEmpty()) {
 				escapedPath += component.replaceAll("/", "%2F") + "/";
 			}
 		}
-		
+
 		return escapedPath;
 	}
 
-	private ConceptsType runNameSearch(HttpClient client, String projectId,
-			String category, String strategy, String searchTerm)
-			throws UnsupportedOperationException, JAXBException,
-			I2B2InterfaceException, IOException {
+	private ConceptsType runNameSearch(HttpClient client, String projectId, String category, String strategy,
+			String searchTerm)
+			throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
 		ONTCell ontCell = createOntCell(projectId);
-		return ontCell.getNameInfo(client, true, category, false, strategy,
-				searchTerm, -1, null, true, "core");
+		return ontCell.getNameInfo(client, true, category, false, strategy, searchTerm, -1, null, true, "core");
 	}
 
 	private ConceptsType getCategories(HttpClient client, String projectId)
-			throws JAXBException, ClientProtocolException, IOException,
-			I2B2InterfaceException {
+			throws JAXBException, ClientProtocolException, IOException, I2B2InterfaceException {
 		ONTCell ontCell = createOntCell(projectId);
 
 		return ontCell.getCategories(client, false, false, true, "core");
 	}
 
-	private ConceptsType runCategorySearch(HttpClient client, String projectId,
-			String category, String ontologyType, String ontologyTerm)
-			throws UnsupportedOperationException, JAXBException,
-			I2B2InterfaceException, IOException {
+	private ConceptsType runCategorySearch(HttpClient client, String projectId, String category, String ontologyType,
+			String ontologyTerm)
+			throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
 		ONTCell ontCell = createOntCell(projectId);
-		return ontCell.getCodeInfo(client, true, category, false, "exact",
-				ontologyType + ":" + ontologyTerm, -1, null, true, "core");
+		return ontCell.getCodeInfo(client, true, category, false, "exact", ontologyType + ":" + ontologyTerm, -1, null,
+				true, "core");
 	}
 
-	private CRCCell createCRCCell(String projectId, String userName)
-			throws JAXBException {
+	private CRCCell createCRCCell(String projectId, String userName) throws JAXBException {
 		if (this.useProxy) {
-			crcCell.setupConnection(this.resourceURL, this.domain, userName,
-					"", projectId, this.useProxy, this.proxyURL
-							+ "/QueryToolService");
+			crcCell.setupConnection(this.resourceURL, this.domain, userName, "", projectId, this.useProxy,
+					this.proxyURL + "/QueryToolService");
 		} else {
-			crcCell.setupConnection(this.resourceURL + "QueryToolService/",
-					this.domain, this.userName, this.password, projectId,
-					false, null);
+			crcCell.setupConnection(this.resourceURL + "QueryToolService/", this.domain, this.userName, this.password,
+					projectId, false, null);
 		}
 		return crcCell;
 	}
 
 	private ONTCell createOntCell(String projectId) throws JAXBException {
 		if (this.useProxy) {
-			ontCell.setupConnection(this.resourceURL, this.domain, "", "",
-					projectId, this.useProxy, this.proxyURL
-							+ "/OntologyService");
+			ontCell.setupConnection(this.resourceURL, this.domain, "", "", projectId, this.useProxy,
+					this.proxyURL + "/OntologyService");
 		} else {
-			ontCell.setupConnection(this.resourceURL + "OntologyService/",
-					this.domain, this.userName, this.password, projectId,
-					false, null);
+			ontCell.setupConnection(this.resourceURL + "OntologyService/", this.domain, this.userName, this.password,
+					projectId, false, null);
 		}
 		return ontCell;
 	}
 
 	private PMCell createPMCell() throws JAXBException {
 		if (this.useProxy) {
-			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "",
-					this.useProxy, this.proxyURL + "/PMService");
+			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "", this.useProxy,
+					this.proxyURL + "/PMService");
 		} else {
-			pmCell.setupConnection(this.resourceURL + "PMService/",
-					this.domain, this.userName, this.password, "", false, null);
+			pmCell.setupConnection(this.resourceURL + "PMService/", this.domain, this.userName, this.password, "",
+					false, null);
 		}
 		return pmCell;
 	}
 
 	/**
 	 * CREATES A CLIENT
-	 * 
+	 *
 	 * @param token
 	 * @return
 	 */
 	protected HttpClient createClient(SecureSession session) {
 		// SSL WRAPAROUND
+		logger.log(Level.FINE, "createClient() session:" + session.toString());
 		HttpClientBuilder returns = null;
 
 		if (ignoreCertificate) {
+			logger.log(Level.FINE, "createClient() ignoring certificates");
 			try {
 				// CLIENT CONNECTION
 				returns = ignoreCertificate();
@@ -973,23 +928,24 @@ public class I2B2XMLResourceImplementation implements
 		List<Header> defaultHeaders = new ArrayList<Header>();
 
 		String token = session.getToken().toString();
+		logger.log(Level.FINE, "createClient() token:"+token);
 		if (this.clientId != null) {
-			token = SecurityUtility.delegateToken(this.namespace,
-					this.clientId, session);
+			logger.log(Level.FINE, "createClient() about to get a delegated token for "+this.namespace+" for client_id:"+this.clientId);
+			token = SecurityUtility.delegateToken(this.namespace, this.clientId, session);
 		}
 
 		if (session != null) {
-			defaultHeaders.add(new BasicHeader("Authorization", token));
+			logger.log(Level.FINE, "createClient() Header ```Authorization: "+token+"``` will be added to the builder.");
+			//defaultHeaders.add(new BasicHeader("Authorization", token));
 		}
-		defaultHeaders.add(new BasicHeader("Content-Type",
-				"application/x-www-form-urlencoded"));
+		logger.log(Level.FINE, "createClient() Header ```Content-Type: application/x-www-form-urlencoded``` will be added to the builder.");
+		//defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
-
+		logger.log(Level.FINE, "createClient() Finished");
 		return returns.build();
 	}
 
-	private HttpClientBuilder ignoreCertificate()
-			throws NoSuchAlgorithmException, KeyManagementException {
+	private HttpClientBuilder ignoreCertificate() throws NoSuchAlgorithmException, KeyManagementException {
 		System.setProperty("jsse.enableSNIExtension", "false");
 
 		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
@@ -998,12 +954,10 @@ public class I2B2XMLResourceImplementation implements
 				return null;
 			}
 
-			public void checkClientTrusted(
-					java.security.cert.X509Certificate[] certs, String authType) {
+			public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
 			}
 
-			public void checkServerTrusted(
-					java.security.cert.X509Certificate[] certs, String authType) {
+			public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
 			}
 		} };
 
@@ -1012,18 +966,14 @@ public class I2B2XMLResourceImplementation implements
 		sslContext = SSLContext.getInstance("SSL");
 		sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
 
-		HttpsURLConnection.setDefaultSSLSocketFactory(sslContext
-				.getSocketFactory());
+		HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
 
-		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-				sslContext, NoopHostnameVerifier.INSTANCE);
+		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
 
-		Registry<ConnectionSocketFactory> r = RegistryBuilder
-				.<ConnectionSocketFactory> create().register("https", sslsf)
+		Registry<ConnectionSocketFactory> r = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf)
 				.build();
 
-		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
-				r);
+		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(r);
 
 		return HttpClients.custom().setConnectionManager(cm);
 	}

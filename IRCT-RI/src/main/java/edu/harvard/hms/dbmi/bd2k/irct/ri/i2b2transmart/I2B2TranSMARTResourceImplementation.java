@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -56,22 +57,36 @@ import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
 /**
  * An implementation of a resource that communicates with the tranSMART
  * instance. It extends the i2b2 XML resource implementation.
- * 
+ *
  */
 public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String transmartURL;
 
+	final static Logger logger = Logger.getLogger("I2B2TranSMARTResourceImplementation");
+
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
-		String[] strArray = { "resourceName", "resourceURL", "transmartURL",
-				"domain" };
-		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
-			throw new ResourceInterfaceException("Missing parameters");
+
+		logger.log(java.util.logging.Level.INFO, "setup() start");
+
+		if (!parameters.keySet().contains("resourceName")) {
+			throw new ResourceInterfaceException("Missing ```resourceName``` parameter.");
 		}
+		if (!parameters.keySet().contains("resourceURL")) {
+			throw new ResourceInterfaceException("Missing ```resourceURL``` parameter.");
+		}
+		if (!parameters.keySet().contains("transmartURL")) {
+			throw new ResourceInterfaceException("Missing ```transmartURL``` parameter.");
+		}
+		if (!parameters.keySet().contains("domain")) {
+			throw new ResourceInterfaceException("Missing ```domain``` parameter.");
+		}
+		logger.log(Level.FINE, "setup() All mandatory parameters are there.");
 
 		this.transmartURL = parameters.get("transmartURL");
+		logger.log(Level.FINE, "setup() ```transmartURL``` is now set to:"+this.transmartURL);
 
 		super.setup(parameters);
 	}
@@ -83,6 +98,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		List<Entity> returns = super.getPathRelationship(path, relationship,
 				session);
 
+		java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ");
 		// Get the counts from the tranSMART server
 		try {
 			HttpClient client = createClient(session);
@@ -98,6 +114,8 @@ public class I2B2TranSMARTResourceImplementation extends
 				basePath = pathComponents[0] + "/" + pathComponents[1] + "/"
 						+ pathComponents[2];
 
+				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() URL:"+this.transmartURL
+				+ "/chart/childConceptPatientCounts");
 				HttpPost post = new HttpPost(this.transmartURL
 						+ "/chart/childConceptPatientCounts");
 				List<NameValuePair> formParameters = new ArrayList<NameValuePair>();
@@ -108,14 +126,17 @@ public class I2B2TranSMARTResourceImplementation extends
 				formParameters.add(new BasicNameValuePair("concept_level", ""));
 
 				post.setEntity(new UrlEncodedFormEntity(formParameters));
-
+				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() making call over HTTP");
 				HttpResponse response = client.execute(post);
 
 				JsonReader jsonReader = Json.createReader(response.getEntity()
 						.getContent());
+				JsonObject responseContent = jsonReader.readObject();
 
-				JsonObject counts = jsonReader.readObject().getJsonObject(
-						"counts");
+				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ResponseEntity:"
+						+responseContent.toString());
+
+				JsonObject counts = responseContent.getJsonObject("counts");
 
 				for (Entity singleReturn : returns) {
 					String singleReturnMyPath = convertPUItoI2B2Path(singleReturn
@@ -127,7 +148,8 @@ public class I2B2TranSMARTResourceImplementation extends
 					}
 				}
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
+			java.util.logging.Logger.getGlobal().log(java.util.logging.Level.SEVERE, "getPathRelationship() Exception "+e.getMessage());
 			e.printStackTrace();
 		}
 
@@ -169,17 +191,17 @@ public class I2B2TranSMARTResourceImplementation extends
 						String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
 						boolean compact = false;
 						String subPUI = null;
-						
+
 						if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
 							compact = true;
 						}
 						if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
 							subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
 						}
-						
+
 						//Loop through all the children and add them to the aliasMap
 						aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, session));
-						
+
 					} else {
 						pui = convertPUItoI2B2Path(selectClause.getParameter()
 								.getPui());
@@ -202,16 +224,16 @@ public class I2B2TranSMARTResourceImplementation extends
 		}
 		return result;
 	}
-	
+
 	private Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, SecureSession session) throws ResourceInterfaceException {
 		Map<String, String> returns = new HashMap<String, String>();
-		
+
 		Entity baseEntity = new Entity(basePUI);
 		for(Entity entity : super.getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, session)) {
-			
+
 			if(entity.getAttributes().containsKey("visualattributes")) {
 				String visualAttributes = entity.getAttributes().get("visualattributes");
-				
+
 				if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
 					returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, session));
 				} else if (visualAttributes.startsWith("L")) {
@@ -228,11 +250,11 @@ public class I2B2TranSMARTResourceImplementation extends
 					}
 					returns.put(pui, alias);
 				}
-				
+
 			}
 		}
-		
-		
+
+
 		return returns;
 	}
 
@@ -261,8 +283,8 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		// Loop through the columns submitting and appending to the
 		// rows every 10
-		
-		
+
+
 		List<String> parameterList = new ArrayList<String>();
 		int counter = 0;
 		String parameters = "";
@@ -290,9 +312,10 @@ public class I2B2TranSMARTResourceImplementation extends
 					+ "&conceptPaths="
 					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
 							"UTF-8");
-			System.out.println(url);
+
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(url);
+			logger.log(Level,FINE, "runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
 			JsonParser parser = Json.createParser(response.getEntity()
