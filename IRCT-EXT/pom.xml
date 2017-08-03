@@ -3,21 +3,30 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
-  		<artifactId>IRCT</artifactId>
-  		<version>1.4.1</version>
+		<artifactId>IRCT</artifactId>
+		<version>1.4.1</version>
 	</parent>
 	<artifactId>IRCT-EXT</artifactId>
 	<name>INTER-RESOURCE COMMUNICATION TOOL : EXTENSION</name>
-
+<repositories>
+    <!-- Repository for ORACLE ojdbc6. -->
+    <repository>
+        <id>data-nucleus</id>
+        <url>http://www.datanucleus.org/downloads/maven2/</url>
+    </repository>
+</repositories>
 	<dependencies>
 		<!-- JUnit -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>oracle</groupId>
+			<artifactId>ojdbc6</artifactId>
+			<version>11.2.0.3</version>
+		</dependency>
 		<!-- Google Guava -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -97,7 +106,7 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-install-plugin</artifactId> 
+				<artifactId>maven-install-plugin</artifactId>
 				<version>2.5.2</version>
 			</plugin>
 			<plugin>
