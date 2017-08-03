@@ -52,19 +52,16 @@
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-RI</artifactId>
-			<version>1.4</version>
 		</dependency>
 
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-API</artifactId>
-			<version>1.4</version>
 		</dependency>
 
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-EXT</artifactId>
-			<version>1.4</version>
 		</dependency>
 
 		<dependency>

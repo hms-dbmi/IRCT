@@ -20,6 +20,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import oracle.sql.ARRAY;
+import oracle.sql.ArrayDescriptor;
 
 public class UMLSSynonymBeforeFind implements BeforeFind {
 
