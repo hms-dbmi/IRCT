@@ -3,9 +3,12 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
+	<parent>
+		<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
+  		<artifactId>IRCT</artifactId>
+  		<version>1.4.1</version>
+	</parent>
 	<artifactId>IRCT-CL</artifactId>
-	<version>1.4</version>
 	<packaging>war</packaging>
 	<name>INTER-RESOURCE COMMUNICATION TOOL : Communication Layer</name>
 	<description></description>
