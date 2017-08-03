@@ -38,7 +38,7 @@ public class SecurityController {
 	EntityManager entityManager;
 
 	@Inject
-	Logger log;
+	Logger logger;
 	
 	@javax.annotation.Resource(mappedName ="java:global/KeyTimeOutInMinutes")
 	private String keyTimeOut;
@@ -70,7 +70,7 @@ public class SecurityController {
 			entityManager.merge(ss);
 		}
 
-		log.info("Created key for " + user.getName());
+		logger.info("Created key for " + user.getName());
 
 		return key;
 	}
@@ -109,7 +109,7 @@ public class SecurityController {
 
 		SecureSession ss = ssl.get(0);
 
-		log.info("Found valid key for " + ss.getUser().getName());
+		logger.info("Found valid key for " + ss.getUser().getName());
 		return ss;
 	}
 
@@ -121,6 +121,7 @@ public class SecurityController {
 	 * @return User
 	 */
 	public User ensureUserExists(String userId) {
+		logger.info("ensureUserExists("+userId+")");
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<User> cq = cb.createQuery(User.class);
 		Root<User> userRoot = cq.from(User.class);

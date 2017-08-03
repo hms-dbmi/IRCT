@@ -73,7 +73,7 @@ public class Utilities {
 	
 	public static String extractEmailFromJWT(HttpServletRequest req, String clientSecret) 
 			throws IllegalArgumentException, UnsupportedEncodingException {
-		logger.log(Level.FINE, "extractEmailFromJWT() with secret:"+clientSecret);
+		logger.log(Level.FINE, "extractEmailFromJWT() with secret:"+(clientSecret==null?"NULL":clientSecret));
 		
 		String tokenString = extractToken(req);
 		String userEmail = null;

@@ -80,11 +80,13 @@ public class SessionFilter implements Filter {
 			// Do Nothing 
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
-			
+			logger.log(Level.FINE, "doFilter() session is "+(session==null?"NULL":"NOT NULL"));
 			try {
+				logger.log(Level.FINE, "doFilter() about to get user object");
 				User user = session.getAttribute("user") == null ? 
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
 						: (User)session.getAttribute("user");
+				logger.log(Level.FINE, "doFilter() about to get token object");
 				Token token = session.getAttribute("token") == null ? 
 						ss.createTokenObject(req)
 						: (Token)session.getAttribute("token");
@@ -93,6 +95,8 @@ public class SessionFilter implements Filter {
 						: (SecureSession)session.getAttribute("secureSession");
 				setSessionAttributes(session, user, token, secureSession);
 			} catch (Exception e) {
+				logger.log(Level.SEVERE, "doFilter() Failed with "+e.getMessage());
+				
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}"; 
 				
 				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
