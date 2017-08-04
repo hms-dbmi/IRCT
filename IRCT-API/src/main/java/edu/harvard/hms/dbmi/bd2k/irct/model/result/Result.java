@@ -21,7 +21,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.Transient;
 
-import org.apache.commons.logging.impl.Log4JLogger;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
@@ -42,7 +42,7 @@ public class Result {
 	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
 	private Long id;
 	
-	private Log4JLogger logger = new Log4JLogger();
+	private Logger logger = Logger.getLogger(getClass());
 
 	// TODO: REMOVE TRANSIENT
 	@Transient
