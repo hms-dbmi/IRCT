@@ -448,10 +448,17 @@
 			<inet-address value="${jboss.bind.address.management:127.0.0.1}" />
 		</interface>
 		<interface name="public">
+<<<<<<< HEAD
 			<inet-address value="${jboss.bind.address:0.0.0.0}" />
 		</interface>
 		<interface name="unsecure">
 			<inet-address value="${jboss.bind.address.unsecure:0.0.0.0}" />
+=======
+			<inet-address value="${jboss.bind.address:127.0.0.1}" />
+		</interface>
+		<interface name="unsecure">
+			<inet-address value="${jboss.bind.address.unsecure:127.0.0.1}" />
+>>>>>>> df9de2cd... added wildfly configs
 		</interface>
 	</interfaces>
 	<socket-binding-group name="standard-sockets"
