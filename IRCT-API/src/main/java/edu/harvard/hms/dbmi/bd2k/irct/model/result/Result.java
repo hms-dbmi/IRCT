@@ -42,6 +42,7 @@ public class Result {
 	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
 	private Long id;
 	
+	@Transient
 	private Logger logger = Logger.getLogger(getClass());
 
 	// TODO: REMOVE TRANSIENT
