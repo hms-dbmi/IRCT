@@ -2,21 +2,11 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.script;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScriptedQuery {
 	
-	private class IRCTQuery {
-		public IRCTQuery(){
-			
-		}
-		public Column[] getSelect() {
-			return select;
-		}
-		public void setSelect(Column[] select) {
-			this.select = select;
-		}
-		private Column[] select;
-		private Predicate[] where;
-	}
 	private List<IRCTQuery> queries;
 	private String script;
 	

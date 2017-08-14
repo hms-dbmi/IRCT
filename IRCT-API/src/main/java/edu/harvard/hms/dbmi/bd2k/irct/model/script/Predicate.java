@@ -1,41 +1,38 @@
 package edu.harvard.hms.dbmi.bd2k.irct.model.script;
 
-import java.util.Map.Entry;
+import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Predicate {
-	Field field;
-	String predicate;
-	Entry<String, String>[] fields;
+	private Field field;
+	private String predicate;
+	private Map<String, String> fields;
+	private String logicalOperator;
+	
+	public Field getField() {
+		return field;
+	}
+	public void setField(Field field) {
+		this.field = field;
+	}
+	public String getPredicate() {
+		return predicate;
+	}
+	public void setPredicate(String predicate) {
+		this.predicate = predicate;
+	}
+	public Map<String, String> getFields() {
+		return fields;
+	}
+	public void setFields(Map<String, String> fields) {
+		this.fields = fields;
+	}
+	public String getLogicalOperator() {
+		return logicalOperator;
+	}
+	public void setLogicalOperator(String logicalOperator) {
+		this.logicalOperator = logicalOperator;
+	}
 }
-
-/**
- * 
-"field": {
-  "pui": "/GRIN-dev/Demo/Genetics of Severe Early Childhood Obseity (GECO)/Genetics of Severe Early Childhood Obseity (GECO)/Exomes/SYMBOL/MRAP2",
-  "dataType": "STRING"
- },
- "predicate": "CONTAINS",
- "fields": {
-   "ENOUNTER": "NO"
- }
-},
-{
-"field": {
-  "pui": "/GRIN-dev/Demo/Genetics of Severe Early Childhood Obseity (GECO)/Genetics of Severe Early Childhood Obseity (GECO)/EHR I2B2/Vitals/BMI for Age Z- Score (CDC-Calculation)",
-  "dataType": "INTEGER"
- },
- "predicate": "CONSTRAIN_VALUE",
- "fields": {
-   "OPERATOR": "GE",
-   "CONSTRAINT": "3",
-   "UNIT_OF_MEASURE": "kg/m2",
-   "ENOUNTER": "NO"
- },
- "logicalOperator" : "AND"
-}
-]
-}
- * 
- * 
- * 
- */
