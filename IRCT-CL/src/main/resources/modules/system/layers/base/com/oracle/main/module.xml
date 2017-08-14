@@ -1,6 +1,6 @@
 <module xmlns="urn:jboss:module:1.1" name="com.oracle">
   <resources>
-    <resource-root path="ojdbc6.jar"/>
+    <resource-root path="ojdbc6-11.2.0.3.jar"/>
   </resources>
   <dependencies>
     <module name="javax.api"/>
