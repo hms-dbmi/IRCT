@@ -306,7 +306,7 @@ public class Result {
 	 */
 	public String getMessage() {
 		logger.debug("getMessage()");
-		if (this.message.length() > 255) {
+		if (this.message != null && this.message.length() > 255) {
 			this.message = this.message.substring(0, 252) + "...";
 		}
 		logger.debug("getMessage() returning "+this.message);
@@ -319,7 +319,7 @@ public class Result {
 	 */
 	public void setMessage(String message) {
 		logger.debug("setMessage() "+message);
-		if (message.length() > 255) {
+		if (message != null && message.length() > 255) {
 			logger.debug("setMessage() message is too long. chopping off");
 			this.message = message.substring(0, 252) + "...";
 		} else {

@@ -76,7 +76,7 @@ public class SessionFilter implements Filter {
 		HttpServletRequest request = (HttpServletRequest) req;
 		
 		// If processing URL /securityService/*, we are creating a session/secureSession
-		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
+		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/rest/securityService/")) {
 			// Do Nothing 
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
