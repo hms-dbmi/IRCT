@@ -936,7 +936,7 @@ public class I2B2XMLResourceImplementation
 
 		if (session != null) {
 			logger.log(Level.FINE, "createClient() Header ```Authorization: "+token+"``` will be added to the builder.");
-			//defaultHeaders.add(new BasicHeader("Authorization", token));
+			defaultHeaders.add(new BasicHeader("Authorization", token));
 		}
 		logger.log(Level.FINE, "createClient() Header ```Content-Type: application/x-www-form-urlencoded``` will be added to the builder.");
 		//defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));

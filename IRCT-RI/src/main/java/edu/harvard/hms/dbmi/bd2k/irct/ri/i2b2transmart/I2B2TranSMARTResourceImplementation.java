@@ -492,6 +492,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(uri);
+			get.addHeader("Authorization","Bearer "+session.getToken());
 			HttpResponse response = client.execute(get);
 			JsonReader reader = Json.createReader(response.getEntity()
 					.getContent());
