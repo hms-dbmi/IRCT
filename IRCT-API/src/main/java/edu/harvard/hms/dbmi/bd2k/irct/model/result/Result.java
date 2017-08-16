@@ -21,8 +21,6 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.Transient;
 
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
@@ -41,8 +39,6 @@ public class Result {
 	@GeneratedValue(generator = "resultSequencer")
 	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
 	private Long id;
-	
-	private Logger logger = Logger.getLogger(getClass());
 
 	// TODO: REMOVE TRANSIENT
 	@Transient
@@ -95,15 +91,12 @@ public class Result {
 	 * @return JSON Representation
 	 */
 	public JsonObject toJson(int depth) {
-		logger.debug("toJson("+depth+")");
-		
 		depth--;
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
 		jsonBuilder.add("id", this.id);
 		jsonBuilder.add("status", this.resultStatus.toString());
 		DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		jsonBuilder.add("runTime", formatter.format(new Date()));
-		logger.debug("toJson("+depth+") build");
 		return jsonBuilder.build();
 	}
 
@@ -304,11 +297,9 @@ public class Result {
 	 * @return Message
 	 */
 	public String getMessage() {
-		logger.debug("getMessage()");
 		if (this.message.length() > 255) {
 			this.message = this.message.substring(0, 252) + "...";
 		}
-		logger.debug("getMessage() returning "+this.message);
 		return this.message;
 	}
 
@@ -317,9 +308,7 @@ public class Result {
 	 * @param message Message
 	 */
 	public void setMessage(String message) {
-		logger.debug("setMessage() "+message);
 		if (message.length() > 255) {
-			logger.debug("setMessage() message is too long. chopping off");
 			this.message = message.substring(0, 252) + "...";
 		} else {
 			this.message = message;
