@@ -73,14 +73,17 @@ public class Utilities {
 	
 	public static String extractEmailFromJWT(HttpServletRequest req, String clientSecret) 
 			throws IllegalArgumentException, UnsupportedEncodingException {
+		System.out.println("extractEmailFromJWT() with secret:"+(clientSecret==null?"NULL":clientSecret));
+		
 		logger.log(Level.FINE, "extractEmailFromJWT() with secret:"+(clientSecret==null?"NULL":clientSecret));
-		
 		String tokenString = extractToken(req);
+		if (tokenString == null || tokenString.isEmpty()) {
+			throw new RuntimeException("Missing or empty token cannot be validated.");
+		}		
 		String userEmail = null;
-		
 		boolean isValidated = false;
 		try {
-			logger.log(Level.FINE, "validateAuthorizationHeader() validating with un-decoded secret.");
+			logger.log(Level.FINE, "extractEmailFromJWT() validating with un-decoded secret.");
 			Algorithm algo = Algorithm.HMAC256(clientSecret.getBytes("UTF-8"));
 			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 			DecodedJWT jwt = verifier.verify(tokenString);
@@ -103,17 +106,15 @@ public class Utilities {
 				
 				userEmail = jwt.getClaim("email").asString();
 			} catch (Exception e) {
-				logger.log(Level.FINE, "extractEmailFromJWT() Second validation has failed as well."+e.getMessage());
-				
-				throw new NotAuthorizedException(Response.status(401)
-						.entity("Could not validate with a plain, not-encoded client secret. "+e.getMessage()));
+				logger.log(Level.FINE, "extractEmailFromJWT() Second validation has failed as well."+e.getMessage());				
+				throw new RuntimeException("Could not validate with a plain, not-encoded client secret. "+e.getMessage());
 			}
 		}
 		
 		if (!isValidated) {
 			// If we get here, it means we could not validated the JWT token. Total failure.
-			throw new NotAuthorizedException(Response.status(401)
-					.entity("Could not validate the JWT token passed in."));
+			logger.log(Level.SEVERE, "extractEmailFromJWT() Could not validate the JWT token passed in.");
+			throw new RuntimeException("Could not validate the JWT token passed in.");
 		}
 		logger.log(Level.FINE, "extractEmailFromJWT() Finished. Returning userEmail:"+userEmail);
 		return userEmail;
@@ -121,7 +122,7 @@ public class Utilities {
 	}
 
 	private static String extractToken(HttpServletRequest req) {
-		logger.log(Level.FINE, "extractToken() Starting");
+		logger.log(Level.INFO, "extractToken() Starting");
 		String token = null;
 		
 		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
@@ -152,10 +153,9 @@ public class Utilities {
 						"extractToken() token validation failed: " + e + "/" + e.getMessage());
 			}
 		} else {
-			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found and no current SecureSession exists for the user."));
+			throw new RuntimeException("No Authorization header found and no current SecureSession exists for the user.");
 		}
 		logger.log(Level.SEVERE, "extractToken() Finished (null returned)");
-		
 		return token;
 	}
 }

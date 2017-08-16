@@ -72,20 +72,34 @@ public class SessionFilter implements Filter {
 
 	@Override
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain fc) throws IOException, ServletException {
-		logger.log(Level.FINE, "doFilter() Starting");
+		
 		HttpServletRequest request = (HttpServletRequest) req;
+		logger.log(Level.FINE, "doFilter() Starting ["+request.getRequestURI()+"]");
 		
 		// If processing URL /securityService/*, we are creating a session/secureSession
-		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
+		if (request.getRequestURI().endsWith("/securityService/startSession")) {
 			logger.log(Level.FINE, "doFilter() do nothing, because securityService is not filtered.");
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.log(Level.FINE, "doFilter() session is "+(session==null?"NULL":"NOT NULL"));
 			try {
 				logger.log(Level.FINE, "doFilter() about to get user object");
-				User user = session.getAttribute("user") == null ? 
+				/*User user =  session.getAttribute("user") == null? 
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
 						: (User)session.getAttribute("user");
+				*/
+				User user = null;
+				if (session.getAttribute("user") == null) {
+					logger.log(Level.FINE, "doFilter() ```session``` does not contain a ```user``` object. Validating passed in token.");
+					String userId = Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret);
+					logger.log(Level.FINE, "doFilter() The passed in JWT contained user:"+(userId==null?"NULL":userId));
+					user = sc.ensureUserExists(userId);
+					logger.log(Level.FINE, "doFilter() Established ```user``` object.");
+				} else {
+					logger.log(Level.FINE, "doFilter() Getting ```user``` object from ```session``` attribute.");
+					user = (User)session.getAttribute("user");
+				}
+						
 				logger.log(Level.FINE, "doFilter() about to get token object");
 				Token token = session.getAttribute("token") == null ? 
 						ss.createTokenObject(req)
