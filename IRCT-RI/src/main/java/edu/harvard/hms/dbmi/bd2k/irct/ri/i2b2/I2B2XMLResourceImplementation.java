@@ -35,6 +35,7 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeader;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
@@ -936,7 +937,7 @@ public class I2B2XMLResourceImplementation
 
 		if (session != null) {
 			logger.log(Level.FINE, "createClient() Header ```Authorization: "+token+"``` will be added to the builder.");
-			defaultHeaders.add(new BasicHeader("Authorization", token));
+			defaultHeaders.add((Header) new BasicHeader("Authorization", token));
 		}
 		logger.log(Level.FINE, "createClient() Header ```Content-Type: application/x-www-form-urlencoded``` will be added to the builder.");
 		//defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
