@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class ScriptedQuery {
 	
 	private List<IRCTQuery> queries;
+	private List<Integer> resultIds;
 	private String script;
 	
 	public List<IRCTQuery> getQueries() {
@@ -26,5 +27,11 @@ public class ScriptedQuery {
 	
 	public String toString(){
 		return script + "\n" + queries;
+	}
+	public List<Integer> getResultIds() {
+		return resultIds;
+	}
+	public void setResultIds(List<Integer> resultIds) {
+		this.resultIds = resultIds;
 	}
 }
