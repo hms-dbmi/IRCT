@@ -101,12 +101,17 @@ public class SessionFilter implements Filter {
 				}
 						
 				logger.log(Level.FINE, "doFilter() about to get token object");
+				
 				Token token = session.getAttribute("token") == null ? 
 						ss.createTokenObject(req)
 						: (Token)session.getAttribute("token");
+						
 				SecureSession secureSession = session.getAttribute("secureSession") == null ?
 						sc.validateKey(sc.createKey(user, token))
 						: (SecureSession)session.getAttribute("secureSession");
+				if (secureSession == null) {
+					throw new RuntimeException("doFilter() Could not generate ```secureSession```");
+				}
 				setSessionAttributes(session, user, token, secureSession);
 			} catch (Exception e) {
 				logger.log(Level.SEVERE, "doFilter() Failed with "+e.getMessage());

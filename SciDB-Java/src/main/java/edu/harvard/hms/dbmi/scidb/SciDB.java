@@ -9,6 +9,7 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.util.logging.Level;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
@@ -28,6 +29,8 @@ import edu.harvard.hms.dbmi.scidb.exception.SciDBOperationException;
  *
  */
 public class SciDB {
+	java.util.logging.Logger logger = java.util.logging.Logger.getGlobal();
+	
 	private boolean connected;
 	private String url;
 	private String sessionId;
@@ -2121,6 +2124,7 @@ public class SciDB {
 	 * @return Operation Status
 	 */
 	public boolean connect(String url) {
+		logger.log(Level.FINE, "connect() Starting with url only.");
 		HttpClientBuilder cb = HttpClientBuilder.create();
 		return connect(cb.build(), url);
 	}
@@ -2133,22 +2137,22 @@ public class SciDB {
 	 * @return Operation Status
 	 */
 	public boolean connect(HttpClient client, String url) {
+		logger.log(Level.FINE, "connect() Starting with client and url "+(url==null?"NULL":url));
+		
 		this.client = client;
 		this.url = url;
 		
 		try {
 			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session");
-			
 			URI uri = uriBuilder.build();
-			System.out.println(uri.toASCIIString());
-			
+			logger.log(Level.FINE, "connect() uri:"+uri.toASCIIString());
 			HttpResponse response = client.execute(new HttpGet(uri));
-			
 			this.sessionId = inputStreamToString(response.getEntity()
 					.getContent());
 			this.connected = true;
 			return true;
 		} catch (IOException | URISyntaxException e) {
+			logger.log(Level.SEVERE, "connect() Exception:"+e.getMessage());
 			e.printStackTrace();
 		}
 		return false;
@@ -2249,6 +2253,24 @@ public class SciDB {
 		return null;
 	}
 
+	public String executeAflQuery(String afl){
+		try {
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query");
+			uriBuilder.addParameter("id", this.sessionId);
+			uriBuilder.addParameter("query", afl);
+			uriBuilder.addParameter("save", "dcsv");
+
+			URI uri = uriBuilder.build();
+			System.out.println(uri.toASCIIString());
+			HttpGet runQuery = new HttpGet(uri);
+			HttpResponse response = client.execute(runQuery);
+			return inputStreamToString(response.getEntity().getContent());
+		} catch (IOException | URISyntaxException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	public InputStream readLines() throws NotConnectedException {
 		return readLines(this.sessionId);
 	}

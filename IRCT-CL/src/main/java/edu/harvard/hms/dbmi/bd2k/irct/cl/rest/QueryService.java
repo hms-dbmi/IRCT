@@ -3,11 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Level;
 
 import javax.enterprise.context.ConversationScoped;
 import javax.inject.Inject;
@@ -31,6 +35,18 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.HttpClientBuilder;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
@@ -48,7 +64,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.scidb.SciDB;
+import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 
 /**
  * Creates a REST interface for the query service
@@ -61,6 +80,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 @Named
 public class QueryService implements Serializable {
 	private static final long serialVersionUID = -3951500710489406681L;
+	
+	java.util.logging.Logger logger = java.util.logging.Logger.getLogger(this.getClass().getName());
 
 	@Inject
 	private QueryController qc;
@@ -86,6 +107,7 @@ public class QueryService implements Serializable {
 	@Path("/startQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startQuery() {
+		logger.log(java.util.logging.Level.FINE, "/startQuery DEPRECATED Starting...");
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		String conversationId = admin.startConversation();
 
@@ -196,6 +218,39 @@ public class QueryService implements Serializable {
 
 		response.add("clauseId", clauseId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+				.build();
+	}
+
+	/**
+	 * Adds a clause through a JSON representation
+	 * 
+	 * @param payload
+	 *            JSON
+	 * @return Clause Id
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
+	 * @throws NotConnectedException 
+	 */
+	@POST
+	@Path("/aflQuery")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response aflQuery(String payload) throws JsonParseException, JsonMappingException, IOException, NotConnectedException {
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> query = mapper.readValue(payload, Map.class);
+		SciDB scidb = new SciDB();
+		HttpClient client = HttpClientBuilder.create().setDefaultRequestConfig(RequestConfig.custom().setConnectTimeout(3000).setConnectionRequestTimeout(10000).build()).build();
+		scidb.connect(client, "http://ec2-52-86-11-243.compute-1.amazonaws.com:8080");
+		String s = scidb.executeAflQuery("uniq(sort(uniq(project(unpack(project(apply(DataI, number_of_comma,char_count(VCF_AD, ',')), number_of_comma), iiii), number_of_comma))))");
+		
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(scidb.readLines(scidb.getSessionId())));
+		String line = null;
+		boolean firstLine = true;
+
+		String output = IOUtils.toString(in);
+		
+		return Response.ok(output, MediaType.APPLICATION_JSON)
 				.build();
 	}
 
@@ -364,6 +419,8 @@ public class QueryService implements Serializable {
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery(String payload) {
+		logger.log(java.util.logging.Level.FINE, "/runQuery Starting...");
+		
 		JsonObjectBuilder response = Json.createObjectBuilder();
 
 		JsonReader jsonReader = Json.createReader(new StringReader(payload));
@@ -371,22 +428,28 @@ public class QueryService implements Serializable {
 		jsonReader.close();
 		Query query = null;
 		try {
+			logger.log(java.util.logging.Level.FINE, "/runQuery Converting JSON to ```query``` object.");
 			query = convertJsonToQuery(jsonQuery);
 		} catch (QueryException e) {
+			logger.log(java.util.logging.Level.SEVERE, "/runQuery Exception converting JSON to ```query``` object. "+e.getMessage());
+			
 			response.add("status", "Invalid Request");
 			response.add("message", e.getMessage());
 			return Response.status(400).entity(response.build()).build();
 		}
 
 		try {
+			logger.log(java.util.logging.Level.FINE, "/runQuery Running query, with secure sesison.");
 			response.add("resultId", ec.runQuery(query,
 					(SecureSession) session.getAttribute("secureSession")));
 		} catch (PersistableException e) {
+			logger.log(java.util.logging.Level.SEVERE, "/runQuery Exception running query. "+e.getMessage());
+			
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-
+		logger.log(java.util.logging.Level.FINE, "/runQuery Finished running query.");
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -508,8 +571,11 @@ public class QueryService implements Serializable {
 
 	private Long addJsonWhereClauseToQuery(SubQuery sq, JsonObject whereClause)
 			throws QueryException {
+		logger.log(Level.FINE, "addJsonWhereClauseToQuery() Starting");
 		String path = null;
 		String dataType = null;
+		
+		logger.log(Level.FINE, "addJsonWhereClauseToQuery() processing ```field```");
 		if (whereClause.containsKey("field")) {
 			path = whereClause.getJsonObject("field").getString("pui");
 			if (whereClause.getJsonObject("field").containsKey("dataType")) {
@@ -517,12 +583,13 @@ public class QueryService implements Serializable {
 						"dataType");
 			}
 		}
-
+		logger.log(Level.FINE, "addJsonWhereClauseToQuery() processing ```clauseId```");
 		Long clauseId = null;
 		if (whereClause.containsKey("clauseId")) {
 			clauseId = whereClause.getJsonNumber("clauseId").longValue();
 		}
 
+		logger.log(Level.FINE, "addJsonWhereClauseToQuery() processing ```path```."+path);
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
@@ -534,9 +601,11 @@ public class QueryService implements Serializable {
 				entity.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
+		
 		if ((resource == null) || (entity == null)) {
 			throw new QueryException("Invalid Path");
 		}
+		
 		String predicateName = whereClause.getString("predicate");
 		String logicalOperatorName = null;
 		if (whereClause.containsKey("logicalOperator")) {
@@ -546,7 +615,7 @@ public class QueryService implements Serializable {
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
 		if (predicateType == null) {
-			throw new QueryException("Unknown predicate type");
+			throw new QueryException("Unknown predicate type ```"+predicateName+"``` in JSON structure.");
 		}
 
 		Map<String, Field> clauseFields = new HashMap<String, Field>();
@@ -571,11 +640,11 @@ public class QueryService implements Serializable {
 			Resource resource, Entity field, String predicateName,
 			String logicalOperatorName, Map<String, String> fields,
 			Map<String, Object> objectFields) throws QueryException {
-
+		logger.log(java.util.logging.Level.FINE, "validateWhereClause() Starting ...");
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
 		if (predicateType == null) {
-			throw new QueryException("Unknown predicate type");
+			throw new QueryException("Unknown predicate type in WHERE clause.");
 		}
 
 		LogicalOperator logicalOperator = null;

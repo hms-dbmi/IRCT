@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
@@ -53,6 +54,8 @@ public class SecurityController {
 	 * @return A secured key
 	 */
 	public String createKey(User user, Token token) {
+		logger.log(Level.FINE, "createKey() Starting");
+		
 		if ((user == null) || (token == null)) {
 			return null;
 		}
@@ -69,8 +72,9 @@ public class SecurityController {
 		} else {
 			entityManager.merge(ss);
 		}
+		entityManager.flush();
 
-		logger.info("Created key for " + user.getName());
+		logger.log(Level.FINE, "createKey() Created key for " + user.getName());
 
 		return key;
 	}
@@ -109,7 +113,7 @@ public class SecurityController {
 
 		SecureSession ss = ssl.get(0);
 
-		logger.info("Found valid key for " + ss.getUser().getName());
+		logger.log(java.util.logging.Level.FINE, "validateKey() Found valid key for " + ss.getUser().getName());
 		return ss;
 	}
 

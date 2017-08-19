@@ -5,6 +5,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateful;
@@ -42,7 +43,7 @@ public class QueryController {
 	EntityManager entityManager;
 
 	@Inject
-	Logger log;
+	Logger logger;
 
 	private Query query;
 	private Long lastId;
@@ -301,6 +302,8 @@ public class QueryController {
 	private void validateWhereClause(Resource resource, Entity field,
 			PredicateType predicate, LogicalOperator logicalOperator,
 			Map<String, String> queryFields) throws QueryException {
+		logger.log(Level.FINE, "validateWhereClause() Starting...");
+		
 		// Is resource part of query?
 		if (this.query.getResources().isEmpty()) {
 			this.query.getResources().add(resource);
@@ -396,7 +399,10 @@ public class QueryController {
 	private void validateFields(List<Field> fields,
 			Map<String, String> valueFields, Map<String, Object> objectFields) throws QueryException {
 		
+		logger.log(Level.FINE, "validateFields() Starting...");
+		
 		for (Field predicateField : fields) {
+			logger.log(Level.FINE, "validateFields() predicate:"+predicateField.getPath());
 			
 			if(predicateField.isRequired() && ((valueFields != null) && (valueFields.containsKey(predicateField.getPath())))) {
 				String queryFieldValue = valueFields.get(predicateField.getPath());
@@ -442,16 +448,17 @@ public class QueryController {
 	 *             An exception occurred saving the query
 	 */
 	public void saveQuery() throws QueryException {
+		
 		if (this.query == null) {
 			throw new QueryException("No query to save.");
 		}
+		
 		if (this.query.getId() == null) {
 			entityManager.persist(this.query);
 		} else {
 			entityManager.merge(this.query);
 		}
-		log.info("Query " + this.query.getId() + " saved");
-
+		logger.log(Level.FINE, "saveQuery() Query " + this.query.getId() + " saved");
 	}
 
 	/**
@@ -471,7 +478,8 @@ public class QueryController {
 		if (this.query == null) {
 			throw new QueryException("No query to load.");
 		}
-		log.info("Query " + this.query.getId() + " loaded");
+		
+		logger.log(Level.FINE, "loadQuery() Query " + this.query.getId() + " loaded");
 	}
 
 	/**
