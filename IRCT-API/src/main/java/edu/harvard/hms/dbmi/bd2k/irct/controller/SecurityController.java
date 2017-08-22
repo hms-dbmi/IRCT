@@ -39,13 +39,8 @@ public class SecurityController {
 	EntityManager entityManager;
 
 	@Inject
-<<<<<<< HEAD
 	Logger logger;
 	
-=======
-	Logger log;
-
->>>>>>> master
 	@javax.annotation.Resource(mappedName ="java:global/KeyTimeOutInMinutes")
 	private String keyTimeOut;
 
@@ -79,12 +74,7 @@ public class SecurityController {
 		}
 		entityManager.flush();
 
-<<<<<<< HEAD
 		logger.log(Level.FINE, "createKey() Created key for " + user.getName());
-=======
-		log.info("createKey() Created key for " + user.getName());
->>>>>>> master
-
 		return key;
 	}
 
