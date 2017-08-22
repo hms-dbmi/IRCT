@@ -299,6 +299,10 @@ public class Result {
 	 * @return Message
 	 */
 	public String getMessage() {
+		if (this.message == null) {
+			this.message = "NoMessageAvailable";
+		}
+		
 		if (this.message.length() > 255) {
 			this.message = this.message.substring(0, 252) + "...";
 		}

@@ -5,9 +5,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.action;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.naming.NamingException;
 
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -18,8 +22,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 
 /**
  * Implements the Action interface to run a query on a specific instance
@@ -33,6 +35,8 @@ public class QueryAction implements Action {
 	private Resource resource;
 	private ActionStatus status;
 	private Result result;
+	
+	private Logger logger = Logger.getGlobal();
 
 	private IRCTEventListener irctEventListener;
 
@@ -68,7 +72,8 @@ public class QueryAction implements Action {
 
 	@Override
 	public void run(SecureSession session) {
-		irctEventListener.beforeQuery(session, resource, query);
+		logger.log(Level.FINE, "run() ");
+		//irctEventListener.beforeQuery(session, resource, query);
 		this.status = ActionStatus.RUNNING;
 		try {
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
@@ -80,19 +85,20 @@ public class QueryAction implements Action {
 			if (session != null) {
 				this.result.setUser(session.getUser());
 			}
-			
-			
-
+			logger.log(Level.FINE, "run() *********** running query "+query.toString());
 			this.result = queryInterface.runQuery(session, query, result);
 
 			// Update the result in the database
 			ActionUtilities.mergeResult(this.result);
 		} catch (Exception e) {
+			logger.log(Level.SEVERE, "run() EXCEPTION:"+e.getMessage(),e);
+			
 			this.result.setResultStatus(ResultStatus.ERROR);
 			this.result.setMessage(e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-		irctEventListener.afterQuery(session, resource, query);
+		logger.log(Level.FINE, "run() Finished");
+		//irctEventListener.afterQuery(session, resource, query);
 	}
 
 	@Override

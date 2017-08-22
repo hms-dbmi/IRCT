@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -38,6 +37,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -49,6 +50,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
@@ -82,7 +84,7 @@ public class SciDBAFLResourceImplementation implements
 		QueryResourceImplementationInterface,
 		ProcessResourceImplementationInterface {
 	
-	java.util.logging.Logger logger = java.util.logging.Logger.getGlobal();
+	Logger logger = Logger.getLogger(getClass());
 
 	private String resourceName;
 	private String clientId;
@@ -101,17 +103,17 @@ public class SciDBAFLResourceImplementation implements
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
-		logger.log(java.util.logging.Level.FINE, "setup() Starting...");
+		logger.debug("setup() Starting...");
 		
 		this.resourceName = parameters.get("resourceName");
 		if (this.resourceName == null) {
-			logger.log(java.util.logging.Level.SEVERE, "setup() ```resourceName``` parameter is missing.");
+			logger.error( "setup() ```resourceName``` parameter is missing.");
 			throw new RuntimeException("Missing ```resourceName``` parameter.");
 		}
 		
 		this.resourceURL = parameters.get("resourceURL");
 		if (this.resourceURL == null) {
-			logger.log(java.util.logging.Level.SEVERE, "setup() ```resourceURL``` parameter is missing.");
+			logger.error( "setup() ```resourceURL``` parameter is missing.");
 			throw new RuntimeException("Missing ```resourceURL``` parameter.");
 
 		}
@@ -126,7 +128,7 @@ public class SciDBAFLResourceImplementation implements
 			this.ignoreCertificate = false;
 		}
 */
-		logger.log(java.util.logging.Level.FINE, "setup() Finished. Resource is in READY state.");
+		logger.debug( "setup() Finished. Resource is in READY state.");
 		resourceState = ResourceState.READY;
 	}
 
@@ -145,7 +147,7 @@ public class SciDBAFLResourceImplementation implements
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
 		
-		logger.log(java.util.logging.Level.FINE, "getPathRelationship() Starting...");
+		logger.debug( "getPathRelationship() Starting...");
 		
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
@@ -156,7 +158,7 @@ public class SciDBAFLResourceImplementation implements
 
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
-		logger.log(java.util.logging.Level.FINE, "getPathRelationship() Connected to SciDB at "+this.resourceURL);
+		logger.debug( "getPathRelationship() Connected to SciDB at "+this.resourceURL);
 		try {
 			if (pathComponents.length == 2) {
 				sciDB.executeQuery(sciDB.list(SciDBListElement.ARRAYS), "csv");
@@ -224,14 +226,14 @@ public class SciDBAFLResourceImplementation implements
 						+ " not supported for this path " + basePath);
 			}
 		} catch (NotConnectedException | IOException e) {
-			logger.log(java.util.logging.Level.SEVERE, "getPathRelationship() Exception while building entity list. "+e.getMessage());
+			logger.error("getPathRelationship() Exception while building entity list. "+e.getMessage());
 			e.printStackTrace();
 		} finally {
 			if (parser != null) {
 				try {
 					parser.close();
 				} catch (IOException e) {
-					logger.log(java.util.logging.Level.SEVERE, "getPathRelationship() Exception, while closing parser. "+e.getMessage());
+					logger.error("getPathRelationship() Exception, while closing parser. "+e.getMessage());
 					e.printStackTrace();
 				}
 			}
@@ -252,35 +254,54 @@ public class SciDBAFLResourceImplementation implements
 	@Override
 	public Result runQuery(SecureSession session, Query query, Result result)
 			throws ResourceInterfaceException {
-		logger.log(Level.FINE, "runQuery() Starting");
+		logger.log(Level.INFO, "runQuery() Starting");
+		
+		// Setup SciDB connection
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
+		logger.debug("runQuery() sessionId:"+sciDB.getSessionId());
+		
 		result.setResultStatus(ResultStatus.CREATED);
-
-		try {
-			SciDBCommand command = createQuery(sciDB, query);
-
-			String queryId = sciDB.executeQuery(command, "dcsv");
-			if (queryId.contains("Exception")) {
-				result.setResultStatus(ResultStatus.ERROR);
-				result.setMessage(queryId);
-				sciDB.close();
-			} else {
-				result.setResourceActionId(sciDB.getSessionId() + "|" + queryId);
-				result.setResultStatus(ResultStatus.RUNNING);
+		
+		List<WhereClause> whereClauses = query
+				.getClausesOfType(WhereClause.class);
+		
+		String queryId = "NOTSET";
+		// Execute AFL queries from the fields portion of the WHERE clause
+		for (WhereClause whereClause : whereClauses) {
+			Map<String, String> queries = whereClause.getStringValues();
+			
+			for(String queryString: queries.values()) {
+				logger.debug("runQuery() executing queryString:"+queryString);
+				queryId = sciDB.executeAflQuery(queryString);
+								
+				/*BufferedReader in;
+				try {
+					in = new BufferedReader(
+							new InputStreamReader(sciDB.readLines(sciDB.getSessionId())));
+					
+					String queryOutput;
+						queryOutput = IOUtils.toString(in);
+					logger.debug("runQuery() queryOutput:"+queryOutput);	
+					
+				} catch (Exception e) {
+					logger.debug( "runQuery() queryOutput:"+e.getMessage(), e);
+					
+					e.printStackTrace();
+				}*/
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage(e.getMessage().split("\n")[0]);
-			sciDB.close();
 		}
+		logger.debug( "runQuery() completed all queries");
+		
+		result.setResourceActionId(sciDB.getSessionId() + "|" + queryId);
+		result.setResultStatus(ResultStatus.RUNNING);
+		logger.log(Level.INFO, "runQuery() returning ```result``` with status "+result.getResultStatus().toString());
 		return result;
 	}
 
 	private SciDBCommand createQuery(SciDB sciDB, Query query) {
-		logger.log(java.util.logging.Level.FINE, "createQuery() ");
+		logger.debug( "createQuery() ");
 		
 		SciDBCommand command = null;
 		// Parse all subqueries first
@@ -291,14 +312,14 @@ public class SciDBAFLResourceImplementation implements
 		}
 		
 		// Parse all join clauses
-		logger.log(java.util.logging.Level.FINE, "createQuery() Parse all join clauses");
+		logger.debug( "createQuery() Parse all join clauses");
 		List<JoinClause> joinClauses = query.getClausesOfType(JoinClause.class);
 		for (JoinClause joinClause : joinClauses) {
 			command = addJoinOperation(sciDB, command, subQueryCommands, joinClause);
 		}
 
 		// Parse all where clauses second
-		logger.log(java.util.logging.Level.FINE, "createQuery() Parse all where clauses");
+		logger.debug( "createQuery() Parse all where clauses");
 		List<WhereClause> whereClauses = query
 				.getClausesOfType(WhereClause.class);
 		for (WhereClause whereClause : whereClauses) {
@@ -306,14 +327,14 @@ public class SciDBAFLResourceImplementation implements
 		}
 
 		// Parse all sort clauses
-		logger.log(java.util.logging.Level.FINE, "createQuery() Parse all sort clauses");
+		logger.debug( "createQuery() Parse all sort clauses");
 		List<SortClause> sortClauses = query.getClausesOfType(SortClause.class);
 		for(SortClause sortClause : sortClauses) {
 			command = addSortOperation(sciDB, command, subQueryCommands, sortClause);
 		}
 
 		// Parse all select clauses
-		logger.log(java.util.logging.Level.FINE, "createQuery() Parse all select clauses");
+		logger.debug( "createQuery() Parse all select clauses");
 		List<SelectClause> selectClauses = query
 				.getClausesOfType(SelectClause.class);
 		List<String> selects = new ArrayList<String>();
@@ -333,75 +354,36 @@ public class SciDBAFLResourceImplementation implements
 		if (!selects.isEmpty()) {
 			command = sciDB.project(command, selects.toArray(new String[] {}));
 		}
-		logger.log(java.util.logging.Level.FINE, "createQuery() Returning command: "+command.toString()+" or "+command.toAFLQueryString());
+		logger.debug( "createQuery() Returning command: "+command.toString()+" or "+command.toAFLQueryString());
 		return command;
 
 	}
 
 	private SciDBCommand addWhereOperation(SciDB sciDB,
 			SciDBCommand whereOperation, Map<String, SciDBCommand> subQueryCommands, WhereClause whereClause) {
-		logger.log(java.util.logging.Level.FINE, "addWhereOperation() Starting...");
+		
+		logger.debug( "addWhereOperation() Starting...");
 
 		String predicateName = whereClause.getPredicateType().getName();
-
-		if (whereOperation == null) {
-			String arrayName = whereClause.getField().getPui().split("/")[2];
-			whereOperation = new SciDBArray(arrayName);
-		}
 		switch (predicateName) {
-		case "FILTER":
-			String[] pathComponents = whereClause.getField().getPui().split("/");
-			String array = pathComponents[2];
-			if(subQueryCommands.containsKey(array)) {
-				whereOperation = sciDB.filter(subQueryCommands.get(array), createSciDBFilterOperation(whereClause));
-			} else {
-				whereOperation = sciDB.filter(whereOperation, createSciDBFilterOperation(whereClause));
+		case "AFL":
+			List<Field> fields = whereClause.getPredicateType().getFields();
+			for(Field field: fields) {
+				logger.debug( "addWhereOperation() field:"+ field.getName()+" path:"+field.getPath());
 			}
-			
-			
-			break;
-		case "BETWEEN":
-			String[] lowBoundString = whereClause.getStringValues()
-					.get("LOWBOUNDS").split(",");
-			String[] highBoundString = whereClause.getStringValues()
-					.get("HIGHBOUNDS").split(",");
-			int[] lowCoordinates = new int[lowBoundString.length];
-			int[] highCoordinates = new int[highBoundString.length];
-			for (int i = 0; i < lowBoundString.length; i++) {
-				lowCoordinates[i] = Integer.parseInt(lowBoundString[i]);
-			}
-			for (int i = 0; i < highCoordinates.length; i++) {
-				highCoordinates[i] = Integer.parseInt(highBoundString[i]);
-			}
-
-			String[] components = whereClause.getField().getPui().split("/");
-			
-			if (components.length == 3) {
-				if(subQueryCommands.containsKey(components[2])) {
-					whereOperation = subQueryCommands.get(components[2]);
-				} else {
-					whereOperation = new SciDBArray(components[2]);
-				}
-			}
-			
-			whereOperation = sciDB.between(whereOperation, lowCoordinates, highCoordinates);
-			break;
-		case "QUANTILE":
-			int quantiles = Integer.parseInt(whereClause.getStringValues().get("QUANTILE"));
-			String attribute = whereClause.getStringValues().get("ATTRIBUTE");
-			sciDB.quantile(whereOperation, quantiles, attribute);
+			whereOperation = new SciDBArray("scidblist");			
 			break;
 		default:
-			throw new RuntimeException("Unsupported WHERE operation.");
+			throw new RuntimeException("Unsupported PREDICATE operation.");
 		}
-		logger.log(java.util.logging.Level.FINE, "addWhereOperation() Returning ```whereOperation``` as "+whereOperation.toAFLQueryString());
+		logger.debug( "addWhereOperation() Returning ```whereOperation``` as "+whereOperation.toAFLQueryString());
 		return whereOperation;
 	}
 
 	private SciDBCommand addSelectOperation(SciDB sciDB,
 			SciDBCommand selectOperation,
 			Map<String, SciDBCommand> subQueryCommands, SelectClause selectClause) {
-		logger.log(java.util.logging.Level.FINE, "addSelectOperation() Starting ...");
+		logger.debug( "addSelectOperation() Starting ...");
 		String operationName = selectClause.getOperationType().getName();
 
 		switch (operationName) {
@@ -443,7 +425,7 @@ public class SciDBAFLResourceImplementation implements
 			}
 
 		}
-		logger.log(java.util.logging.Level.FINE, "addSelectOperation() Returning ```select``` operatrion as "+selectOperation.toAFLQueryString());
+		logger.debug( "addSelectOperation() Returning ```select``` operatrion as "+selectOperation.toAFLQueryString());
 		return selectOperation;
 	}
 
@@ -528,7 +510,7 @@ public class SciDBAFLResourceImplementation implements
 	@Override
 	public Result getResults(SecureSession session, Result result)
 			throws ResourceInterfaceException {
-		logger.log(java.util.logging.Level.FINE, "getResults() Starting ...");
+		logger.debug( "getResults() Starting ...");
 		
 		if (result.getResultStatus() == ResultStatus.COMPLETE
 				|| result.getResultStatus() == ResultStatus.ERROR) {
@@ -538,7 +520,7 @@ public class SciDBAFLResourceImplementation implements
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
-		logger.log(java.util.logging.Level.FINE, "getResults() connecting to "+this.resourceURL);
+		logger.debug( "getResults() connecting to "+this.resourceURL);
 		
 		try {
 			BufferedReader in = new BufferedReader(
@@ -574,20 +556,20 @@ public class SciDBAFLResourceImplementation implements
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (NotConnectedException | IOException | ResultSetException
 				| PersistableException e) {
-			logger.log(java.util.logging.Level.SEVERE, "getResults() Exception reading response from SciDB connection. "+e.getMessage());
+			logger.error("getResults() Exception reading response from SciDB connection. "+e.getMessage());
 			
 			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage());
 		}
 		sciDB.close();
-		logger.log(java.util.logging.Level.FINE, "getResults() Finished, returning result wit "+result.getResultStatus().toString());
+		logger.debug( "getResults() Finished, returning result wit "+result.getResultStatus().toString());
 		return result;
 	}
 
 	private FileResultSet createColumns(Result result, String headerLine)
 			throws ResultSetException {
-		logger.log(java.util.logging.Level.FINE, "createColumns() Starting...");
+		logger.debug( "createColumns() Starting...");
 		
 		FileResultSet rs = (FileResultSet) result.getData();
 
@@ -599,7 +581,7 @@ public class SciDBAFLResourceImplementation implements
 			newColumn.setDataType(PrimitiveDataType.STRING);
 			rs.appendColumn(newColumn);
 		}
-		logger.log(java.util.logging.Level.FINE, "createColumns() Finished.");
+		logger.debug( "createColumns() Finished.");
 		return rs;
 	}
 
@@ -615,19 +597,19 @@ public class SciDBAFLResourceImplementation implements
 	@Override
 	public Result runProcess(SecureSession session, IRCTProcess process,
 			Result result) throws ResourceInterfaceException {
-		logger.log(java.util.logging.Level.FINE, "runProcess() Starting...");
+		logger.debug( "runProcess() Starting...");
 		
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
 		sciDB.close();
 		
-		logger.log(java.util.logging.Level.FINE, "runProcess() Finished.");
+		logger.debug( "runProcess() Finished.");
 		return result;
 	}
 
 	private SciDBCommand createSciDBFilterOperation(WhereClause whereClause) {
-		logger.log(java.util.logging.Level.FINE, "createSciDBFilterOperation() Starting...");
+		logger.debug( "createSciDBFilterOperation() Starting...");
 		
 		String value = whereClause.getStringValues().get("VALUE");
 
@@ -662,7 +644,7 @@ public class SciDBAFLResourceImplementation implements
 			break;
 
 		}
-		logger.log(java.util.logging.Level.FINE, "createSciDBFilterOperation() Finished.");
+		logger.debug( "createSciDBFilterOperation() Finished.");
 		return returnFunction;
 	}
 
@@ -677,7 +659,7 @@ public class SciDBAFLResourceImplementation implements
 	 * @return
 	 */
 	protected HttpClient createClient(SecureSession session) {
-		logger.log(java.util.logging.Level.FINE, "createClient() Starting...");
+		logger.debug( "createClient() Starting...");
 		
 		// SSL WRAPAROUND
 		HttpClientBuilder returns = null;
@@ -708,13 +690,13 @@ public class SciDBAFLResourceImplementation implements
 		
 		defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
-		logger.log(java.util.logging.Level.FINE, "createClient() Finished. Returning HttpClientBuilder instance.");
+		logger.debug( "createClient() Finished. Returning HttpClientBuilder instance.");
 		return returns.build();
 	}
 
 	private HttpClientBuilder ignoreCertificate()
 			throws NoSuchAlgorithmException, KeyManagementException {
-		logger.log(java.util.logging.Level.FINE, "ignoreCertificate() Starting...");
+		logger.debug( "ignoreCertificate() Starting...");
 		
 		System.setProperty("jsse.enableSNIExtension", "false");
 
@@ -751,7 +733,7 @@ public class SciDBAFLResourceImplementation implements
 		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
 				r);
 		
-		logger.log(java.util.logging.Level.FINE, "ignoreCertificate() Finished.");
+		logger.debug( "ignoreCertificate() Finished.");
 		return HttpClients.custom().setConnectionManager(cm);
 	}
 
