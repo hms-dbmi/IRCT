@@ -21,7 +21,7 @@ import javax.persistence.Transient;
 /**
  * A secure session contains information about a user, the token associated with
  * that user, and the unique key generated for that combination.
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -42,20 +42,19 @@ public class SecureSession implements Serializable {
 
 	private String accessKey;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	private Date created;
-	
+
 	@Transient
 	private Map<String, Token> delegated;
-	
-	
+
+
 	public SecureSession() {
 		this.delegated = new HashMap<String, Token>();
 	}
 
 	/**
 	 * Returns the id of this secure session object
-	 * 
+	 *
 	 * @return Id
 	 */
 	public Long getId() {
@@ -64,7 +63,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Sets the id of this secure session object
-	 * 
+	 *
 	 * @param id
 	 *            Id
 	 */
@@ -74,7 +73,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Returns the token associated with this secure session
-	 * 
+	 *
 	 * @return Token
 	 */
 	public Token getToken() {
@@ -83,7 +82,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Sets the token associated with this secure session
-	 * 
+	 *
 	 * @param token
 	 *            Token
 	 */
@@ -93,7 +92,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Returns the user associated with this secure session
-	 * 
+	 *
 	 * @return User
 	 */
 	public User getUser() {
@@ -102,7 +101,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Sets the user associated with this secure session
-	 * 
+	 *
 	 * @param user
 	 *            User
 	 */
@@ -112,7 +111,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Returns the access key associated with this secure session
-	 * 
+	 *
 	 * @return Access Key
 	 */
 	public String getAccessKey() {
@@ -130,7 +129,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Returns the date the key was created
-	 * 
+	 *
 	 * @return Creation date
 	 */
 	public Date getCreated() {
@@ -139,7 +138,7 @@ public class SecureSession implements Serializable {
 
 	/**
 	 * Sets the date the key was created
-	 * 
+	 *
 	 * @param created
 	 *            Date created
 	 */

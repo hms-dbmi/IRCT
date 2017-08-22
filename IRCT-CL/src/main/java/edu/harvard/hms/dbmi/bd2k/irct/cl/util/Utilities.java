@@ -103,7 +103,6 @@ public class Utilities {
 				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 				DecodedJWT jwt = verifier.verify(tokenString);
 				isValidated = true;
-				
 				userEmail = jwt.getClaim("email").asString();
 			} catch (Exception e) {
 				logger.log(Level.FINE, "extractEmailFromJWT() Second validation has failed as well."+e.getMessage());				

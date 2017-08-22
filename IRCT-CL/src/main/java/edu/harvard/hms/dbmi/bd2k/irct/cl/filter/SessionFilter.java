@@ -52,8 +52,10 @@ public class SessionFilter implements Filter {
 
 	@javax.annotation.Resource(mappedName = "java:global/client_id")
 	private String clientId;
+	
 	@javax.annotation.Resource(mappedName = "java:global/client_secret")
 	private String clientSecret;
+	
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
 	
@@ -91,7 +93,13 @@ public class SessionFilter implements Filter {
 				User user = null;
 				if (session.getAttribute("user") == null) {
 					logger.log(Level.FINE, "doFilter() ```session``` does not contain a ```user``` object. Validating passed in token.");
-					String userId = Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret);
+					
+					String userId = null;
+					if (this.clientId == null) {
+						// Call external service from this.jwtVerifierService service endpoint URL
+					} else {
+						userId = Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret);
+					}
 					logger.log(Level.FINE, "doFilter() The passed in JWT contained user:"+(userId==null?"NULL":userId));
 					user = sc.ensureUserExists(userId);
 					logger.log(Level.FINE, "doFilter() Established ```user``` object.");
