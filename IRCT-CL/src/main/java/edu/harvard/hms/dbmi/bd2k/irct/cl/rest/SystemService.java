@@ -103,26 +103,6 @@ public class SystemService {
 		Token token = (Token) session.getAttribute("token");
 		SecureSession secureSession = (SecureSession) session.getAttribute("secureSession");
 		
-		
-		log.log(Level.FINE, "/about Verifying token...");
-		Algorithm algo;
-		try {
-			algo = Algorithm.HMAC256(Base64.decodeBase64("qLl_-GaA9LfavbgmjkRSZdVrDYc9U3m8hrZwE8iKtZuiqGVFWAI4fBTKwnDkFmcE".getBytes("UTF-8")));
-			String tokenString = secureSession.getToken().toString().split(" ")[1];
-			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-			DecodedJWT jwt = verifier.verify(tokenString);
-			
-			for(String claimKey: jwt.getClaims().keySet()) {
-				System.out.println(")))))))))))))))");
-				System.out.println("extractEmailFromJWT() ```claim``` :"+claimKey);
-			}
-		} catch (IllegalArgumentException | UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "/about Throwing EXCEPTION while verifying token. ```"+e.getMessage()+"```");
-		}
-		
 		JsonObjectBuilder root = Json.createObjectBuilder()
 				.add("application", Json.createObjectBuilder()
 						.add("version", app.getVersion()))
