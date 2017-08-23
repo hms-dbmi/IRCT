@@ -46,7 +46,7 @@ public class SessionFilter implements Filter {
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
-	
+
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 
@@ -55,7 +55,7 @@ public class SessionFilter implements Filter {
 
 	@Inject
 	private SecurityService ss;
-	
+
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
 	}
@@ -64,38 +64,38 @@ public class SessionFilter implements Filter {
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain fc) throws IOException, ServletException {
 		logger.debug("doFilter() Starting");
 		HttpServletRequest request = (HttpServletRequest) req;
-		
+
 		// If processing URL /securityService/*, we are creating a session/secureSession
-		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
+		if (request.getRequestURI().endsWith("/securityService/startSession") {
 			// Do Nothing
 			logger.debug("doFilter() securityService URL is NOT filtered.");
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
 			try {
-				User user = session.getAttribute("user") == null ? 
+				User user = session.getAttribute("user") == null ?
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
 						: (User)session.getAttribute("user");
 				logger.debug("doFilter() got user object.");
-				
-				Token token = session.getAttribute("token") == null ? 
+
+				Token token = session.getAttribute("token") == null ?
 						ss.createTokenObject(req)
 						: (Token)session.getAttribute("token");
 				logger.debug("doFilter() got token object.");
-						
+
 				SecureSession secureSession = session.getAttribute("secureSession") == null ?
 						sc.validateKey(sc.createKey(user, token))
 						: (SecureSession)session.getAttribute("secureSession");
 				logger.debug("doFilter() got securesession object.");
-						
+
 				setSessionAttributes(session, user, token, secureSession);
 				logger.debug("doFilter() set session attributes.");
-				
+
 			} catch (Exception e) {
 				logger.error("EXCEPTION: "+e.getMessage());
-				
-				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}"; 
-				
+
+				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
+
 				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 				res.setContentType("application/json");
 				res.getOutputStream()
@@ -104,7 +104,7 @@ public class SessionFilter implements Filter {
 				return;
 			}
 		}
-		
+
 		logger.debug("doFilter() Finished.");
 		fc.doFilter(req, res);
 	}
