@@ -4,10 +4,6 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -23,14 +19,8 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.core.Response;
 
-import org.apache.commons.codec.binary.Base64;
-
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.rest.SecurityService;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
@@ -72,27 +62,38 @@ public class SessionFilter implements Filter {
 
 	@Override
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain fc) throws IOException, ServletException {
-		logger.log(Level.FINE, "doFilter() Starting");
+		logger.debug("doFilter() Starting");
 		HttpServletRequest request = (HttpServletRequest) req;
 		
 		// If processing URL /securityService/*, we are creating a session/secureSession
 		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
-			// Do Nothing 
+			// Do Nothing
+			logger.debug("doFilter() securityService URL is NOT filtered.");
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
-			
+			logger.debug("doFilter() got session from request.");
 			try {
 				User user = session.getAttribute("user") == null ? 
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
 						: (User)session.getAttribute("user");
+				logger.debug("doFilter() got user object.");
+				
 				Token token = session.getAttribute("token") == null ? 
 						ss.createTokenObject(req)
 						: (Token)session.getAttribute("token");
+				logger.debug("doFilter() got token object.");
+						
 				SecureSession secureSession = session.getAttribute("secureSession") == null ?
 						sc.validateKey(sc.createKey(user, token))
 						: (SecureSession)session.getAttribute("secureSession");
+				logger.debug("doFilter() got securesession object.");
+						
 				setSessionAttributes(session, user, token, secureSession);
+				logger.debug("doFilter() set session attributes.");
+				
 			} catch (Exception e) {
+				logger.error("EXCEPTION: "+e.getMessage());
+				
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}"; 
 				
 				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -104,7 +105,7 @@ public class SessionFilter implements Filter {
 			}
 		}
 		
-		logger.log(Level.FINE, "doFilter() Finished.");
+		logger.debug("doFilter() Finished.");
 		fc.doFilter(req, res);
 	}
 
