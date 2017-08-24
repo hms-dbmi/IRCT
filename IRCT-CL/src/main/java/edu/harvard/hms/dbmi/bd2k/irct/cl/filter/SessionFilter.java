@@ -87,8 +87,7 @@ public class SessionFilter implements Filter {
 						sc.validateKey(sc.createKey(user, token))
 						: (SecureSession)session.getAttribute("secureSession");
 				logger.debug("doFilter() got securesession object.");
-
-				setSessionAttributes(session, user, token, secureSession);
+				setSessionAndRequestAttributes(req, session, user, token, secureSession);
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {
@@ -106,13 +105,21 @@ public class SessionFilter implements Filter {
 		}
 
 		logger.debug("doFilter() Finished.");
+		
 		fc.doFilter(req, res);
 	}
 
-	private void setSessionAttributes(HttpSession session, User user, Token token, SecureSession secureSession) {
+	/*
+	 *  TODO : This is a temporary hackaround, we should move to only storing attributes on the request
+	 *  if they may change across a session.
+	 */
+	private void setSessionAndRequestAttributes(ServletRequest req, HttpSession session, User user, Token token, SecureSession secureSession) {
 		session.setAttribute("user", user);
 		session.setAttribute("token", token);
 		session.setAttribute("secureSession", secureSession);
+		req.setAttribute("user", user);
+		req.setAttribute("token", token);
+		req.setAttribute("secureSession", secureSession);
 	}
 
 	@Override
