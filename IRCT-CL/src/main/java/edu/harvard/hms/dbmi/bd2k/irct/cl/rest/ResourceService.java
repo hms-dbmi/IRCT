@@ -9,12 +9,11 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -42,7 +41,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
  *
  */
 @Path("/resourceService")
-@RequestScoped
 public class ResourceService {
 
 	@Inject
@@ -54,8 +52,8 @@ public class ResourceService {
 	@Inject
 	Logger logger;
 
-	@Inject
-	private HttpSession session;
+	@Context
+	private HttpServletRequest request;
 
 	/**
 	 * Returns a list of all resources. If a type is chosen then only resources
@@ -226,7 +224,7 @@ public class ResourceService {
 
 		// Run find
 		try {
-			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) session.getAttribute("secureSession"));
+			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) request.getAttribute("secureSession"));
 		} catch (ResourceInterfaceException e) {
 			logger.log(Level.SEVERE, "/find Exception:" + e.getMessage());
 			return invalidRequest(e.getMessage());
@@ -287,12 +285,12 @@ public class ResourceService {
 				logger.log(Level.FINE, "/path traversing resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
 				entities = pc.traversePath(resource, resourcePath,
 						resource.getRelationshipByName(relationshipString),
-						(SecureSession) session.getAttribute("secureSession"));
+						(SecureSession) request.getAttribute("secureSession"));
 			} catch (ResourceInterfaceException e) {
 				logger.log(Level.SEVERE,
 						"Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
-								+ e.getMessage());
+								, e);
 				return invalidRequest(e.toString()+"/"+e.getMessage()+" path:"+path);
 			}
 		} else if (path == null || path.isEmpty()) {
