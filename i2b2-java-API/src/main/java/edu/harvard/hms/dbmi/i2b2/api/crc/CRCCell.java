@@ -15,6 +15,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.PropertyException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
@@ -86,10 +87,28 @@ import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
  *
  */
 public class CRCCell implements Cell {
-	// PDO
-	private static ObjectFactory pdoOF;
-	private static JAXBContext pdoJC;
-	private static Marshaller pdoMarshaller;
+	private static JAXBContext pdoJCInstance;
+	private static ObjectFactory pdoOFInstance;
+	
+	private static JAXBContext pdoJC() throws JAXBException{
+		if(pdoJCInstance == null){
+			pdoJCInstance = JAXBContext.newInstance("edu.harvard.hms.dbmi.i2b2.api.ont.xml");
+		}
+		return pdoJCInstance;
+	};
+	private static Marshaller pdoMarshaller() throws JAXBException{
+		Marshaller pdoMarshaller = pdoJC().createMarshaller();
+		pdoMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+		return pdoMarshaller;
+		
+	};
+	private static ObjectFactory pdoOF(){
+		if(pdoOFInstance == null){
+			pdoOFInstance = new ObjectFactory();		
+		}
+		return pdoOFInstance;
+	};
+	
 
 	// PSM
 	private static edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ObjectFactory psmOF;
@@ -160,12 +179,6 @@ public class CRCCell implements Cell {
 	 * @throws JAXBException
 	 */
 	public void setup() throws JAXBException {
-		// Setup PDO
-		pdoOF = new ObjectFactory();
-		pdoJC = JAXBContext
-				.newInstance("edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo");
-		pdoMarshaller = pdoJC.createMarshaller();
-		pdoMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
 		// Setup PSM
 		psmOF = new edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ObjectFactory();
@@ -642,11 +655,11 @@ public class CRCCell implements Cell {
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PDO_FROM_INPUT_LIST, "/pdorequest");
-		GetPDOFromInputListRequestType ilrt = pdoOF
+		GetPDOFromInputListRequestType ilrt = pdoOF()
 				.createGetPDOFromInputListRequestType();
 
-		InputOptionListType iolt = pdoOF.createInputOptionListType();
-		PatientListType plt = pdoOF.createPatientListType();
+		InputOptionListType iolt = pdoOF().createInputOptionListType();
+		PatientListType plt = pdoOF().createPatientListType();
 		plt.setMin(min);
 		plt.setMax(max);
 
@@ -654,10 +667,10 @@ public class CRCCell implements Cell {
 		iolt.setPatientList(plt);
 		ilrt.setInputList(iolt);
 
-		ilrt.setFilterList(pdoOF.createFilterListType());
+		ilrt.setFilterList(pdoOF().createFilterListType());
 
-		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
-		OutputOptionType oot = pdoOF.createOutputOptionType();
+		OutputOptionListType oolt = pdoOF().createOutputOptionListType();
+		OutputOptionType oot = pdoOF().createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
 		oot.setBlob(blob);
 		oot.setTechdata(techdata);
@@ -667,10 +680,10 @@ public class CRCCell implements Cell {
 
 		ilrt.setOutputOption(oolt);
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(ilrt));
+		rmt.getMessageBody().getAny().add(pdoOF().createRequest(ilrt));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -723,10 +736,10 @@ public class CRCCell implements Cell {
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException, DatatypeConfigurationException {
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_OBSERVATIONFACT_BY_PRIMARY_KEY, "/pdorequest");
-		GetObservationFactByPrimaryKeyRequestType irct = pdoOF
+		GetObservationFactByPrimaryKeyRequestType irct = pdoOF()
 				.createGetObservationFactByPrimaryKeyRequestType();
 
-		FactPrimaryKeyType fpkt = pdoOF.createFactPrimaryKeyType();
+		FactPrimaryKeyType fpkt = pdoOF().createFactPrimaryKeyType();
 		fpkt.setEventId(eventId);
 		fpkt.setPatientId(patientId);
 		fpkt.setConceptCd(conceptCd);
@@ -737,17 +750,17 @@ public class CRCCell implements Cell {
 		fpkt.setInstanceNum(instanceNum);
 		irct.setFactPrimaryKey(fpkt);
 
-		OutputOptionType oot = pdoOF.createOutputOptionType();
+		OutputOptionType oot = pdoOF().createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
 		oot.setBlob(blob);
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 		irct.setFactOutputOption(oot);
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
+		rmt.getMessageBody().getAny().add(pdoOF().createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -783,24 +796,24 @@ public class CRCCell implements Cell {
 			OutputOptionSelectType select) throws JAXBException,
 			ClientProtocolException, I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PATIENT_BY_PRIMARY_KEY, "/pdorequest");
-		GetPatientByPrimaryKeyRequestType irct = pdoOF
+		GetPatientByPrimaryKeyRequestType irct = pdoOF()
 				.createGetPatientByPrimaryKeyRequestType();
 
-		PatientPrimaryKeyType ppkt = pdoOF.createPatientPrimaryKeyType();
+		PatientPrimaryKeyType ppkt = pdoOF().createPatientPrimaryKeyType();
 		ppkt.setPatientId(patientId);
 		irct.setPatientPrimaryKey(ppkt);
 
-		OutputOptionType oot = pdoOF.createOutputOptionType();
+		OutputOptionType oot = pdoOF().createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
 		oot.setBlob(blob);
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 		irct.setPatientOutputOption(oot);
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
+		rmt.getMessageBody().getAny().add(pdoOF().createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -839,25 +852,25 @@ public class CRCCell implements Cell {
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_EVENT_BY_PRIMARY_KEY, "/pdorequest");
-		GetEventByPrimaryKeyRequestType irct = pdoOF
+		GetEventByPrimaryKeyRequestType irct = pdoOF()
 				.createGetEventByPrimaryKeyRequestType();
 
-		EventPrimaryKeyType epkt = pdoOF.createEventPrimaryKeyType();
+		EventPrimaryKeyType epkt = pdoOF().createEventPrimaryKeyType();
 		epkt.setEventId(eventId);
 		epkt.setPatientId(patientId);
 		irct.setEventPrimaryKey(epkt);
 
-		OutputOptionType oot = pdoOF.createOutputOptionType();
+		OutputOptionType oot = pdoOF().createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
 		oot.setBlob(blob);
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 		irct.setEventOutputOption(oot);
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
+		rmt.getMessageBody().getAny().add(pdoOF().createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -894,24 +907,24 @@ public class CRCCell implements Cell {
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_CONCEPT_BY_PRIMARY_KEY, "/pdorequest");
-		GetConceptByPrimaryKeyRequestType irct = pdoOF
+		GetConceptByPrimaryKeyRequestType irct = pdoOF()
 				.createGetConceptByPrimaryKeyRequestType();
 
-		ConceptPrimaryKeyType cpkt = pdoOF.createConceptPrimaryKeyType();
+		ConceptPrimaryKeyType cpkt = pdoOF().createConceptPrimaryKeyType();
 		cpkt.setConceptPath(conceptPath);
 		irct.setConceptPrimaryKey(cpkt);
 
-		OutputOptionType oot = pdoOF.createOutputOptionType();
+		OutputOptionType oot = pdoOF().createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
 		oot.setBlob(blob);
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 		irct.setConceptOutputOption(oot);
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
+		rmt.getMessageBody().getAny().add(pdoOF().createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -950,25 +963,25 @@ public class CRCCell implements Cell {
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_OBSERVER_BY_PRIMARY_KEY, "/pdorequest");
-		GetObserverByPrimaryKeyRequestType irct = pdoOF
+		GetObserverByPrimaryKeyRequestType irct = pdoOF()
 				.createGetObserverByPrimaryKeyRequestType();
 
-		ObserverPrimaryKeyType opkt = pdoOF.createObserverPrimaryKeyType();
+		ObserverPrimaryKeyType opkt = pdoOF().createObserverPrimaryKeyType();
 		opkt.setObserverPath(observerPath);
 		opkt.setObserverId(observerId);
 		irct.setObserverPrimaryKey(opkt);
 
-		OutputOptionType oot = pdoOF.createOutputOptionType();
+		OutputOptionType oot = pdoOF().createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
 		oot.setBlob(blob);
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 		irct.setObserverOutputOption(oot);
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
+		rmt.getMessageBody().getAny().add(pdoOF().createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -1046,9 +1059,9 @@ public class CRCCell implements Cell {
 	}
 
 	private RequestMessageType createMinimumPDOBaseMessage(PdoRequestTypeType requestPDOType, String appendURL) {
-		RequestMessageType rmt = pdoOF.createRequestMessageType();
+		RequestMessageType rmt = pdoOF().createRequestMessageType();
 		// Create Message Header Type
-		MessageHeaderType mht = pdoOF.createMessageHeaderType();
+		MessageHeaderType mht = pdoOF().createMessageHeaderType();
 		
 		// Set proxy
 		if((useProxy) && (appendURL != null)) {
@@ -1058,24 +1071,24 @@ public class CRCCell implements Cell {
 		}
 
 		// Set Sending Application
-		ApplicationType sat = pdoOF.createApplicationType();
+		ApplicationType sat = pdoOF().createApplicationType();
 		sat.setApplicationName("IRCT");
 		sat.setApplicationVersion("1.0");
 
 		mht.setSendingApplication(sat);
 
 		// Set Sending Facility
-		FacilityType ft = pdoOF.createFacilityType();
+		FacilityType ft = pdoOF().createFacilityType();
 		ft.setFacilityName("IRCT");
 
 		mht.setSendingFacility(ft);
 
 		// Create Security Type
-		SecurityType st = pdoOF.createSecurityType();
+		SecurityType st = pdoOF().createSecurityType();
 		st.setDomain(this.domain);
 		st.setUsername(this.userName);
 
-		PasswordType pt = pdoOF.createPasswordType();
+		PasswordType pt = pdoOF().createPasswordType();
 
 		if (this.password != null) {
 			pt.setValue(this.password);
@@ -1092,19 +1105,19 @@ public class CRCCell implements Cell {
 		rmt.setMessageHeader(mht);
 
 		// Create Request Header Type
-		RequestHeaderType rht = pdoOF.createRequestHeaderType();
+		RequestHeaderType rht = pdoOF().createRequestHeaderType();
 		rht.setResultWaittimeMs(180000);
 		rmt.setRequestHeader(rht);
 
 		// Create a Body Type
-		BodyType bt = pdoOF.createBodyType();
+		BodyType bt = pdoOF().createBodyType();
 
-		PdoQryHeaderType pqht = pdoOF.createPdoQryHeaderType();
+		PdoQryHeaderType pqht = pdoOF().createPdoQryHeaderType();
 		pqht.setPatientSetLimit(0);
 		pqht.setRequestType(requestPDOType);
 		pqht.setEstimatedTime(180000);
 
-		bt.getAny().add(pdoOF.createPdoheader(pqht));
+		bt.getAny().add(pdoOF().createPdoheader(pqht));
 
 		rmt.setMessageBody(bt);
 		return rmt;

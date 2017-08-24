@@ -67,9 +67,27 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.Proxy;
  *
  */
 public class ONTCell implements Cell {
-	private static JAXBContext ontJC;
-	private static Marshaller ontMarshaller;
-	private static ObjectFactory ontOF;
+	private static JAXBContext ontJCInstance;
+	private static ObjectFactory ontOFInstance;
+	
+	private static JAXBContext ontJC() throws JAXBException{
+		if(ontJCInstance == null){
+			ontJCInstance = JAXBContext.newInstance("edu.harvard.hms.dbmi.i2b2.api.ont.xml");
+		}
+		return ontJCInstance;
+	};
+	private static Marshaller ontMarshaller() throws JAXBException{
+		Marshaller ontMarshaller = ontJC().createMarshaller();
+		ontMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+		return ontMarshaller;
+		
+	};
+	private static ObjectFactory ontOF(){
+		if(ontOFInstance == null){
+			ontOFInstance = new ObjectFactory();		
+		}
+		return ontOFInstance;
+	};
 	private String domain;
 	private String userName;
 	private String password;
@@ -150,12 +168,6 @@ public class ONTCell implements Cell {
 	 * @throws JAXBException
 	 */
 	public void setup() throws JAXBException {
-		// Setup System
-		ontOF = new ObjectFactory();
-		ontJC = JAXBContext
-				.newInstance("edu.harvard.hms.dbmi.i2b2.api.ont.xml");
-		ontMarshaller = ontJC.createMarshaller();
-		ontMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 	}
 
 	/**
@@ -190,7 +202,7 @@ public class ONTCell implements Cell {
 		// Create the XML Object
 		RequestMessageType rmt = createMinimumBaseMessage("/getCategories");
 
-		GetCategoriesType gct = ontOF.createGetCategoriesType();
+		GetCategoriesType gct = ontOF().createGetCategoriesType();
 		gct.setBlob(blobCategories);
 		gct.setHiddens(hiddenCategories);
 		gct.setSynonyms(synonymsCategories);
@@ -198,12 +210,12 @@ public class ONTCell implements Cell {
 			gct.setType(typeCategories);
 		}
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetCategories(gct));
+		rmt.getMessageBody().getAny().add(ontOF().createGetCategories(gct));
 
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createConceptsType(),
+		return getType(ontOF().createConceptsType(),
 				runRequest(client, sw.toString(), "/getCategories"));
 
 	}
@@ -243,7 +255,7 @@ public class ONTCell implements Cell {
 		// Create the XML Object
 		RequestMessageType rmt = createMinimumBaseMessage("/getChildren");
 
-		GetChildrenType gct = ontOF.createGetChildrenType();
+		GetChildrenType gct = ontOF().createGetChildrenType();
 		gct.setParent(parentKey);
 		gct.setHiddens(hidden);
 		gct.setBlob(blob);
@@ -255,12 +267,12 @@ public class ONTCell implements Cell {
 			gct.setType(type);
 		}
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetChildren(gct));
+		rmt.getMessageBody().getAny().add(ontOF().createGetChildren(gct));
 
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createConceptsType(),
+		return getType(ontOF().createConceptsType(),
 				runRequest(client, sw.toString(), "/getChildren"));
 	}
 
@@ -304,11 +316,11 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getNameInfo");
 
-		VocabRequestType vrt = ontOF.createVocabRequestType();
+		VocabRequestType vrt = ontOF().createVocabRequestType();
 		vrt.setBlob(blob);
 		vrt.setCategory(category);
 		vrt.setHiddens(hidden);
-		MatchStrType mst = ontOF.createMatchStrType();
+		MatchStrType mst = ontOF().createMatchStrType();
 		mst.setStrategy(strategy);
 		mst.setValue(matchStr);
 
@@ -322,13 +334,13 @@ public class ONTCell implements Cell {
 		vrt.setSynonyms(synonyms);
 		vrt.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetNameInfo(vrt));
+		rmt.getMessageBody().getAny().add(ontOF().createGetNameInfo(vrt));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createConceptsType(),
+		return getType(ontOF().createConceptsType(),
 				runRequest(client, sw.toString(), "/getNameInfo"));
 
 	}
@@ -366,7 +378,7 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getTermInfo");
 
-		GetTermInfoType gtit = ontOF.createGetTermInfoType();
+		GetTermInfoType gtit = ontOF().createGetTermInfoType();
 
 		gtit.setBlob(blob);
 		gtit.setHiddens(hidden);
@@ -375,13 +387,13 @@ public class ONTCell implements Cell {
 		gtit.setMax(max);
 		gtit.setSelf(self);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetTermInfo(gtit));
+		rmt.getMessageBody().getAny().add(ontOF().createGetTermInfo(gtit));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createConceptsType(),
+		return getType(ontOF().createConceptsType(),
 				runRequest(client, sw.toString(), "/getTermInfo"));
 	}
 
@@ -409,17 +421,17 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getSchemes");
 
-		GetReturnType gst = ontOF.createGetReturnType();
+		GetReturnType gst = ontOF().createGetReturnType();
 		gst.setBlob(blob);
 		gst.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetSchemes(gst));
+		rmt.getMessageBody().getAny().add(ontOF().createGetSchemes(gst));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createConceptsType(),
+		return getType(ontOF().createConceptsType(),
 				runRequest(client, sw.toString(), "/getSchemes"));
 	}
 
@@ -463,14 +475,14 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getCodeInfo");
 
-		VocabRequestType vrt = ontOF.createVocabRequestType();
+		VocabRequestType vrt = ontOF().createVocabRequestType();
 		vrt.setBlob(blob);
 		if (category != null) {
 			vrt.setCategory(category);
 		}
 		vrt.setHiddens(hidden);
 
-		MatchStrType mst = ontOF.createMatchStrType();
+		MatchStrType mst = ontOF().createMatchStrType();
 		if (strategy != null) {
 			mst.setStrategy(strategy);
 		}
@@ -488,13 +500,13 @@ public class ONTCell implements Cell {
 		vrt.setSynonyms(synonyms);
 		vrt.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetCodeInfo(vrt));
+		rmt.getMessageBody().getAny().add(ontOF().createGetCodeInfo(vrt));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createConceptsType(),
+		return getType(ontOF().createConceptsType(),
 				runRequest(client, sw.toString(), "/getCodeInfo"));
 	}
 
@@ -519,11 +531,11 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/addChild");
 
-		rmt.getMessageBody().getAny().add(ontOF.createAddChild(conceptType));
+		rmt.getMessageBody().getAny().add(ontOF().createAddChild(conceptType));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
 		checkForError(runRequest(client, sw.toString(), "/addChild"));
 
@@ -552,15 +564,15 @@ public class ONTCell implements Cell {
 			UnsupportedOperationException, I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/modifyChild");
 
-		ModifyChildType mct = ontOF.createModifyChildType();
+		ModifyChildType mct = ontOF().createModifyChildType();
 		mct.setInclSynonyms(inclSynonyms);
 		mct.setSelf(conceptType);
 
-		rmt.getMessageBody().getAny().add(ontOF.createModifyChild(mct));
+		rmt.getMessageBody().getAny().add(ontOF().createModifyChild(mct));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
 		checkForError(runRequest(client, sw.toString(), "/modifyChild"));
 
@@ -593,18 +605,18 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/updateCRCConcept");
 
-		UpdateCrcConceptType ucct = ontOF.createUpdateCrcConceptType();
+		UpdateCrcConceptType ucct = ontOF().createUpdateCrcConceptType();
 		ucct.setHiddens(hidden);
 		ucct.setOperationType(operationType);
 		ucct.setSynonyms(synonyms);
 
-		rmt.getMessageBody().getAny().add(ontOF.createUpdateCrcConcept(ucct));
+		rmt.getMessageBody().getAny().add(ontOF().createUpdateCrcConcept(ucct));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createOntologyProcessStatusType(),
+		return getType(ontOF().createOntologyProcessStatusType(),
 				runRequest(client, sw.toString(), "/updateCRCConcept"));
 	}
 
@@ -650,10 +662,10 @@ public class ONTCell implements Cell {
 			DatatypeConfigurationException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getOntologyProcessStatus");
 
-		GetOntProcessStatusType opst = ontOF.createGetOntProcessStatusType();
+		GetOntProcessStatusType opst = ontOF().createGetOntProcessStatusType();
 		opst.setMaxReturnRecords(max);
 
-		ProcessStartDate psd = ontOF
+		ProcessStartDate psd = ontOF()
 				.createGetOntProcessStatusTypeProcessStartDate();
 		psd.setEndTime(DatatypeFactory.newInstance().newXMLGregorianCalendar(
 				startDateEndTime));
@@ -661,7 +673,7 @@ public class ONTCell implements Cell {
 				startDateStartTime));
 
 		opst.setProcessStartDate(psd);
-		ProcessEndDate ped = ontOF
+		ProcessEndDate ped = ontOF()
 				.createGetOntProcessStatusTypeProcessEndDate();
 		ped.setEndTime(DatatypeFactory.newInstance().newXMLGregorianCalendar(
 				endDateEndTime));
@@ -674,13 +686,13 @@ public class ONTCell implements Cell {
 		opst.setProcessTypeCd(processTypeCd);
 
 		rmt.getMessageBody().getAny()
-				.add(ontOF.createGetOntProcessStatus(opst));
+				.add(ontOF().createGetOntProcessStatus(opst));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createOntologyProcessStatusListType(),
+		return getType(ontOF().createOntologyProcessStatusListType(),
 				runRequest(client, sw.toString(), "/getOntologyProcessStatus"));
 	}
 
@@ -709,15 +721,15 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getDirtyState");
 
-		GetReturnType gst = ontOF.createGetReturnType();
+		GetReturnType gst = ontOF().createGetReturnType();
 		gst.setBlob(blob);
 		gst.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetDirtyState(gst));
+		rmt.getMessageBody().getAny().add(ontOF().createGetDirtyState(gst));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
 		ResponseMessageType responseMT = JAXB.unmarshal(
 				runRequest(client, sw.toString(), "/getDirtyState"),
@@ -754,18 +766,18 @@ public class ONTCell implements Cell {
 			UnsupportedOperationException, I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/updateConceptTotalNum");
 
-		UpdateConceptTotalNumType uctnt = ontOF
+		UpdateConceptTotalNumType uctnt = ontOF()
 				.createUpdateConceptTotalNumType();
 		uctnt.setOperationType(operationType);
 
 		rmt.getMessageBody().getAny()
-				.add(ontOF.createUpdateConceptTotalnum(uctnt));
+				.add(ontOF().createUpdateConceptTotalnum(uctnt));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createOntologyProcessStatusType(),
+		return getType(ontOF().createOntologyProcessStatusType(),
 				runRequest(client, sw.toString(), "/updateConceptTotalNum"));
 
 	}
@@ -807,7 +819,7 @@ public class ONTCell implements Cell {
 			UnsupportedOperationException, I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getModifiers");
 
-		GetModifiersType gmt = ontOF.createGetModifiersType();
+		GetModifiersType gmt = ontOF().createGetModifiersType();
 		gmt.setBlob(blob);
 		gmt.setHiddens(hidden);
 		if (max != -1) {
@@ -818,13 +830,13 @@ public class ONTCell implements Cell {
 		if (type != null) {
 			gmt.setType(type);
 		}
-		rmt.getMessageBody().getAny().add(ontOF.createGetModifiers(gmt));
+		rmt.getMessageBody().getAny().add(ontOF().createGetModifiers(gmt));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createModifiersType(),
+		return getType(ontOF().createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifiers"));
 	}
 
@@ -868,7 +880,7 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getModifierInfo");
 
-		GetModifierInfoType gmit = ontOF.createGetModifierInfoType();
+		GetModifierInfoType gmit = ontOF().createGetModifierInfoType();
 
 		gmit.setAppliedPath(appliedPath);
 		gmit.setBlob(blob);
@@ -878,13 +890,13 @@ public class ONTCell implements Cell {
 		gmit.setSynonyms(synonyms);
 		gmit.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetModifierInfo(gmit));
+		rmt.getMessageBody().getAny().add(ontOF().createGetModifierInfo(gmit));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createModifiersType(),
+		return getType(ontOF().createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierInfo"));
 
 	}
@@ -931,7 +943,7 @@ public class ONTCell implements Cell {
 			UnsupportedOperationException, I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getModifierChidlren");
 
-		GetModifierChildrenType gmct = ontOF.createGetModifierChildrenType();
+		GetModifierChildrenType gmct = ontOF().createGetModifierChildrenType();
 		gmct.setAppliedConcept(appliedConcept);
 		gmct.setAppliedPath(appliedPath);
 		gmct.setBlob(blob);
@@ -942,12 +954,12 @@ public class ONTCell implements Cell {
 		gmct.setParent(parent);
 
 		rmt.getMessageBody().getAny()
-				.add(ontOF.createGetModifierChildren(gmct));
+				.add(ontOF().createGetModifierChildren(gmct));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
-		return getType(ontOF.createModifiersType(),
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
+		return getType(ontOF().createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierChidlren"));
 	}
 
@@ -991,11 +1003,11 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getModifierNameInfo");
 
-		VocabRequestType vrt = ontOF.createVocabRequestType();
+		VocabRequestType vrt = ontOF().createVocabRequestType();
 		vrt.setBlob(blob);
 		vrt.setCategory(category);
 		vrt.setHiddens(hidden);
-		MatchStrType mst = ontOF.createMatchStrType();
+		MatchStrType mst = ontOF().createMatchStrType();
 		mst.setStrategy(strategy);
 		mst.setValue(matchStr);
 
@@ -1005,11 +1017,11 @@ public class ONTCell implements Cell {
 		vrt.setSynonyms(synonyms);
 		vrt.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetModifierNameInfo(vrt));
+		rmt.getMessageBody().getAny().add(ontOF().createGetModifierNameInfo(vrt));
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
-		return getType(ontOF.createModifiersType(),
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
+		return getType(ontOF().createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierNameInfo"));
 	}
 
@@ -1053,11 +1065,11 @@ public class ONTCell implements Cell {
 			I2B2InterfaceException, IOException {
 		RequestMessageType rmt = createMinimumBaseMessage("/getModifierCodeInfo");
 
-		VocabRequestType vrt = ontOF.createVocabRequestType();
+		VocabRequestType vrt = ontOF().createVocabRequestType();
 		vrt.setBlob(blob);
 		vrt.setCategory(category);
 		vrt.setHiddens(hidden);
-		MatchStrType mst = ontOF.createMatchStrType();
+		MatchStrType mst = ontOF().createMatchStrType();
 		mst.setStrategy(strategy);
 		mst.setValue(matchStr);
 
@@ -1067,13 +1079,13 @@ public class ONTCell implements Cell {
 		vrt.setSynonyms(synonyms);
 		vrt.setType(type);
 
-		rmt.getMessageBody().getAny().add(ontOF.createGetModifierCodeInfo(vrt));
+		rmt.getMessageBody().getAny().add(ontOF().createGetModifierCodeInfo(vrt));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
-		return getType(ontOF.createModifiersType(),
+		return getType(ontOF().createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierCodeInfo"));
 	}
 
@@ -1099,11 +1111,11 @@ public class ONTCell implements Cell {
 		RequestMessageType rmt = createMinimumBaseMessage("/addModifier");
 
 		rmt.getMessageBody().getAny()
-				.add(ontOF.createAddModifier(modifierType));
+				.add(ontOF().createAddModifier(modifierType));
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		ontMarshaller().marshal(ontOF().createRequest(rmt), sw);
 
 		checkForError(runRequest(client, sw.toString(), "/addModifier"));
 
@@ -1202,10 +1214,10 @@ public class ONTCell implements Cell {
 	 * @return Request Message Base
 	 */
 	private RequestMessageType createMinimumBaseMessage(String appendURL) {
-		RequestMessageType rmt = ontOF.createRequestMessageType();
+		RequestMessageType rmt = ontOF().createRequestMessageType();
 
 		// Create Message Header Type
-		MessageHeaderType mht = ontOF.createMessageHeaderType();
+		MessageHeaderType mht = ontOF().createMessageHeaderType();
 
 		// Set proxy
 		if ((useProxy) && (appendURL != null)) {
@@ -1215,24 +1227,24 @@ public class ONTCell implements Cell {
 		}
 
 		// Set Sending Application
-		ApplicationType sat = ontOF.createApplicationType();
+		ApplicationType sat = ontOF().createApplicationType();
 		sat.setApplicationName("IRCT");
 		sat.setApplicationVersion("1.0");
 
 		mht.setSendingApplication(sat);
 
 		// Set Sending Facility
-		FacilityType ft = ontOF.createFacilityType();
+		FacilityType ft = ontOF().createFacilityType();
 		ft.setFacilityName("IRCT");
 
 		mht.setSendingFacility(ft);
 
 		// Create Security Type
-		SecurityType st = ontOF.createSecurityType();
+		SecurityType st = ontOF().createSecurityType();
 		st.setDomain(this.domain);
 		st.setUsername(this.userName);
 
-		PasswordType pt = ontOF.createPasswordType();
+		PasswordType pt = ontOF().createPasswordType();
 
 		if (this.password != null) {
 			pt.setValue(this.password);
@@ -1248,12 +1260,12 @@ public class ONTCell implements Cell {
 		rmt.setMessageHeader(mht);
 
 		// Create Request Header Type
-		RequestHeaderType rht = ontOF.createRequestHeaderType();
+		RequestHeaderType rht = ontOF().createRequestHeaderType();
 		rht.setResultWaittimeMs(180000);
 		rmt.setRequestHeader(rht);
 
 		// Create Body Type
-		BodyType bt = ontOF.createBodyType();
+		BodyType bt = ontOF().createBodyType();
 		rmt.setMessageBody(bt);
 
 		return rmt;
