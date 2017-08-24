@@ -27,7 +27,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * A stateless controller for managing security.
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -39,13 +39,13 @@ public class SecurityController {
 
 	@Inject
 	Logger log;
-	
+
 	@javax.annotation.Resource(mappedName ="java:global/KeyTimeOutInMinutes")
 	private String keyTimeOut;
 
 	/**
 	 * Creates a secured randomly generated key unique to that user.
-	 * 
+	 *
 	 * @param user
 	 *            A user that is to be associated with that key
 	 * @param token
@@ -62,29 +62,30 @@ public class SecurityController {
 		ss.setUser(user);
 		ss.setToken(token);
 		ss.setAccessKey(key);
-		ss.setCreated(new Date());
+		ss.setCreated(new Date(new Date().getTime()-1000));
 
 		if (user.getId() == null) {
 			entityManager.persist(ss);
 		} else {
 			entityManager.merge(ss);
 		}
+		entityManager.flush();
 
-		log.info("Created key for " + user.getName());
+		log.info("createKey() Created key for " + user.getName());
 
 		return key;
 	}
 
 	/**
 	 * Validates a key as being valid and returns a secure session information
-	 * 
+	 *
 	 * @param key
 	 *            Key to validate
 	 * @return A secure session information if the key is valid, null if it is
 	 *         not valid
 	 */
 	public SecureSession validateKey(String key) {
-		
+
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<SecureSession> cq = cb.createQuery(SecureSession.class);
 		Root<SecureSession> secureSession = cq.from(SecureSession.class);
@@ -115,7 +116,7 @@ public class SecurityController {
 
 	/**
 	 * Get a given user from a database from a user id
-	 * 
+	 *
 	 * @param userId
 	 *            User Id
 	 * @return User

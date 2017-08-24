@@ -156,7 +156,7 @@
 					<driver>mysql</driver>
 					<security>
 						<user-name>irct</user-name>
-						<password>password</password>
+						<password>A VALID PASSWORD FOR YOUR LOCAL MYSQL USER IRCT</password>
 					</security>
 					<pool>
 						<min-pool-size>5</min-pool-size>
@@ -358,8 +358,8 @@
 				<simple name="java:global/userField" value="email" />
 				<simple name="java:global/resultDataFolder"
 					value="scratch/irct" />
-				<simple name="java:global/client_secret" value="{{auth0_client_secret.msg}}" />
-				<simple name="java:global/client_id" value="{{auth0_client_id.msg}}" />
+				<simple name="java:global/client_secret" value="<Client Secret for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
+				<simple name="java:global/client_id" value="<Client ID for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
 				<simple name="java:global/KeyTimeOutInMinutes" value="720" />
 			</bindings>
 			<remote-naming />
@@ -448,10 +448,10 @@
 			<inet-address value="${jboss.bind.address.management:127.0.0.1}" />
 		</interface>
 		<interface name="public">
-			<inet-address value="${jboss.bind.address:127.0.0.1}" />
+			<inet-address value="${jboss.bind.address:0.0.0.0}" />
 		</interface>
 		<interface name="unsecure">
-			<inet-address value="${jboss.bind.address.unsecure:127.0.0.1}" />
+			<inet-address value="${jboss.bind.address.unsecure:0.0.0.0}" />
 		</interface>
 	</interfaces>
 	<socket-binding-group name="standard-sockets"

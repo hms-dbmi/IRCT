@@ -19,7 +19,6 @@
 		<server.config>standalone.xml</server.config>
 	</properties>
 
-
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
