@@ -62,7 +62,7 @@ public class SecurityController {
 		ss.setUser(user);
 		ss.setToken(token);
 		ss.setAccessKey(key);
-		ss.setCreated(new Date());
+		ss.setCreated(new Date(new Date().getTime()-1000));
 
 		if (user.getId() == null) {
 			entityManager.persist(ss);
