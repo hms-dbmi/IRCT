@@ -3,7 +3,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Map;
 
 import javax.enterprise.context.RequestScoped;
@@ -66,26 +65,17 @@ public class ScriptService {
 		ScriptedQuery scriptedQuery = mapper.readValue(scriptedQueryJson, ScriptedQuery.class);
 		logger.error(scriptedQuery);
 		logger.error(queryService);
-		ArrayList<Integer> resultIdList = new ArrayList<Integer>();
-		if(scriptedQuery.getQueries() != null){
-			for(IRCTQuery q : scriptedQuery.getQueries()) {
-				Response response = queryService.runQuery(mapper.writeValueAsString(q));
-				logger.error(response.getEntity());
-				resultIdList.add(getResultId(response));
-			}
-		}
-		resultIdList.addAll(scriptedQuery.getResultIds());
 		try {
 			//			engine.eval(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("/META-INF/resources/webjars/underscorejs/1.8.3/underscore-min.js")));
-			String sessionFunctionName = "transform_"+session.getId().hashCode();
+			String sessionFunctionName = "transform_"+Math.abs(session.getId().hashCode());
 			String sessionSafetyWrapper = sessionFunctionName + " = " + scriptedQuery.getScript() + ";";
 			engine.eval(sessionSafetyWrapper);
 			logger.error(sessionFunctionName);
 			engine.eval("print("+ sessionFunctionName +");");
 			Invocable iEngine = (Invocable)engine;
 			logger.error("Gathering results : " + System.currentTimeMillis());
-			ArrayList<Object> results = new ArrayList<Object>(resultIdList.size());
-			for(int x : resultIdList){
+			ArrayList<Object> results = new ArrayList<Object>(scriptedQuery.getResultSets().size());
+			for(int x : scriptedQuery.getResultSets().values()){
 				logger.error("Gathering results : " + System.currentTimeMillis());
 				while(getResultStatus(resultService.resultStatus((long)x))
 						.contentEquals("RUNNING")){
