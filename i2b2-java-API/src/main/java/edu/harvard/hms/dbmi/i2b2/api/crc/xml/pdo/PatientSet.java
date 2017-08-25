@@ -9,7 +9,10 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
+
+import org.apache.log4j.Logger;
 
 
 /**
@@ -37,7 +40,10 @@ import javax.xml.bind.annotation.XmlType;
 })
 @XmlRootElement(name = "patient_set", namespace = "http://www.i2b2.org/xsd/hive/pdo/1.1/")
 public class PatientSet {
-
+	
+	@XmlTransient
+	Logger logger = Logger.getLogger(this.getClass())
+			;
     @XmlElement(required = true)
     protected List<PatientType> patient;
 
@@ -64,9 +70,12 @@ public class PatientSet {
      * 
      */
     public List<PatientType> getPatient() {
+    	logger.debug("getPatient() Starting...");
         if (patient == null) {
+        	logger.debug("getPatient() its null, create a new one");
             patient = new ArrayList<PatientType>();
         }
+        logger.debug("getPatient() Returning a patientset with size of "+this.patient.size());
         return this.patient;
     }
 

@@ -15,7 +15,6 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.bind.PropertyException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
@@ -24,6 +23,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.i2b2.api.Cell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ApplicationType;
@@ -38,6 +38,7 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObservationFactByPrimaryKeyR
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObserverByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPDOFromInputListRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPatientByPrimaryKeyRequestType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.InputOptionListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObjectFactory;
@@ -90,9 +91,11 @@ public class CRCCell implements Cell {
 	private static JAXBContext pdoJCInstance;
 	private static ObjectFactory pdoOFInstance;
 	
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	private static JAXBContext pdoJC() throws JAXBException{
 		if(pdoJCInstance == null){
-			pdoJCInstance = JAXBContext.newInstance("edu.harvard.hms.dbmi.i2b2.api.ont.xml");
+			pdoJCInstance = JAXBContext.newInstance("edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo");
 		}
 		return pdoJCInstance;
 	};
@@ -202,14 +205,20 @@ public class CRCCell implements Cell {
 	public InstanceResponseType getQueryInstanceListFromQueryId(
 			HttpClient client, String queryMasterId) throws JAXBException,
 			ClientProtocolException, I2B2InterfaceException, IOException {
+		logger.debug("getQueryInstanceListFromQueryId() Starting...");
+		
+		logger.debug("getQueryInstanceListFromQueryId() creating ```.psm.RequestMessageType```");
 		edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.RequestMessageType rmt = createMinimumPSMBaseMessage(edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PsmRequestTypeType.CRC_QRY_GET_QUERY_INSTANCE_LIST_FROM_QUERY_MASTER_ID, "/request");
 		
+		logger.debug("getQueryInstanceListFromQueryId() creating ```MasterRequestType```");
 		MasterRequestType mrt = psmOF.createMasterRequestType();
 		mrt.setQueryMasterId(queryMasterId);
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mrt));
 
 		StringWriter sw = new StringWriter();
+		logger.debug("getQueryInstanceListFromQueryId() Starting ```psmMarshaller```");
 		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		logger.debug("getQueryInstanceListFromQueryId() finished ```psmMarshaller```");
 		
 		return (InstanceResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"));
@@ -654,20 +663,29 @@ public class CRCCell implements Cell {
 			boolean blob, boolean techdata, OutputOptionSelectType select)
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
+		
+		logger.debug("getPDOfromInputList() Starting...");
+		
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PDO_FROM_INPUT_LIST, "/pdorequest");
+		logger.debug("getPDOfromInputList() created ```RequestMessageType```");
+		
 		GetPDOFromInputListRequestType ilrt = pdoOF()
 				.createGetPDOFromInputListRequestType();
-
+		logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
+		
 		InputOptionListType iolt = pdoOF().createInputOptionListType();
 		PatientListType plt = pdoOF().createPatientListType();
 		plt.setMin(min);
 		plt.setMax(max);
-
+		logger.debug("getPDOfromInputList() set min/max");
+		
 		plt.setPatientSetCollId(collectionId);
+		logger.debug("getPDOfromInputList() set collectionId to "+(collectionId!=null?collectionId:"NULL"));
 		iolt.setPatientList(plt);
 		ilrt.setInputList(iolt);
-
+		logger.debug("getPDOfromInputList() set PatientList and InputList");
 		ilrt.setFilterList(pdoOF().createFilterListType());
+		logger.debug("getPDOfromInputList() set FilterList");
 
 		OutputOptionListType oolt = pdoOF().createOutputOptionListType();
 		OutputOptionType oot = pdoOF().createOutputOptionType();
@@ -677,13 +695,20 @@ public class CRCCell implements Cell {
 		oot.setSelect(select);
 
 		oolt.setPatientSet(oot);
-
+		logger.debug("getPDOfromInputList() create OutputOptionType");
 		ilrt.setOutputOption(oolt);
+		logger.debug("getPDOfromInputList() set OutputOptionType");
 
 		rmt.getMessageBody().getAny().add(pdoOF().createRequest(ilrt));
+		logger.debug("getPDOfromInputList() reset ```RequestMessageType``` with ```GetPDOFromInputListRequestType```");
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller().marshal(pdoOF().createHiveRequest(rmt), sw);
+		
+		HiveRequest hvr = pdoOF().createHiveRequest(rmt);
+		logger.debug("getPDOfromInputList() created PDO HiveRequest.");
+		
+		pdoMarshaller().marshal(hvr, sw);
+		logger.debug("getPDOfromInputList() set pdoMarshaller");
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
