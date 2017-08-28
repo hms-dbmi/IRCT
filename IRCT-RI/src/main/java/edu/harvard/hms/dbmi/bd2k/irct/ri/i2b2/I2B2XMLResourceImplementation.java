@@ -173,24 +173,13 @@ public class I2B2XMLResourceImplementation
 		logger.debug("setup() ```ignoreCeriticate``` is "+ (this.ignoreCertificate ? "TRUE" : "FALSE"));
 
 		// Setup Cells
-		try {
-			logger.debug("setup() Setting up CRCCell");
-			crcCell = new CRCCell();
-			logger.debug("setup() Setting up ONTCell");
-			ontCell = new ONTCell();
-			logger.debug("setup() Setting up PMCell");
-			pmCell = new PMCell();
-			logger.debug("setup() calling crcCell.setup()");
-			crcCell.setup();
-			logger.debug("setup() calling ontCell.setup()");
-			ontCell.setup();
-			logger.debug("setup() calling pmCell.setup()");
-			pmCell.setup();
-			logger.debug("setup() finished setting up everything. Zoom-zoom...");
-		} catch (JAXBException e) {
-			logger.error( "setup() Exception: "+e.getMessage());
-			throw new ResourceInterfaceException(e);
-		}
+		logger.debug("setup() Setting up CRCCell");
+		crcCell = new CRCCell();
+		logger.debug("setup() Setting up ONTCell");
+		ontCell = new ONTCell();
+		logger.debug("setup() Setting up PMCell");
+		pmCell = new PMCell();
+		logger.debug("setup() finished setting up everything. Zoom-zoom...");
 		resourceState = ResourceState.READY;
 	}
 
