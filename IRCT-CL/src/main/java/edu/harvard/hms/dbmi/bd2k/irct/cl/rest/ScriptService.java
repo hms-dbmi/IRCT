@@ -1,11 +1,19 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
-import javax.enterprise.context.RequestScoped;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.inject.Inject;
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
@@ -22,15 +30,21 @@ import org.apache.log4j.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.google.common.cache.Weigher;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
-import edu.harvard.hms.dbmi.bd2k.irct.model.script.IRCTQuery;
 import edu.harvard.hms.dbmi.bd2k.irct.model.script.ScriptedQuery;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 @Path("/script")
-@RequestScoped
+@Startup
+@Singleton
 public class ScriptService {
 
 	@Inject
@@ -57,50 +71,91 @@ public class ScriptService {
 	// TODO : This is only required because the IRCT does not properly use the JaxRS providers framework to handle serialization.
 	private ObjectMapper mapper = new ObjectMapper();
 
-	private Logger logger = Logger.getLogger(getClass());
+	private Logger logger = Logger.getLogger(ScriptService.class);
 
+	ArrayList<Integer> functionHashList = new ArrayList<Integer>();
+	
+	private LoadingCache<Long, byte[]> cache = 
+			CacheBuilder.newBuilder()
+			.removalListener(new RemovalListener<Long, byte[]>() {
+
+				@Override
+				public void onRemoval(RemovalNotification<Long, byte[]> arg0) {
+					logger.info("Removed : " + arg0.getKey());
+				}
+			})
+			.maximumWeight(1048576 * 80)
+			.weigher(new Weigher<Long, byte[]>(){
+				public int weigh(Long arg0, byte[] arg1) {
+					return arg1.length;
+				}
+			}).build(new CacheLoader<Long, byte[]>(){
+				public byte[] load(Long id) throws Exception {
+					logger.info("loading : " + id);
+					while(getResultStatus(resultService.resultStatus(id))
+							.contentEquals("RUNNING")){
+						Thread.yield();
+					}
+					ResultDataStream resultData = resultController.getResultDataStream(
+							(User)session.getAttribute("user"), id, "JSON");
+					ByteArrayOutputStream result = new ByteArrayOutputStream();
+					resultData.getResult().write(new BufferedOutputStream(result, 1048576));
+					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+					ObjectOutputStream bytes = new ObjectOutputStream(byteStream);
+					bytes.writeObject(mapper.readValue(new String(result.toByteArray(),"UTF-8"), Map.class));
+					bytes.close();
+					return byteStream.toByteArray();
+				}
+			});
+	
 	@POST
 	public Response submitScriptQuery(String scriptedQueryJson) throws JsonParseException, JsonMappingException, IOException{
-		logger.error(scriptedQueryJson);
+		long startTime = System.currentTimeMillis();
 		ScriptedQuery scriptedQuery = mapper.readValue(scriptedQueryJson, ScriptedQuery.class);
-		logger.error(scriptedQuery);
-		logger.error(queryService);
+		long deserialized = System.currentTimeMillis();
 		try {
 			//			engine.eval(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("/META-INF/resources/webjars/underscorejs/1.8.3/underscore-min.js")));
-			String sessionFunctionName = "transform_"+Math.abs(session.getId().hashCode());
-			String sessionSafetyWrapper = sessionFunctionName + " = " + scriptedQuery.getScript() + ";";
-			engine.eval(sessionSafetyWrapper);
-			logger.error(sessionFunctionName);
-			engine.eval("print("+ sessionFunctionName +");");
-			Invocable iEngine = (Invocable)engine;
-			logger.error("Gathering results : " + System.currentTimeMillis());
-			ArrayList<Object> results = new ArrayList<Object>(scriptedQuery.getResultSets().size());
-			for(int x : scriptedQuery.getResultSets().values()){
-				logger.error("Gathering results : " + System.currentTimeMillis());
-				while(getResultStatus(resultService.resultStatus((long)x))
-						.contentEquals("RUNNING")){
-					Thread.yield();
-				}
-				logger.error("Gathering results : " + System.currentTimeMillis());
-				ResultDataStream resultData = resultController.getResultDataStream(
-						(User)session.getAttribute("user"), (long)x, "JSON");
-				logger.error("Gathering results : " + System.currentTimeMillis());
-				ByteArrayOutputStream result = new ByteArrayOutputStream();
-				logger.error("Gathering results : " + System.currentTimeMillis());
-				resultData.getResult().write(result);
-				logger.error("Gathering results : " + System.currentTimeMillis());
-				results.add(result.toString("UTF-8"));
+			String sessionFunctionName = "transform_"+Math.abs(scriptedQueryJson.hashCode());
+			if(!functionHashList.contains(sessionFunctionName.hashCode())){
+				String sessionSafetyWrapper = sessionFunctionName + " = " + scriptedQuery.getScript() + ";";
+				engine.eval(sessionSafetyWrapper);
+				functionHashList.add(sessionFunctionName.hashCode());
 			}
-			logger.error("Processing Script : " + System.currentTimeMillis());
-			Object scriptReturnValue = iEngine.invokeFunction(sessionFunctionName, results);
-			logger.error("Building JSON     : " + System.currentTimeMillis());
+			logger.error("Function Name : " + sessionFunctionName);
+			Invocable iEngine = (Invocable)engine;
+			long engineInit = System.currentTimeMillis();
+			HashMap<String, Object> results = new HashMap<String, Object>();
+			for(String key : scriptedQuery.getResultSets().keySet()){
+				long id = scriptedQuery.getResultSets().get(key);
+				results.put(key, new ObjectInputStream(new ByteArrayInputStream(cache.get(id))).readObject());
+			}
+			long resultsGathered = System.currentTimeMillis();
+			HashMap<String, Object> options = new HashMap<String, Object>();
+			options.put("resultSets", results);
+			options.put("scriptOptions", scriptedQuery.getScriptOptions());
+			long optionsBuilt = System.currentTimeMillis();
+			Object scriptReturnValue = iEngine.invokeFunction(sessionFunctionName, mapper.writeValueAsString(options));
+			long functionExecuted = System.currentTimeMillis();
 			String resultJSON = mapper.writeValueAsString(scriptReturnValue);
-			logger.error("Sending Response  : " + System.currentTimeMillis());
+			long serialized = System.currentTimeMillis();
+			logger.info("Timings : \n\t" 
+			+ (deserialized - startTime) + "\n\t" 
+			+ (engineInit - deserialized) + "\n\t" 
+			+ (resultsGathered - engineInit) + "\n\t" 
+			+ (optionsBuilt - resultsGathered) + "\n\t" 
+			+ (functionExecuted - optionsBuilt) + "\n\t" 
+			+ (serialized - functionExecuted));
 			return Response.ok(resultJSON, MediaType.APPLICATION_JSON_TYPE).build();
 		} catch (ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
