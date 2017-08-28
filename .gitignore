@@ -1,5 +1,7 @@
 target/
 
+scratch/
+
 .classpath
 
 .factorypath

@@ -11,10 +11,9 @@ import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
+
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
@@ -23,6 +22,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.i2b2.api.Cell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ApplicationType;
@@ -37,9 +37,9 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObservationFactByPrimaryKeyR
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObserverByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPDOFromInputListRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPatientByPrimaryKeyRequestType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.InputOptionListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObjectFactory;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObserverPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
@@ -85,22 +85,20 @@ import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
  * @author Jeremy R. Easton-Marks
  *
  */
-public class CRCCell implements Cell {
-	// PDO
-	private static ObjectFactory pdoOF;
-	private static JAXBContext pdoJC;
-	private static Marshaller pdoMarshaller;
+public class CRCCell extends Cell {
 
-	// PSM
-	private static edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ObjectFactory psmOF;
-	private static JAXBContext psmJC;
-	private static Marshaller psmMarshaller;
+	private Logger logger = Logger.getLogger(this.getClass());
 
-	// Loader
-//	private static edu.harvard.hms.dbmi.i2b2.api.crc.xml.loader.ObjectFactory loaderOF;
-//	private static JAXBContext loaderJC;
-//	private static Marshaller loaderMarshaller;
-
+	private final String PDO = "edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo";
+	
+	private final String PSM = "edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm";
+	
+	private edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObjectFactory pdoOF = 
+			new edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObjectFactory(); 
+	
+	private edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ObjectFactory psmOF = 
+			new edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ObjectFactory(); 
+	
 	// Connection and Configuration Parameters
 	private String domain;
 	private String userName;
@@ -124,7 +122,6 @@ public class CRCCell implements Cell {
 		this.projectId = projectId;
 		this.useProxy = useProxy;	
 		this.proxyURL = proxyURL;
-		setup();
 	}
 
 	@Override
@@ -139,7 +136,6 @@ public class CRCCell implements Cell {
 		this.projectId = projectId;
 		this.useProxy = useProxy;
 		this.proxyURL = proxyURL;
-		setup();
 	}
 	
 	@Override
@@ -153,34 +149,6 @@ public class CRCCell implements Cell {
 		this.useProxy = useProxy;	
 		this.proxyURL = proxyURL;
 	}
-	
-	/**
-	 * Sets up the system without any parameters of the Data Repository Cell
-	 * 
-	 * @throws JAXBException
-	 */
-	public void setup() throws JAXBException {
-		// Setup PDO
-		pdoOF = new ObjectFactory();
-		pdoJC = JAXBContext
-				.newInstance("edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo");
-		pdoMarshaller = pdoJC.createMarshaller();
-		pdoMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-
-		// Setup PSM
-		psmOF = new edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ObjectFactory();
-		psmJC = JAXBContext
-				.newInstance("edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm");
-		psmMarshaller = psmJC.createMarshaller();
-		psmMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-
-		// Setup Loader
-//		loaderOF = new edu.harvard.hms.dbmi.i2b2.api.crc.xml.loader.ObjectFactory();
-//		loaderJC = JAXBContext
-//				.newInstance("edu.harvard.hms.dbmi.i2b2.api.crc.xml.loader");
-//		loaderMarshaller = loaderJC.createMarshaller();
-//		loaderMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-	}
 
 	// -------------------------------------------------------------------------
 	// PSM Calls
@@ -189,14 +157,21 @@ public class CRCCell implements Cell {
 	public InstanceResponseType getQueryInstanceListFromQueryId(
 			HttpClient client, String queryMasterId) throws JAXBException,
 			ClientProtocolException, I2B2InterfaceException, IOException {
+		logger.debug("getQueryInstanceListFromQueryId() Starting...");
+		
+		logger.debug("getQueryInstanceListFromQueryId() creating ```.psm.RequestMessageType```");
 		edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.RequestMessageType rmt = createMinimumPSMBaseMessage(edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PsmRequestTypeType.CRC_QRY_GET_QUERY_INSTANCE_LIST_FROM_QUERY_MASTER_ID, "/request");
 		
+		logger.debug("getQueryInstanceListFromQueryId() creating ```MasterRequestType```");
 		MasterRequestType mrt = psmOF.createMasterRequestType();
 		mrt.setQueryMasterId(queryMasterId);
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mrt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+
+		logger.debug("getQueryInstanceListFromQueryId() Starting ```psmMarshaller```");
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
+		logger.debug("getQueryInstanceListFromQueryId() finished ```psmMarshaller```");
 		
 		return (InstanceResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"));
@@ -231,7 +206,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mrt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return (RequestXmlResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"));
@@ -272,7 +247,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(urt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 		return ((MasterResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"))).getQueryMaster();
 	}
@@ -312,7 +287,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(urt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 		return ((MasterResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"))).getQueryMaster();
 	}
@@ -382,7 +357,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(qdrt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return (MasterInstanceResultResponseType) this
 				.getPSMResponseType(runRequest(client, sw.toString(),
@@ -416,7 +391,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(irt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return ((ResultResponseType) this.getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"))).getQueryResultInstance();
@@ -453,7 +428,7 @@ public class CRCCell implements Cell {
 
 		StringWriter sw = new StringWriter();
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mdrt));
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return ((MasterResponseType) this.getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"))).getQueryMaster();
@@ -492,7 +467,7 @@ public class CRCCell implements Cell {
 
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mrrt));
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return ((MasterResponseType) this.getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"))).getQueryMaster();
@@ -527,7 +502,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(rrt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return (CrcXmlResultResponseType) this.getPSMResponseType(runRequest(
 				client, sw.toString(), "/request"));
@@ -562,7 +537,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(adrt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return (MasterInstanceResultResponseType) this
 				.getPSMResponseType(runRequest(client, sw.toString(),
@@ -597,7 +572,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(irt));
 
 		StringWriter sw = new StringWriter();
-		psmMarshaller.marshal(psmOF.createHiveRequest(rmt), sw);
+		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 
 		return (InstanceResultResponseType) this.getPSMResponseType(runRequest(
 				client, sw.toString(), "/request"));
@@ -641,20 +616,31 @@ public class CRCCell implements Cell {
 			boolean blob, boolean techdata, OutputOptionSelectType select)
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
+		
+		logger.debug("getPDOfromInputList() Starting...");
+		
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PDO_FROM_INPUT_LIST, "/pdorequest");
+
+		logger.debug("getPDOfromInputList() created ```RequestMessageType```");
+		
 		GetPDOFromInputListRequestType ilrt = pdoOF
 				.createGetPDOFromInputListRequestType();
-
+		logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
+		
 		InputOptionListType iolt = pdoOF.createInputOptionListType();
 		PatientListType plt = pdoOF.createPatientListType();
 		plt.setMin(min);
 		plt.setMax(max);
-
+		logger.debug("getPDOfromInputList() set min/max");
+		
 		plt.setPatientSetCollId(collectionId);
+		logger.debug("getPDOfromInputList() set collectionId to "+(collectionId!=null?collectionId:"NULL"));
 		iolt.setPatientList(plt);
 		ilrt.setInputList(iolt);
-
+		
+		logger.debug("getPDOfromInputList() set PatientList and InputList");
 		ilrt.setFilterList(pdoOF.createFilterListType());
+		logger.debug("getPDOfromInputList() set FilterList");
 
 		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
 		OutputOptionType oot = pdoOF.createOutputOptionType();
@@ -664,13 +650,20 @@ public class CRCCell implements Cell {
 		oot.setSelect(select);
 
 		oolt.setPatientSet(oot);
-
+		logger.debug("getPDOfromInputList() create OutputOptionType");
 		ilrt.setOutputOption(oolt);
+		logger.debug("getPDOfromInputList() set OutputOptionType");
 
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(ilrt));
+		logger.debug("getPDOfromInputList() reset ```RequestMessageType``` with ```GetPDOFromInputListRequestType```");
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		
+		HiveRequest hvr = pdoOF.createHiveRequest(rmt);
+		logger.debug("getPDOfromInputList() created PDO HiveRequest.");
+		
+		marshaller(PDO).marshal(hvr, sw);
+		logger.debug("getPDOfromInputList() set pdoMarshaller");
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -747,7 +740,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		marshaller(PDO).marshal(pdoOF.createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -800,7 +793,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		marshaller(PDO).marshal(pdoOF.createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -857,7 +850,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		marshaller(PDO).marshal(pdoOF.createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -911,7 +904,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		marshaller(PDO).marshal(pdoOF.createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
@@ -968,7 +961,7 @@ public class CRCCell implements Cell {
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(irct));
 
 		StringWriter sw = new StringWriter();
-		pdoMarshaller.marshal(pdoOF.createHiveRequest(rmt), sw);
+		marshaller(PDO).marshal(pdoOF.createHiveRequest(rmt), sw);
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));

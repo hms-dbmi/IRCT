@@ -13,6 +13,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -38,6 +40,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Startup
+@Singleton
 @ApplicationScoped
 public class IRCTApplication {
 
@@ -77,9 +81,6 @@ public class IRCTApplication {
 		log.info("Loading Event Listeners");
 		loadIRCTEventListeners();
 		log.info("Finished Loading Event Listeners");
-
-		this.oem = objectEntityManager.createEntityManager();
-		this.oem.setFlushMode(FlushModeType.COMMIT);
 
 		log.info("Loading Join Types");
 		loadJoins();

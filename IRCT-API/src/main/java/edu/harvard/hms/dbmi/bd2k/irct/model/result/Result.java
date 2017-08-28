@@ -31,7 +31,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
  * The result class is created for each execution that is run on the IRCT
  * (Query, Process, etc...). It provides a way of the end user to rerun
  * processes, and retrieve the results.
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
@@ -41,10 +41,10 @@ public class Result {
 	@GeneratedValue(generator = "resultSequencer")
 	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
 	private Long id;
-	
+
+	@Transient
 	private Logger logger = Logger.getLogger(getClass());
 
-	// TODO: REMOVE TRANSIENT
 	@Transient
 	private Executable executable;
 
@@ -70,15 +70,15 @@ public class Result {
 	private String resultSetLocation;
 
 	private String message;
-	
+
 	private String jobType;
 
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
 	 * attributes associated with this object and not their representation.
-	 * 
+	 *
 	 * This is equivalent of toJson(1);
-	 * 
+	 *
 	 * @return JSON Representation
 	 */
 	public JsonObject toJson() {
@@ -88,15 +88,15 @@ public class Result {
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
 	 * attributes associated with this object and not their representation.
-	 * 
-	 * 
+	 *
+	 *
 	 * @param depth
 	 *            Depth to travel
 	 * @return JSON Representation
 	 */
 	public JsonObject toJson(int depth) {
 		logger.debug("toJson("+depth+")");
-		
+
 		depth--;
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
 		jsonBuilder.add("id", this.id);
@@ -113,7 +113,7 @@ public class Result {
 
 	/**
 	 * Returns the id of the result
-	 * 
+	 *
 	 * @return Id
 	 */
 	public Long getId() {
@@ -122,7 +122,7 @@ public class Result {
 
 	/**
 	 * Sets the id of the result
-	 * 
+	 *
 	 * @param id
 	 *            Id
 	 */
@@ -132,7 +132,7 @@ public class Result {
 
 	/**
 	 * Returns the executable used for the result
-	 * 
+	 *
 	 * @return Executable
 	 */
 	public Executable getExecutable() {
@@ -141,7 +141,7 @@ public class Result {
 
 	/**
 	 * Sets the executable used for the result
-	 * 
+	 *
 	 * @param executable
 	 *            Executable
 	 */
@@ -151,7 +151,7 @@ public class Result {
 
 	/**
 	 * Returns the user
-	 * 
+	 *
 	 * @return the user
 	 */
 	public User getUser() {
@@ -160,7 +160,7 @@ public class Result {
 
 	/**
 	 * Sets the user
-	 * 
+	 *
 	 * @param user
 	 *            the user to set
 	 */
@@ -170,7 +170,7 @@ public class Result {
 
 	/**
 	 * Returns the start time
-	 * 
+	 *
 	 * @return the startTime
 	 */
 	public Date getStartTime() {
@@ -179,7 +179,7 @@ public class Result {
 
 	/**
 	 * Sets the start time
-	 * 
+	 *
 	 * @param startTime
 	 *            the startTime to set
 	 */
@@ -189,7 +189,7 @@ public class Result {
 
 	/**
 	 * Returns the end time
-	 * 
+	 *
 	 * @return the endTime
 	 */
 	public Date getEndTime() {
@@ -198,7 +198,7 @@ public class Result {
 
 	/**
 	 * Sets the end time
-	 * 
+	 *
 	 * @param endTime
 	 *            the endTime to set
 	 */
@@ -208,7 +208,7 @@ public class Result {
 
 	/**
 	 * Gets the result status
-	 * 
+	 *
 	 * @return Result status
 	 */
 	public ResultStatus getResultStatus() {
@@ -217,7 +217,7 @@ public class Result {
 
 	/**
 	 * Sets the result status
-	 * 
+	 *
 	 * @param resultStatus
 	 *            Result status
 	 */
@@ -227,7 +227,7 @@ public class Result {
 
 	/**
 	 * Returns the type of result the data is
-	 * 
+	 *
 	 * @return Data Type
 	 */
 	public ResultDataType getDataType() {
@@ -236,7 +236,7 @@ public class Result {
 
 	/**
 	 * Sets the type of data the result is
-	 * 
+	 *
 	 * @param dataType Data Type
 	 */
 	public void setDataType(ResultDataType dataType) {
@@ -245,7 +245,7 @@ public class Result {
 
 	/**
 	 * Returns the resource action id
-	 * 
+	 *
 	 * @return Resource action id
 	 */
 	public String getResourceActionId() {
@@ -254,7 +254,7 @@ public class Result {
 
 	/**
 	 * Sets the resource action id
-	 * 
+	 *
 	 * @param resourceActionId Resource action id
 	 */
 	public void setResourceActionId(String resourceActionId) {
@@ -263,7 +263,7 @@ public class Result {
 
 	/**
 	 * Returns an instantiation of a class that implements the result status
-	 * 
+	 *
 	 * @return Data Object
 	 */
 	public Data getData() {
@@ -272,7 +272,7 @@ public class Result {
 
 	/**
 	 * Sets the class that is used to implement the result status
-	 * 
+	 *
 	 * @param data Data object
 	 */
 	public void setData(Data data) {
@@ -281,7 +281,7 @@ public class Result {
 
 	/**
 	 * Returns the location of the result set
-	 * 
+	 *
 	 * @return Result Set
 	 */
 	public String getResultSetLocation() {
@@ -290,7 +290,7 @@ public class Result {
 
 	/**
 	 * Sets the result location of the result set
-	 * 
+	 *
 	 * @param resultSetLocation
 	 *            Result Set
 	 */
@@ -300,7 +300,7 @@ public class Result {
 
 	/**
 	 * Returns the message associated with the result
-	 * 
+	 *
 	 * @return Message
 	 */
 	public String getMessage() {
@@ -317,19 +317,26 @@ public class Result {
 	 * @param message Message
 	 */
 	public void setMessage(String message) {
-		logger.debug("setMessage() "+message);
+		logger.debug("setMessage() "+(message!=null?message:"null"));
+		
+		if (message == null) {
+			logger.debug("setMessage() null passed in");
+			this.message = "No message was provided";
+		} else {
+		
 		if (message.length() > 255) {
 			logger.debug("setMessage() message is too long. chopping off");
 			this.message = message.substring(0, 252) + "...";
 		} else {
 			this.message = message;
 		}
-	}
+		}
+		}
 
 
 	/**
 	 * Returns the type of Action created this Result
-	 * 
+	 *
 	 * @return the jobType
 	 */
 	public String getJobType() {
@@ -338,7 +345,7 @@ public class Result {
 
 	/**
 	 * Sets the type of Action created this result
-	 * 
+	 *
 	 * @param jobType the jobType to set
 	 */
 	public void setJobType(String jobType) {

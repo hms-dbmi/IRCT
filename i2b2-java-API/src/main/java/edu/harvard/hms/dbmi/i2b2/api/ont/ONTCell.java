@@ -9,10 +9,8 @@ import java.io.StringWriter;
 import java.util.GregorianCalendar;
 
 import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
@@ -43,7 +41,6 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.MessageHeaderType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifierType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifyChildType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ObjectFactory;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.OntologyProcessStatusListType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.OntologyProcessStatusType;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.PasswordType;
@@ -66,10 +63,13 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.Proxy;
  * @author Jeremy R. Easton-Marks
  *
  */
-public class ONTCell implements Cell {
-	private static JAXBContext ontJC;
-	private static Marshaller ontMarshaller;
-	private static ObjectFactory ontOF;
+public class ONTCell extends Cell {
+	
+	private final String ONT = "edu.harvard.hms.dbmi.i2b2.api.ont.xml";
+	
+	private edu.harvard.hms.dbmi.i2b2.api.ont.xml.ObjectFactory ontOF = 
+			new edu.harvard.hms.dbmi.i2b2.api.ont.xml.ObjectFactory(); 
+	
 	private String domain;
 	private String userName;
 	private String password;
@@ -110,8 +110,6 @@ public class ONTCell implements Cell {
 		this.projectId = projectId;
 		this.useProxy = useProxy;
 		this.proxyURL = proxyURL;
-		// Setup System
-		setup();
 	}
 
 	public void setup(String connectionURL, String domain, String userName,
@@ -125,8 +123,6 @@ public class ONTCell implements Cell {
 		this.projectId = project;
 		this.useProxy = useProxy;
 		this.proxyURL = proxyURL;
-		// Setup System
-		setup();
 	}
 
 	@Override
@@ -141,21 +137,6 @@ public class ONTCell implements Cell {
 		this.projectId = projectId;
 		this.useProxy = useProxy;
 		this.proxyURL = proxyURL;
-
-	}
-
-	/**
-	 * Sets up the system without any parameters of the Ontology Management Cell
-	 * 
-	 * @throws JAXBException
-	 */
-	public void setup() throws JAXBException {
-		// Setup System
-		ontOF = new ObjectFactory();
-		ontJC = JAXBContext
-				.newInstance("edu.harvard.hms.dbmi.i2b2.api.ont.xml");
-		ontMarshaller = ontJC.createMarshaller();
-		ontMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 	}
 
 	/**
@@ -201,7 +182,7 @@ public class ONTCell implements Cell {
 		rmt.getMessageBody().getAny().add(ontOF.createGetCategories(gct));
 
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createConceptsType(),
 				runRequest(client, sw.toString(), "/getCategories"));
@@ -258,7 +239,7 @@ public class ONTCell implements Cell {
 		rmt.getMessageBody().getAny().add(ontOF.createGetChildren(gct));
 
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createConceptsType(),
 				runRequest(client, sw.toString(), "/getChildren"));
@@ -326,7 +307,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createConceptsType(),
 				runRequest(client, sw.toString(), "/getNameInfo"));
@@ -379,7 +360,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createConceptsType(),
 				runRequest(client, sw.toString(), "/getTermInfo"));
@@ -417,7 +398,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createConceptsType(),
 				runRequest(client, sw.toString(), "/getSchemes"));
@@ -492,7 +473,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createConceptsType(),
 				runRequest(client, sw.toString(), "/getCodeInfo"));
@@ -523,7 +504,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		checkForError(runRequest(client, sw.toString(), "/addChild"));
 
@@ -560,7 +541,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		checkForError(runRequest(client, sw.toString(), "/modifyChild"));
 
@@ -602,7 +583,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createOntologyProcessStatusType(),
 				runRequest(client, sw.toString(), "/updateCRCConcept"));
@@ -678,7 +659,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createOntologyProcessStatusListType(),
 				runRequest(client, sw.toString(), "/getOntologyProcessStatus"));
@@ -717,7 +698,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		ResponseMessageType responseMT = JAXB.unmarshal(
 				runRequest(client, sw.toString(), "/getDirtyState"),
@@ -763,7 +744,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createOntologyProcessStatusType(),
 				runRequest(client, sw.toString(), "/updateConceptTotalNum"));
@@ -822,7 +803,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifiers"));
@@ -882,7 +863,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierInfo"));
@@ -946,7 +927,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 		return getType(ontOF.createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierChidlren"));
 	}
@@ -1008,7 +989,7 @@ public class ONTCell implements Cell {
 		rmt.getMessageBody().getAny().add(ontOF.createGetModifierNameInfo(vrt));
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 		return getType(ontOF.createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierNameInfo"));
 	}
@@ -1071,7 +1052,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		return getType(ontOF.createModifiersType(),
 				runRequest(client, sw.toString(), "/getModifierCodeInfo"));
@@ -1103,7 +1084,7 @@ public class ONTCell implements Cell {
 
 		// Mashall the XML to String and attach it to the post request
 		StringWriter sw = new StringWriter();
-		ontMarshaller.marshal(ontOF.createRequest(rmt), sw);
+		marshaller(ONT).marshal(ontOF.createRequest(rmt), sw);
 
 		checkForError(runRequest(client, sw.toString(), "/addModifier"));
 

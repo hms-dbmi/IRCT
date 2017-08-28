@@ -4,10 +4,6 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -23,14 +19,8 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.core.Response;
 
-import org.apache.commons.codec.binary.Base64;
-
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.rest.SecurityService;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
@@ -56,11 +46,7 @@ public class SessionFilter implements Filter {
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
-	@javax.annotation.Resource(mappedName = "java:global/check_token_endpoint")//"http://localhost:13000/jaxrs-service/token/validate")
-	private String tokenServiceUrl;
-	
-	private String secretToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiY2giLCJpYXQiOjE1MDM1ODM4NzAsImV4cCI6MTUzNTExOTg3MCwiYXVkIjoid3d3LmNoaWxkcmVucy5oYXJ2YXJkLmVkdSIsInN1YiI6ImFsZXhAY2hpbGRyZW5zLmhhcnZhcmQuZWR1IiwiZmlyc3ROYW1lIjoiQWxleCIsImxhc3ROYW1lIjoiTmlraXRpbiIsIkVtYWlsIjoiYWxleEBjaGlsZHJlbnMuaGFydmFyZC5lZHUiLCJSb2xlIjoiZGV2IiwidXNlcklkIjoiYWxleG5rdG4ifQ.IH4iUf-_oMdQ0xi2OR89adn4XQBgAI7zrUBjaRbZylU";
-	
+
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 
@@ -69,45 +55,46 @@ public class SessionFilter implements Filter {
 
 	@Inject
 	private SecurityService ss;
-	
+
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
 	}
 
 	@Override
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain fc) throws IOException, ServletException {
-		logger.log(Level.FINE, "doFilter() Starting");
+		logger.debug("doFilter() Starting");
 		HttpServletRequest request = (HttpServletRequest) req;
-		
+
 		// If processing URL /securityService/*, we are creating a session/secureSession
-		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
+		if (request.getRequestURI().endsWith("/securityService/startSession")) {
 			// Do Nothing
-			logger.log(Level.FINE, "doFilter() do nothing");
+			logger.debug("doFilter() securityService URL is NOT filtered.");
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
-			
+			logger.debug("doFilter() got session from request.");
 			try {
-				User user;
-				if (session.getAttribute("user") == null) {
-					user = (User)session.getAttribute("user");
-				}
-				else {
-					
-					user = sc.ensureUserExists(tokenServiceUrl == null ? Utilities.getUserIdFromRemoteService(tokenServiceUrl, secretToken) : Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
-				}
-//				user = session.getAttribute("user") == null ? 
-//						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-//						: (User)session.getAttribute("user");
-				Token token = session.getAttribute("token") == null ? 
+				User user = session.getAttribute("user") == null ?
+						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
+						: (User)session.getAttribute("user");
+				logger.debug("doFilter() got user object.");
+
+				Token token = session.getAttribute("token") == null ?
 						ss.createTokenObject(req)
 						: (Token)session.getAttribute("token");
+				logger.debug("doFilter() got token object.");
+
 				SecureSession secureSession = session.getAttribute("secureSession") == null ?
 						sc.validateKey(sc.createKey(user, token))
 						: (SecureSession)session.getAttribute("secureSession");
-				setSessionAttributes(session, user, token, secureSession);
+				logger.debug("doFilter() got securesession object.");
+				setSessionAndRequestAttributes(req, session, user, token, secureSession);
+				logger.debug("doFilter() set session attributes.");
+
 			} catch (Exception e) {
-				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}"; 
-				
+				logger.error("EXCEPTION: "+e.getMessage());
+
+				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
+
 				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 				res.setContentType("application/json");
 				res.getOutputStream()
@@ -116,15 +103,23 @@ public class SessionFilter implements Filter {
 				return;
 			}
 		}
+
+		logger.debug("doFilter() Finished.");
 		
-		logger.log(Level.FINE, "doFilter() Finished.");
 		fc.doFilter(req, res);
 	}
 
-	private void setSessionAttributes(HttpSession session, User user, Token token, SecureSession secureSession) {
+	/*
+	 *  TODO : This is a temporary hackaround, we should move to only storing attributes on the request
+	 *  if they may change across a session.
+	 */
+	private void setSessionAndRequestAttributes(ServletRequest req, HttpSession session, User user, Token token, SecureSession secureSession) {
 		session.setAttribute("user", user);
 		session.setAttribute("token", token);
 		session.setAttribute("secureSession", secureSession);
+		req.setAttribute("user", user);
+		req.setAttribute("token", token);
+		req.setAttribute("secureSession", secureSession);
 	}
 
 	@Override
