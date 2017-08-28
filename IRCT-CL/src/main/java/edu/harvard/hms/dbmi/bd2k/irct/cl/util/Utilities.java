@@ -3,22 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.HttpResponseException;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * A collection of static methods that provide shared functionality throughout
@@ -157,5 +171,35 @@ public class Utilities {
 		logger.log(Level.SEVERE, "extractToken() Finished (null returned)");
 		
 		return token;
+	}
+
+	public static String getUserIdFromRemoteService(String url, String token) throws ClientProtocolException, IOException {
+		
+		HttpClient httpclient = HttpClientBuilder.create()
+				  .build();
+		
+		
+		//URIBuilder uriBuilder = new URIBuilder(url);
+		//uriBuilder.setPort(400);
+		HttpPost httpPost = new HttpPost(url);
+		StringEntity body =new StringEntity("details={\"token\":\"" + token + "\"} ");
+		httpPost.setHeader("Content-type", "application/json");
+		httpPost.setEntity(body);
+		
+		//Execute and get the response.
+		HttpResponse response = httpclient.execute(httpPost);
+		int statusCode = response.getStatusLine().getStatusCode();
+		
+		if (statusCode != HttpServletResponse.SC_OK) {
+			logger.log(Level.WARNING, "Gnome responded with Status: " + statusCode, response.getStatusLine().toString());
+			throw new HttpResponseException(statusCode, response.getStatusLine().getReasonPhrase());
+		}
+		InputStream responseContent = response.getEntity().getContent();
+		ObjectMapper mapper = new ObjectMapper();
+		return (String) mapper.readValue(responseContent, Map.class).get(
+				"userId");
+		
+		
+		
 	}
 }

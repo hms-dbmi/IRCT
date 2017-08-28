@@ -56,6 +56,10 @@ public class SessionFilter implements Filter {
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
+	@javax.annotation.Resource(mappedName = "java:global/check_token_endpoint")//"http://localhost:13000/jaxrs-service/token/validate")
+	private String tokenServiceUrl;
+	
+	private String secretToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiY2giLCJpYXQiOjE1MDM1ODM4NzAsImV4cCI6MTUzNTExOTg3MCwiYXVkIjoid3d3LmNoaWxkcmVucy5oYXJ2YXJkLmVkdSIsInN1YiI6ImFsZXhAY2hpbGRyZW5zLmhhcnZhcmQuZWR1IiwiZmlyc3ROYW1lIjoiQWxleCIsImxhc3ROYW1lIjoiTmlraXRpbiIsIkVtYWlsIjoiYWxleEBjaGlsZHJlbnMuaGFydmFyZC5lZHUiLCJSb2xlIjoiZGV2IiwidXNlcklkIjoiYWxleG5rdG4ifQ.IH4iUf-_oMdQ0xi2OR89adn4XQBgAI7zrUBjaRbZylU";
 	
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
@@ -77,14 +81,23 @@ public class SessionFilter implements Filter {
 		
 		// If processing URL /securityService/*, we are creating a session/secureSession
 		if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/securityService/")) {
-			// Do Nothing 
+			// Do Nothing
+			logger.log(Level.FINE, "doFilter() do nothing");
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			
 			try {
-				User user = session.getAttribute("user") == null ? 
-						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-						: (User)session.getAttribute("user");
+				User user;
+				if (session.getAttribute("user") == null) {
+					user = (User)session.getAttribute("user");
+				}
+				else {
+					
+					user = sc.ensureUserExists(tokenServiceUrl == null ? Utilities.getUserIdFromRemoteService(tokenServiceUrl, secretToken) : Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
+				}
+//				user = session.getAttribute("user") == null ? 
+//						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
+//						: (User)session.getAttribute("user");
 				Token token = session.getAttribute("token") == null ? 
 						ss.createTokenObject(req)
 						: (Token)session.getAttribute("token");
