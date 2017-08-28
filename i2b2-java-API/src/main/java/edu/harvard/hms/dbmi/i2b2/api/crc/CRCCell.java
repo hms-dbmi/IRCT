@@ -169,9 +169,11 @@ public class CRCCell extends Cell {
 
 		StringWriter sw = new StringWriter();
 
+
 		logger.debug("getQueryInstanceListFromQueryId() Starting ```psmMarshaller```");
 		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
 		logger.debug("getQueryInstanceListFromQueryId() finished ```psmMarshaller```");
+
 		
 		return (InstanceResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"));
@@ -626,7 +628,7 @@ public class CRCCell extends Cell {
 		GetPDOFromInputListRequestType ilrt = pdoOF
 				.createGetPDOFromInputListRequestType();
 		logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
-		
+
 		InputOptionListType iolt = pdoOF.createInputOptionListType();
 		PatientListType plt = pdoOF.createPatientListType();
 		plt.setMin(min);
@@ -642,6 +644,7 @@ public class CRCCell extends Cell {
 		ilrt.setFilterList(pdoOF.createFilterListType());
 		logger.debug("getPDOfromInputList() set FilterList");
 
+
 		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
 		OutputOptionType oot = pdoOF.createOutputOptionType();
 		oot.setOnlykeys(onlyKeys);
@@ -655,6 +658,7 @@ public class CRCCell extends Cell {
 		logger.debug("getPDOfromInputList() set OutputOptionType");
 
 		rmt.getMessageBody().getAny().add(pdoOF.createRequest(ilrt));
+
 		logger.debug("getPDOfromInputList() reset ```RequestMessageType``` with ```GetPDOFromInputListRequestType```");
 
 		StringWriter sw = new StringWriter();
@@ -664,6 +668,7 @@ public class CRCCell extends Cell {
 		
 		marshaller(PDO).marshal(hvr, sw);
 		logger.debug("getPDOfromInputList() set pdoMarshaller");
+
 
 		return (PatientDataResponseType) this.getPDOResponseType(runRequest(
 				client, sw.toString(), "/pdorequest"));
