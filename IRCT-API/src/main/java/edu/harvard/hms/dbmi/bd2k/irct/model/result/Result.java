@@ -317,14 +317,21 @@ public class Result {
 	 * @param message Message
 	 */
 	public void setMessage(String message) {
-		logger.debug("setMessage() "+message);
-		if (message != null && message.length() > 255) {
+		logger.debug("setMessage() "+(message!=null?message:"null"));
+		
+		if (message == null) {
+			logger.debug("setMessage() null passed in");
+			this.message = "No message was provided";
+		} else {
+		
+		if (message.length() > 255) {
 			logger.debug("setMessage() message is too long. chopping off");
 			this.message = message.substring(0, 252) + "...";
 		} else {
 			this.message = message;
 		}
-	}
+		}
+		}
 
 
 	/**
