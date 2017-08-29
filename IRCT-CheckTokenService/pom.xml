@@ -89,7 +89,7 @@
                             </goals>
                             <configuration>
                                 <port>13000</port>
-                                <path>/jaxrs-service</path>
+                                <path>/irct-security-service</path>
                                 <useSeparateTomcatClassLoader>true</useSeparateTomcatClassLoader>
                             </configuration>
                         </execution>

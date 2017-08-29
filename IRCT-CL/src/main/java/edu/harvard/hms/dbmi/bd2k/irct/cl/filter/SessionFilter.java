@@ -46,6 +46,8 @@ public class SessionFilter implements Filter {
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
+	@javax.annotation.Resource(mappedName = "java:global/check_token_endpoint")
+	private String tokenServiceUrl;
 
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
@@ -73,9 +75,16 @@ public class SessionFilter implements Filter {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
 			try {
-				User user = session.getAttribute("user") == null ?
-						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-						: (User)session.getAttribute("user");
+				User user;
+				if (session.getAttribute("user") == null) {
+					user = sc.ensureUserExists(tokenServiceUrl == null ?
+							Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret) :
+							Utilities.getUserIdFromRemoteService((HttpServletRequest) req, tokenServiceUrl));
+				}
+				else {
+					user = (User)session.getAttribute("user");
+				}
+				
 				logger.debug("doFilter() got user object.");
 
 				Token token = session.getAttribute("token") == null ?
