@@ -31,6 +31,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
@@ -61,6 +63,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 @Named
 public class QueryService implements Serializable {
 	private static final long serialVersionUID = -3951500710489406681L;
+	
+	Logger logger = Logger.getLogger(this.getClass());
 
 	@Inject
 	private QueryController qc;
@@ -364,6 +368,8 @@ public class QueryService implements Serializable {
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery(String payload) {
+		logger.debug("/runQuery Starting...");
+		
 		JsonObjectBuilder response = Json.createObjectBuilder();
 
 		JsonReader jsonReader = Json.createReader(new StringReader(payload));
@@ -379,14 +385,26 @@ public class QueryService implements Serializable {
 		}
 
 		try {
-			response.add("resultId", ec.runQuery(query,
-					(SecureSession) session.getAttribute("secureSession")));
+			logger.debug("/runQuery running the `query` object");
+			response.add("resultId", ec.runQuery(query, (SecureSession) session.getAttribute("secureSession")));
+
+			response.add("status", "started");
+			
 		} catch (PersistableException e) {
-			response.add("status", "Error running request");
+			logger.debug("/runQuery PersistableException:"+e.getMessage());
+			
+			response.add("status", "error");
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
+			
+		} catch (Exception e) {
+			logger.debug("/runQuery Exception:"+(e.getMessage()!=null?e.getMessage():"An error occurred running this query."));
+			response.add("status", "error");
+			response.add("message", (e.getMessage()!=null?e.getMessage():"An error occurred running this query."));
+			return Response.status(400).entity(response.build()).build();
 		}
-
+		logger.debug("/runQuery Finished.");
+		
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}

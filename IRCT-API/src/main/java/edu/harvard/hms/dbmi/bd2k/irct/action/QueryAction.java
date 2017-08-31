@@ -8,6 +8,10 @@ import java.util.Map;
 
 import javax.naming.NamingException;
 
+import org.apache.log4j.Logger;
+
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -18,8 +22,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 
 /**
  * Implements the Action interface to run a query on a specific instance
@@ -35,7 +37,8 @@ public class QueryAction implements Action {
 	private Result result;
 
 	private IRCTEventListener irctEventListener;
-
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	/**
 	 * Sets up the action to run a given query on a resource
 	 * 
@@ -45,14 +48,22 @@ public class QueryAction implements Action {
 	 *            Run the query
 	 */
 	public void setup(Resource resource, Query query) {
+		logger.debug("setup() Starting...");
+		
+		if (resource == null) {
+			logger.warn("setup() resource is null");
+		}
 		this.query = query;
 		this.resource = resource;
 		this.status = ActionStatus.CREATED;
 		this.irctEventListener = Utilities.getIRCTEventListener();
+		logger.debug("setup() Finished.");
 	}
 
 	@Override
 	public void updateActionParams(Map<String, Result> updatedParams) {
+		logger.debug("updateActionParams() Starting...");
+		
 		for (String key : updatedParams.keySet()) {
 			Long clauseId = Long.valueOf(key.split(".")[0]);
 			String parameterId = key.split(".")[1];
@@ -64,33 +75,49 @@ public class QueryAction implements Action {
 						updatedParams.get(key).getId().toString());
 			}
 		}
+		logger.debug("updateActionParams() Finished.");
 	}
 
 	@Override
 	public void run(SecureSession session) {
+		logger.debug("run() Starting...");
+		
+		logger.debug("run() calling `beforeQuery`");
 		irctEventListener.beforeQuery(session, resource, query);
+		logger.debug("run() set status to "+ActionStatus.RUNNING);
 		this.status = ActionStatus.RUNNING;
 		try {
+			logger.debug("run() getting `QueryResourceImplementationInterface` object");
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
 					.getImplementingInterface();
+			
+			if (queryInterface == null) {
+				throw new RuntimeException("Unknown implementing interface for resource `"+resource.getName()+"`");
+			}
 
-			this.result = ActionUtilities.createResult(queryInterface
-					.getQueryDataType(query));
+			logger.debug("run() creating `result` field.");
+			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
 
 			if (session != null) {
+				logger.debug("run() setting `user` field of the `result`.");
 				this.result.setUser(session.getUser());
 			}
 			
-			
-
+			logger.debug("run() calling runQuery() on the interface.");
 			this.result = queryInterface.runQuery(session, query, result);
 
 			// Update the result in the database
+			logger.debug("run() calling ActionUtilities.mergeResult(). This would persist the result in the database.");
 			ActionUtilities.mergeResult(this.result);
 		} catch (Exception e) {
-			this.result.setResultStatus(ResultStatus.ERROR);
-			this.result.setMessage(e.getMessage());
+			logger.error("run() Exception: "+e.getMessage());
 			this.status = ActionStatus.ERROR;
+			if (this.result == null) {
+				throw new RuntimeException(e);
+			} else {
+				this.result.setResultStatus(ResultStatus.ERROR);
+				this.result.setMessage(e.getMessage());
+			}
 		}
 		irctEventListener.afterQuery(session, resource, query);
 	}
