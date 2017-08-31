@@ -387,8 +387,6 @@ public class QueryService implements Serializable {
 		try {
 			logger.debug("/runQuery running the `query` object");
 			response.add("resultId", ec.runQuery(query, (SecureSession) session.getAttribute("secureSession")));
-
-			response.add("status", "started");
 			
 		} catch (PersistableException e) {
 			logger.debug("/runQuery PersistableException:"+e.getMessage());
