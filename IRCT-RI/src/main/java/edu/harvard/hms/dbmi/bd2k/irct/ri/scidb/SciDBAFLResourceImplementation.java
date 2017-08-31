@@ -259,14 +259,17 @@ public class SciDBAFLResourceImplementation implements
 		// Setup SciDB connection
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
+		logger.debug("runQuery() connecting to resource "+this.resourceURL);
 		sciDB.connect(client, this.resourceURL);
-		logger.debug("runQuery() sessionId:"+sciDB.getSessionId());
-		
+		if (sciDB.getSessionId()==null) {
+			logger.error("runQuery() Could not create SciDB session while connecting.");
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("Could not create SciDB session while connecting.");
+			return result;
+		}
 		result.setResultStatus(ResultStatus.CREATED);
 		
-		List<WhereClause> whereClauses = query
-				.getClausesOfType(WhereClause.class);
-		
+		List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
 		String queryId = "NOTSET";
 		// Execute AFL queries from the fields portion of the WHERE clause
 		for (WhereClause whereClause : whereClauses) {
@@ -274,29 +277,20 @@ public class SciDBAFLResourceImplementation implements
 			
 			for(String queryString: queries.values()) {
 				logger.debug("runQuery() executing queryString:"+queryString);
-				queryId = sciDB.executeAflQuery(queryString);
-								
-				/*BufferedReader in;
 				try {
-					in = new BufferedReader(
-							new InputStreamReader(sciDB.readLines(sciDB.getSessionId())));
-					
-					String queryOutput;
-						queryOutput = IOUtils.toString(in);
-					logger.debug("runQuery() queryOutput:"+queryOutput);	
-					
+					queryId = sciDB.executeAflQuery(queryString);
+					result.setResultStatus(ResultStatus.RUNNING);
 				} catch (Exception e) {
-					logger.debug( "runQuery() queryOutput:"+e.getMessage(), e);
-					
-					e.printStackTrace();
-				}*/
+					logger.error( "runQuery() Exception:"+e.getMessage());
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage(e.getMessage());
+				}
 			}
 		}
 		logger.debug( "runQuery() completed all queries");
-		
 		result.setResourceActionId(sciDB.getSessionId() + "|" + queryId);
-		result.setResultStatus(ResultStatus.RUNNING);
-		logger.log(Level.INFO, "runQuery() returning ```result``` with status "+result.getResultStatus().toString());
+		
+		logger.log(Level.INFO, "runQuery() returning `result` with status "+result.getResultStatus().toString());
 		return result;
 	}
 
