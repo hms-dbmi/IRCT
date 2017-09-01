@@ -294,16 +294,18 @@ public class SciDBAFLResourceImplementation implements
 							result.setMessage("SciDB Exception:"+queryId);
 							break;
 						case 1:
+						case 2:
 							result.setMessage("SciDB Exception:"+queryId.split("\n")[0]);
 							break;
 						default:
-							result.setMessage(queryId.split("\n")[errormsg_linecount-1]);
+							result.setMessage("SciDB "+queryId.split("\n")[errormsg_linecount-3]);
 						
 						}
 						logger.error("runQuery() returning ERROR result.");
 						return result;
 					}
 					result.setResultStatus(ResultStatus.RUNNING);
+					result.setMessage("SciDB Query id:"+queryId+" for PIC-SURE queryId:"+query.getId());
 				} catch (Exception e) {
 					logger.error( "runQuery() Exception:"+e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
@@ -314,7 +316,7 @@ public class SciDBAFLResourceImplementation implements
 		logger.debug( "runQuery() completed all queries");
 		result.setResourceActionId(sciDB.getSessionId() + "|" + queryId);
 		
-		logger.log(Level.INFO, "runQuery() returning `result` with status "+result.getResultStatus().toString());
+		logger.debug("runQuery() returning `result` with status "+result.getResultStatus().toString());
 		return result;
 	}
 
@@ -532,9 +534,12 @@ public class SciDBAFLResourceImplementation implements
 		
 		if (result.getResultStatus() == ResultStatus.COMPLETE
 				|| result.getResultStatus() == ResultStatus.ERROR) {
+			logger.debug( "getResults() `ResultStatus` is COMPLETE or ERROR, so returning immediately.");
 			return result;
 		}
-
+		
+		logger.debug( "getResults() `ResultStatus` is :"+result.getResultStatus());
+		
 		HttpClient client = createClient(session);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
@@ -548,6 +553,8 @@ public class SciDBAFLResourceImplementation implements
 
 			boolean firstLine = true;
 			FileResultSet rs = (FileResultSet) result.getData();
+			logger.debug( "getResults() reading output from SciDB query response");
+			
 			while ((line = in.readLine()) != null) {
 				if (firstLine) {
 					rs = createColumns(result, line);
@@ -570,18 +577,23 @@ public class SciDBAFLResourceImplementation implements
 					}
 				}
 			}
+			logger.debug( "getResults() setting data for resultId:"+result.getId());
+			
+			logger.debug( "getResults() `FileResultSet` size:"+rs.getSize());
+			logger.debug( "getResults() `FileResultSet` closed?:"+rs.isClosed());
+			logger.debug( "getResults() `FileResultSet` persisted?:"+rs.isPersisted());
+			
 			result.setData(rs);
 			result.setResultStatus(ResultStatus.COMPLETE);
-		} catch (NotConnectedException | IOException | ResultSetException
-				| PersistableException e) {
-			logger.error("getResults() Exception reading response from SciDB connection. "+e.getMessage());
-			
-			e.printStackTrace();
+		} catch (NotConnectedException | IOException | ResultSetException | PersistableException e) {
+			logger.error("getResults() Exception reading response from SciDB connection. "+e.getClass().toString()+"/"+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage(e.getMessage());
+			result.setMessage((e.getMessage()==null?"Error getting SciDB response.":e.getMessage()));
+			e.printStackTrace();
 		}
+		logger.debug( "getResults() closing SciDB connection.");
 		sciDB.close();
-		logger.debug( "getResults() Finished, returning result wit "+result.getResultStatus().toString());
+		logger.debug( "getResults() Finished, returning result with "+result.getResultStatus().toString());
 		return result;
 	}
 
