@@ -2265,7 +2265,7 @@ public class SciDB {
 			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query");
 			uriBuilder.addParameter("id", this.sessionId);
 			uriBuilder.addParameter("query", aflqueryString);
-			uriBuilder.addParameter("save", "ddcv");
+			uriBuilder.addParameter("save", "dcsv");
 			URI uri = uriBuilder.build();
 			logger.debug("executeAflQuery() URI:"+uri.toASCIIString());
 			

@@ -279,6 +279,30 @@ public class SciDBAFLResourceImplementation implements
 				logger.debug("runQuery() executing queryString:"+queryString);
 				try {
 					queryId = sciDB.executeAflQuery(queryString);
+					
+					if (queryId != null && queryId.contains("Exception")) {
+						// This is an error, and we should handle it as such.
+						logger.error("runQuery() SciDB Exception:"+queryId);
+						
+						result.setResultStatus(ResultStatus.ERROR);
+						// Now this is a guess and a risk, but hopefully
+						// not a big one. If in doubt, turn on DEBUG level
+						// logging, re-run the query and check the logfiles.
+						int errormsg_linecount = queryId.split("\n").length;
+						switch (errormsg_linecount) {
+						case 0:
+							result.setMessage("SciDB Exception:"+queryId);
+							break;
+						case 1:
+							result.setMessage("SciDB Exception:"+queryId.split("\n")[0]);
+							break;
+						default:
+							result.setMessage(queryId.split("\n")[errormsg_linecount-1]);
+						
+						}
+						logger.error("runQuery() returning ERROR result.");
+						return result;
+					}
 					result.setResultStatus(ResultStatus.RUNNING);
 				} catch (Exception e) {
 					logger.error( "runQuery() Exception:"+e.getMessage());
