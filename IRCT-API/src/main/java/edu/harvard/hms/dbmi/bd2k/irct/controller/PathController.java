@@ -107,7 +107,6 @@ public class PathController {
 									.getImplementingInterface(), null,
 							findInformationEntry, session));
 				}
-				
 			} else {
 				if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
 					matches.addAll(find(

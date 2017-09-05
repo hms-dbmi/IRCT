@@ -1,46 +1,9 @@
 {"script": "bar",
-  "queries": [{
-"select" : [
-  {
-    "field": {
-      "pui" : "/GRIN-dev/PATIENT_IDE",
-      "dataType": "STRING"
-    },
-    "alias": "PATIENT_UUID"
+  "resultSets" : {
+    "fooSet" : 12345,
+    "barSet" : 34567
   },
-  {
-    "field": {
-      "pui": "/GRIN-dev/Demo/Genetics of Severe Early Childhood Obseity (GECO)/Genetics of Severe Early Childhood Obseity (GECO)/Redcap Registry/Demographics data/AGE",
-      "dataType": "STRING"
-    },
-    "alias": "Age"
+  "scriptOptions" : {
+  	"foo" : "bar"
   }
-],
-"where": [
-  {
-    "field": {
-      "pui": "/GRIN-dev/Demo/Genetics of Severe Early Childhood Obseity (GECO)/Genetics of Severe Early Childhood Obseity (GECO)/Exomes/SYMBOL/MRAP2",
-      "dataType": "STRING"
-     },
-     "predicate": "CONTAINS",
-     "fields": {
-       "ENOUNTER": "NO"
-     }
-  },
-  {
-    "field": {
-      "pui": "/GRIN-dev/Demo/Genetics of Severe Early Childhood Obseity (GECO)/Genetics of Severe Early Childhood Obseity (GECO)/EHR I2B2/Vitals/BMI for Age Z- Score (CDC-Calculation)",
-      "dataType": "INTEGER"
-     },
-     "predicate": "CONSTRAIN_VALUE",
-     "fields": {
-       "OPERATOR": "GE",
-       "CONSTRAINT": "3",
-       "UNIT_OF_MEASURE": "kg/m2",
-       "ENOUNTER": "NO"
-     },
-     "logicalOperator" : "AND"
-  }
-]
-}]
 }
