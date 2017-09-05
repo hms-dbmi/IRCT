@@ -6,13 +6,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
 import javax.script.Invocable;
@@ -32,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
+import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
@@ -42,16 +41,13 @@ import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
 import edu.harvard.hms.dbmi.bd2k.irct.model.script.ScriptedQuery;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
-@Path("/script")
+@Path("/scriptService")
 @Startup
-@Singleton
 public class ScriptService {
 
 	@Inject
 	private HttpSession session;
 
-	@Inject
-	private QueryService queryService;
 	@Inject
 	private ResultService resultService;
 	@Inject
@@ -76,39 +72,49 @@ public class ScriptService {
 	ArrayList<Integer> functionHashList = new ArrayList<Integer>();
 	
 	private LoadingCache<Long, byte[]> cache = 
-			CacheBuilder.newBuilder()
-			.removalListener(new RemovalListener<Long, byte[]>() {
+		CacheBuilder.newBuilder()
+		.removalListener(new RemovalListener<Long, byte[]>() {
 
-				@Override
-				public void onRemoval(RemovalNotification<Long, byte[]> arg0) {
-					logger.info("Removed : " + arg0.getKey());
-				}
-			})
-			.maximumWeight(1048576 * 80)
-			.weigher(new Weigher<Long, byte[]>(){
-				public int weigh(Long arg0, byte[] arg1) {
-					return arg1.length;
-				}
-			}).build(new CacheLoader<Long, byte[]>(){
-				public byte[] load(Long id) throws Exception {
-					logger.info("loading : " + id);
-					while(getResultStatus(resultService.resultStatus(id))
-							.contentEquals("RUNNING")){
+			@Override
+			public void onRemoval(RemovalNotification<Long, byte[]> arg0) {
+				logger.info("Removed : " + arg0.getKey());
+			}
+		})
+		.maximumWeight(1048576 * 80)
+		.weigher(new Weigher<Long, byte[]>(){
+			public int weigh(Long arg0, byte[] arg1) {
+				return arg1.length;
+			}
+		}).build(new CacheLoader<Long, byte[]>(){
+			public byte[] load(Long id) {
+				logger.info("loading : " + id);
+				try {
+					String resultStatus = getResultStatus(resultService.resultStatus(id));
+					while(resultStatus.contentEquals("RUNNING")){
 						Thread.yield();
+						resultStatus = getResultStatus(resultService.resultStatus(id));
 					}
-					ResultDataStream resultData = resultController.getResultDataStream(
-							(User)session.getAttribute("user"), id, "JSON");
-					ByteArrayOutputStream result = new ByteArrayOutputStream();
-					resultData.getResult().write(new BufferedOutputStream(result, 1048576));
-					ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-					ObjectOutputStream bytes = new ObjectOutputStream(byteStream);
-					bytes.writeObject(mapper.readValue(new String(result.toByteArray(),"UTF-8"), Map.class));
-					bytes.close();
-					return byteStream.toByteArray();
+					if(resultStatus.contentEquals("AVAILABLE")){
+						ResultDataStream resultData = resultController.getResultDataStream(
+								(User)session.getAttribute("user"), id, "JSON");
+						ByteArrayOutputStream result = new ByteArrayOutputStream();
+						resultData.getResult().write(new BufferedOutputStream(result, 1048576));
+						ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+						ObjectOutputStream bytes = new ObjectOutputStream(byteStream);
+						bytes.writeObject(mapper.readValue(new String(result.toByteArray(),"UTF-8"), Map.class));
+						bytes.close();
+						return byteStream.toByteArray();
+					}
+					return null;
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-			});
+				return null;
+			}
+		});
 	
 	@POST
+	@Path("/script")
 	public Response submitScriptQuery(String scriptedQueryJson) throws JsonParseException, JsonMappingException, IOException{
 		long startTime = System.currentTimeMillis();
 		ScriptedQuery scriptedQuery = mapper.readValue(scriptedQueryJson, ScriptedQuery.class);
@@ -127,7 +133,18 @@ public class ScriptService {
 			HashMap<String, Object> results = new HashMap<String, Object>();
 			for(String key : scriptedQuery.getResultSets().keySet()){
 				long id = scriptedQuery.getResultSets().get(key);
-				results.put(key, new ObjectInputStream(new ByteArrayInputStream(cache.get(id))).readObject());
+				byte[] cachedResult;
+				synchronized(cache){
+					try{
+						cachedResult = cache.get(id);
+					}catch(InvalidCacheLoadException e){
+						HashMap<String, String> response = new HashMap<String, String>();
+						response.put("message", "RESULT SET ERROR");
+						e.printStackTrace();
+						return Response.serverError().entity(response).type(MediaType.APPLICATION_JSON).build();
+					}
+				}
+				results.put(key, new ObjectInputStream(new ByteArrayInputStream(cachedResult)).readObject());
 			}
 			long resultsGathered = System.currentTimeMillis();
 			HashMap<String, Object> options = new HashMap<String, Object>();
@@ -160,10 +177,6 @@ public class ScriptService {
 			e.printStackTrace();
 		}
 		return Response.serverError().build();
-	}
-
-	private Integer getResultId(Response response) throws IOException, JsonParseException, JsonMappingException {
-		return (Integer) mapper.readValue(response.getEntity().toString(), Map.class).get("resultId");
 	}
 
 	private String getResultStatus(Response response) throws IOException, JsonParseException, JsonMappingException {

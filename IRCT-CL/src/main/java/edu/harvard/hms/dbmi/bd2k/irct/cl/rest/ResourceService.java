@@ -19,6 +19,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -304,7 +305,11 @@ public class ResourceService {
 				response.add(entity.toJson());
 			}
 		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+		CacheControl cacheControl = new CacheControl();
+		// cache these responses for 1 day on the client side
+		cacheControl.setMaxAge(86400);
+		cacheControl.setPrivate(true);
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON).cacheControl(cacheControl)
 				.build();
 
 	}
