@@ -3,22 +3,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.HttpResponseException;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.log4j.Logger;
 
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * A collection of static methods that provide shared functionality throughout
@@ -156,5 +167,43 @@ public class Utilities {
 		logger.error("extractToken() Finished (null returned)");
 		
 		return token;
+	}
+	
+	/**
+	 * Calls token verifier Micro-Service and returns the User ID if token is validated
+	 * @param reg Http request
+	 * @param url JDNI binded URL 
+	 * @return The user ID
+	 */
+	public static String getUserIdFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
+		
+		String token = extractToken(req);
+		String userId;
+		HttpClient httpclient = HttpClientBuilder.create()
+				  .build();
+		
+		try {
+			HttpPost httpPost = new HttpPost(url);
+			StringEntity body = new StringEntity("{\"token\":\"" + token + "\"} ");
+			httpPost.setHeader("Content-type", "application/json");
+			httpPost.setEntity(body);
+			
+			HttpResponse response = httpclient.execute(httpPost);
+			int statusCode = response.getStatusLine().getStatusCode();
+			
+			if (statusCode != HttpServletResponse.SC_OK) {
+				logger.error(response.getStatusLine().toString());
+				throw new HttpResponseException(statusCode, response.getStatusLine().getReasonPhrase());
+			}
+			InputStream responseContent = response.getEntity().getContent();
+			ObjectMapper mapper = new ObjectMapper();
+			userId =  (String) mapper.readValue(responseContent, Map.class).get("userId");
+		
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new NotAuthorizedException(Response.status(401)
+					.entity("Could not validate the JWT token passed in."));
+		}
+		return userId;
 	}
 }
