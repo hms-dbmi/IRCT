@@ -13,6 +13,7 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -35,6 +36,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 public class FileServiceResourceImplementation implements
 		QueryResourceImplementationInterface,
 		PathResourceImplementationInterface {
+	
+	Logger logger = Logger.getLogger(this.getClass());
+	
 	private String resourceName;
 	private String baseDir;
 	private ResourceState resourceState;
@@ -43,24 +47,35 @@ public class FileServiceResourceImplementation implements
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
+		logger.debug("setup() Starting ...");
+		
 		String[] strArray = { "resourceName", "baseDir" };
 		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
-			throw new ResourceInterfaceException("Missing parameters");
+			logger.error("setup() missing mandatory parameter");
+			throw new ResourceInterfaceException("Missing mandatory parameters");
 		}
 		this.resourceName = parameters.get("resourceName");
+		logger.debug("setup() resourceName:"+this.resourceName);
+		
 		this.baseDir = parameters.get("baseDir");
-
+		logger.debug("setup() resourceName:"+this.baseDir);
+		
 		this.baseFilePath = new File(this.baseDir);
-
+		logger.debug("setup() resourceName:"+this.baseFilePath.toString());
+		
 		this.resourceState = ResourceState.READY;
+		logger.debug("setup() resourceName:"+this.resourceState.toString());
+		
+		logger.debug("setup() Finished.");
 	}
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
+		logger.debug("getPathRelationship() Starting...");
+		
 		List<Entity> returns = new ArrayList<Entity>();
-
 		String basePath = path.getPui();
 		String[] pathComponents = basePath.split("/");
 
@@ -79,6 +94,8 @@ public class FileServiceResourceImplementation implements
 				entity.setPui(basePath + "/" + myFile.getName());
 				returns.add(entity);
 			}
+		} else {
+			logger.debug("getPathRelationship() pathComponents is NOT 2 components. basePath:"+basePath);
 		}
 
 		return returns;
