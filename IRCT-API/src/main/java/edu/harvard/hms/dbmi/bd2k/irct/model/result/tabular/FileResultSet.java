@@ -30,12 +30,13 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.RowSetExeception;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
 
 /**
  * An implementation of a Result Set that is persistable to the file system
@@ -44,8 +45,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
  *
  */
 public class FileResultSet extends ResultSetImpl implements Persistable {
+	
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	private long size;
-	private int maxReadSize = 4096;
+	private int maxReadSize = 4096*2;
 	private char DELIMITER = '\t';
 	private char QUOTE = '"';
 
@@ -175,16 +179,25 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	@Override
 	public boolean absolute(long newRow) throws ResultSetException {
+		logger.debug("absolute() Starting... `newRow` "+newRow);
+		
 		if (isClosed()) {
+			logger.error("absolute() ResultSet is closed");
 			throw new ResultSetException("ResultSet is closed");
 		}
+		
+		logger.debug("absolute() size:"+getSize());
 		if ((newRow != 0) && ((newRow > getSize() - 1) || (newRow < 0))) {
+			logger.error("absolute() Row "+newRow+" is not in ResultSet");
 			throw new RowSetExeception("Row is not in ResultSet");
 		}
 		// Is the row already loaded into pending?
 		if (this.pendingData.containsKey(newRow)) {
+			logger.debug("absolute() already loaded into pending");
+			
 			this.setRowPosition(newRow);
 			currentRow = this.pendingData.get(newRow);
+			logger.debug("absolute() returning TRUE");
 			return true;
 		}
 		// If the row is not in memory
@@ -194,24 +207,35 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 				dataReadFC.position(0);
 			} else {
 				if (newRow == getRowPosition()) {
+					logger.trace("absolute() `newRow` is "+newRow+" and `rowPosition` is the same. returning TRUE");
 					return true;
 				} else if (newRow > getRowPosition()) {
+					logger.trace("absolute() `newRow` is "+newRow+" and `rowPosition` is smaller "+getRowPosition()+". moving forward by the difference");
 					moveForward(newRow - getRowPosition());
 				} else {
+					logger.trace("absolute() `newRow` is "+newRow+" and `rowPosition` is greater "+getRowPosition()+". moving backward by the difference");
 					moveBackward(getRowPosition() - newRow);
 				}
+				logger.trace("absolute() setting RowPosition to `newRow`:"+newRow);
 				this.setRowPosition(newRow);
 			}
+			logger.trace("absolute() in any case, let's just set `RowPosition` to `newRow`:"+newRow);
 			this.setRowPosition(newRow);
 
 			// Read the line and load it as the currentRow
+			logger.trace("absolute() reading current line!!!");
 			this.currentRow = loadCurrentLine();
-
+			logger.trace("absolute() returning TRUE");
 			return true;
 		} catch (IOException | PersistableException e) {
+			logger.error("absolute() IO/PersistableException:"+e.getMessage());
 			throw new ResultSetException("Unable to read the result set", e);
+		} catch (Exception e) {
+			logger.error("absolute() Exception:"+e.getMessage());
 		}
+		return false;
 	}
+	
 	@Override
 	public void afterLast() throws ResultSetException {
 		if (isClosed()) {
@@ -284,31 +308,61 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	private void moveForward(long rowMovement) throws IOException,
 			PersistableException {
+		logger.debug("moveForward() Starting. rowMovement:"+rowMovement);
+		
 		long originalPosition = dataReadFC.position();
 		long currentCount = 0;
 
 		while (currentCount < rowMovement) {
+			logger.debug("moveForward() currentCount:"+currentCount);
+			logger.trace("moveForward() the `FileChannel.originalPosition` is at "+originalPosition);
+			
+			logger.trace("moveForward() clear buffer.");
 			read.clear();
 			int nRead = dataReadFC.read(read);
+			logger.trace("moveForward() read "+nRead+" bites.");
 
 			if (nRead == -1) {
+				logger.trace("moveForward() clearing buffer");
 				read.clear();
+				logger.error("moveForward() Throwing `PersistableException`");
 				throw new PersistableException("Unable to find row");
 			}
+			
 			byte[] byteArray = read.array();
+			boolean isBreakout = false;
+			logger.trace("moveForward() populated byteArray.");
 			for (int position = 0; position < nRead; position++) {
 				char charRead = (char) byteArray[position];
+				
+				if (position < 6) { 
+					// This is just a dump tracing option. Remove it!
+					logger.trace("moveForward() char:"+charRead);
+				}
 
 				if ((charRead == '\r') || (charRead == '\n')) {
+					logger.trace("moveForward() reached some sort of end-of-line at position "+position);
 					currentCount++;
+					logger.trace("moveForward() `currentCount` now "+currentCount);
 					if (currentCount == rowMovement) {
+						logger.trace("moveForward() currentCount is now equal to `rowMovement`");
+						
+						logger.trace("moveForward() advancing the `FileChannel` pointer by "+(position + 1));
 						dataReadFC.position(originalPosition + position + 1);
+						isBreakout = true;
+						logger.trace("moveForward() --- breaking out of the byte reading loop.");
 						break;
+					} else {
+						logger.trace("moveForward() `currentCount` is *NOT* equal to `rowMovement`");
 					}
 				}
 			}
+			logger.trace("moveForward() isBreakout:"+isBreakout);
+			
+			logger.trace("moveForward() advancing the `FileChannel.originalPosition` by "+this.maxReadSize);
 			originalPosition += this.maxReadSize;
 		}
+		logger.debug("moveForward() Finished."+dataReadFC.position());
 	}
 
 	private void moveBackward(long rowMovement) throws IOException,
@@ -361,24 +415,38 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	}
 
 	private Row loadCurrentLine() throws IOException, ResultSetException {
+		logger.debug("loadCurrentLine() Starting...");
+		
 		Row row = new Row(this.getColumnSize());
+		logger.debug("loadCurrentLine() created `Row` with "+this.getColumnSize()+" columnSize");
+		
+		logger.debug("loadCurrentLine() clearing read buffer?!");
 		read.clear();
+		
 		long originalPosition = dataReadFC.position();
+		logger.trace("loadCurrentLine() `FileChannel` is at "+originalPosition);
+		
 		boolean outsideQuote = true;
+		
 		int currentColumn = 0;
 		ByteBuffer line = ByteBuffer.allocate(maxReadSize);
 
 		do {
 			int nRead = dataReadFC.read(read);
+			logger.trace("loadCurrentLine() read "+nRead+" bites, from the file."+read.array().length+" bytes are in the buffer.");
 
 			if (nRead == -1) {
+				logger.trace("loadCurrentLine() EOF, ending.");
 				break;
 			}
 
+			logger.trace("loadCurrentLine() read the byteArray");
 			for (byte readByte : read.array()) {
 				char charRead = (char) readByte;
 
 				if ((charRead == '\r') || (charRead == '\n')) {
+					logger.trace("loadCurrentLine() reached the end of the line, copy Array from buffer `line` "+line.array().length+" bytes, at/from/to position "+line.position());
+					
 					row.setColumn(
 							currentColumn,
 							getColumn(currentColumn).getDataType()
@@ -389,27 +457,38 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 					dataReadFC.position(originalPosition);
 					break;
 				} else if (charRead == QUOTE) {
+					logger.trace("loadCurrentLine() read a QUOTE");
+					
 					// Inverts the state of being inside or outside a quote
 					outsideQuote = !outsideQuote;
 				} else if ((charRead == DELIMITER) && (outsideQuote)) {
+					logger.trace("loadCurrentLine() read a DELIMITER, outside the code");
+					
 					// If a delimiter is found and the current position is
 					// outside a quote
 
+					logger.trace("loadCurrentLine() hmmm... OUTSIDE the quote, copy Array from buffer `line` "+line.array().length+" bytes, at/from/to position "+line.position());
 					row.setColumn(
 							currentColumn,
-							getColumn(currentColumn).getDataType()
-									.fromBytes(
-											Arrays.copyOf(line.array(),
-													line.position())));
+							getColumn(currentColumn).getDataType().fromBytes(
+									Arrays.copyOf(line.array(), line.position())
+							)
+					);
 					currentColumn++;
+					logger.trace("loadCurrentLine() `currentColumn` is now "+currentColumn);
 					line.clear();
+					logger.trace("loadCurrentLine() cleared line buffer");
+					
 				} else {
+					//logger.trace("loadCurrentLine() , else put `readByte`, the current character into buffer `line`");
 					line.put(readByte);
 				}
-
+				//logger.trace("loadCurrentLine() onto the next character.");
 			}
+			logger.trace("loadCurrentLine() finished reading, no more characters to read. dataFC.position():"+dataReadFC.position()+" originalPosition:"+originalPosition);
 
 		} while (dataReadFC.position() != originalPosition);
+		logger.debug("loadCurrentLine() returning `row`");
 		return row;
 	}
 

@@ -8,6 +8,8 @@ import java.util.Map;
 
 import javax.naming.NamingException;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -33,6 +35,8 @@ public class QueryAction implements Action {
 	private Resource resource;
 	private ActionStatus status;
 	private Result result;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	private IRCTEventListener irctEventListener;
 
@@ -68,31 +72,45 @@ public class QueryAction implements Action {
 
 	@Override
 	public void run(SecureSession session) {
+		logger.debug("run() Starting...");
+		
+		logger.trace("run() calling beforeQuery()");
 		irctEventListener.beforeQuery(session, resource, query);
+		logger.trace("run() finished beforeQuery()");
+		
 		this.status = ActionStatus.RUNNING;
 		try {
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
 					.getImplementingInterface();
-
-			this.result = ActionUtilities.createResult(queryInterface
-					.getQueryDataType(query));
-
+			logger.trace("run() `queryInterface` is "+queryInterface.toString());
+			
+			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
+			logger.trace("run() `result` is "+this.result);
+			
 			if (session != null) {
+				logger.trace("run() getting user from `SecureSession`");
 				this.result.setUser(session.getUser());
 			}
-			
-			
-
-			this.result = queryInterface.runQuery(session, query, result);
+			logger.trace("run() calling runQuery of `queryInterface`");
+			this.result = queryInterface.runQuery(session, query, this.result);
+			logger.trace("run() finished runQuery(), result is "+this.result);
 
 			// Update the result in the database
+			logger.debug("run() UPdate the result in the database. mergeResult() call.");
 			ActionUtilities.mergeResult(this.result);
+			
 		} catch (Exception e) {
+			logger.error("run() Exception:"+e.getMessage());
 			this.result.setResultStatus(ResultStatus.ERROR);
 			this.result.setMessage(e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
+		
+		logger.trace("run() about to call afterQuery()");
 		irctEventListener.afterQuery(session, resource, query);
+		logger.trace("run() finished afterQuery()");
+		
+		logger.trace("run() Finished.");
 	}
 
 	@Override

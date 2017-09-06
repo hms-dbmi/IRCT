@@ -103,9 +103,7 @@ public class SessionFilter implements Filter {
 				return;
 			}
 		}
-
 		logger.debug("doFilter() Finished.");
-		
 		fc.doFilter(req, res);
 	}
 
