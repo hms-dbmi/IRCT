@@ -156,19 +156,21 @@
 					<driver>mysql</driver>
 					<security>
 						<user-name>irct</user-name>
-						<password>A VALID PASSWORD FOR YOUR LOCAL MYSQL USER IRCT</password>
+						<password>new-password</password>
 					</security>
 					<pool>
 						<min-pool-size>5</min-pool-size>
 						<max-pool-size>50</max-pool-size>
+						
 						<prefill>true</prefill>
 					</pool>
 					<validation>
 						<valid-connection-checker
 							class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLValidConnectionChecker" />
 						<check-valid-connection-sql>SELECT 1</check-valid-connection-sql>
-						<validate-on-match>true</validate-on-match>
-						<background-validation>false</background-validation>
+						<validate-on-match>false</validate-on-match>
+						<background-validation>true</background-validation>
+						<background-validation-millis>1000</background-validation-millis>
 						<exception-sorter
 							class-name="org.jboss.jca.adapters.jdbc.extensions.mysql.MySQLExceptionSorter" />
 					</validation>
@@ -210,7 +212,7 @@
 					<managed-executor-service name="default"
 						jndi-name="java:jboss/ee/concurrency/executor/default"
 						context-service="default" hung-task-threshold="60000"
-						core-threads="5" max-threads="25" keepalive-time="5000" />
+						core-threads="5" max-threads="25" keepalive-time="5000" queue-length="10000" />
 				</managed-executor-services>
 				<managed-scheduled-executor-services>
 					<managed-scheduled-executor-service
@@ -358,9 +360,10 @@
 				<simple name="java:global/userField" value="email" />
 				<simple name="java:global/resultDataFolder"
 					value="scratch/irct" />
-				<simple name="java:global/client_secret" value="<Client Secret for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
-				<simple name="java:global/client_id" value="<Client ID for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
+				<simple name="java:global/client_secret" value="nQWNixJHJ_jRWd6ZuFY9XJNdt9-gDvqBkpN9b80qHn7ySpCUfTdwIm0F85UZgbB4" />
+				<simple name="java:global/client_id" value="ywAq4Xu4Kl3uYNdm3m05Cc5ow0OibvXt" />
 				<simple name="java:global/KeyTimeOutInMinutes" value="720" />
+				<!--simple name="java:global/check_token_endpoint" value="NONE"/-->
 			</bindings>
 			<remote-naming />
 		</subsystem>
