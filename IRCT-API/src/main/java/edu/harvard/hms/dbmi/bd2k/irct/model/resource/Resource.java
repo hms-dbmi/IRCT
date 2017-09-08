@@ -117,6 +117,8 @@ public class Resource implements Serializable {
 	 * @throws ResourceInterfaceException Throws a resource interface
 	 */
 	public void setup() throws ResourceInterfaceException {
+		logger.debug("Resource.setup() Starting...");
+		
 		boolean isDoneSettingUp = false;
 		try {
 			implementingInterface.setup(this.parameters);
@@ -126,6 +128,7 @@ public class Resource implements Serializable {
 			e.printStackTrace();
 		}
 		this.setSetup(isDoneSettingUp);
+		logger.debug("Resource.setup() Finished");
 	}
 
 	/**
