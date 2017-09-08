@@ -35,6 +35,8 @@ public class QueryAction implements Action {
 	private Resource resource;
 	private ActionStatus status;
 	private Result result;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	private IRCTEventListener irctEventListener;
 	private Logger logger = Logger.getLogger(this.getClass());
@@ -82,10 +84,11 @@ public class QueryAction implements Action {
 	public void run(SecureSession session) {
 		logger.debug("run() Starting...");
 		
-		logger.debug("run() calling `beforeQuery`");
+		logger.trace("run() calling beforeQuery()");
 		irctEventListener.beforeQuery(session, resource, query);
-		logger.debug("run() set status to "+ActionStatus.RUNNING);
-		this.status = ActionStatus.RUNNING;
+		logger.trace("run() finished beforeQuery()");
+
+    this.status = ActionStatus.RUNNING;
 		try {
 			logger.debug("run() getting `QueryResourceImplementationInterface` object");
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
@@ -98,29 +101,38 @@ public class QueryAction implements Action {
 
 			logger.debug("run() creating `result` field.");
 			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
+			logger.trace("run() `result` is "+this.result);
 
 			if (session != null) {
 				logger.debug("run() setting `user` field of the `result`.");
 				this.result.setUser(session.getUser());
 			}
-			
-			logger.debug("run() calling runQuery() on the interface.");
-			this.result = queryInterface.runQuery(session, query, result);
+
+      logger.trace("run() calling runQuery() of `queryInterface`");
+			this.result = queryInterface.runQuery(session, query, this.result);
+			logger.trace("run() finished runQuery(), result is "+this.result);
 
 			// Update the result in the database
 			logger.debug("run() calling ActionUtilities.mergeResult(). This would persist the result in the database.");
 			ActionUtilities.mergeResult(this.result);
+			
 		} catch (Exception e) {
 			logger.error("run() Exception: "+e.getMessage());
 			this.status = ActionStatus.ERROR;
 			if (this.result == null) {
+        logger.error("run() `result` is null");
 				throw new RuntimeException(e);
 			} else {
-				this.result.setResultStatus(ResultStatus.ERROR);
-				this.result.setMessage(e.getMessage());
+			  this.result.setResultStatus(ResultStatus.ERROR);
+			  this.result.setMessage(e.getMessage());
 			}
 		}
+		
+		logger.trace("run() about to call afterQuery()");
 		irctEventListener.afterQuery(session, resource, query);
+		logger.trace("run() finished afterQuery()");
+		
+		logger.trace("run() Finished.");
 	}
 
 	@Override
