@@ -13,8 +13,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -34,6 +32,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -64,12 +63,13 @@ public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String transmartURL;
 
-	final static Logger logger = Logger.getGlobal();
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
 
-		logger.log(java.util.logging.Level.INFO, "setup() start");
+		logger.debug("setup() start");
 
 		if (!parameters.keySet().contains("resourceName")) {
 			throw new ResourceInterfaceException("Missing ```resourceName``` parameter.");
@@ -83,10 +83,10 @@ public class I2B2TranSMARTResourceImplementation extends
 		if (!parameters.keySet().contains("domain")) {
 			throw new ResourceInterfaceException("Missing ```domain``` parameter.");
 		}
-		logger.log(Level.FINE, "setup() All mandatory parameters are there.");
+		logger.debug("setup() All mandatory parameters are there.");
 
 		this.transmartURL = parameters.get("transmartURL");
-		logger.log(Level.FINE, "setup() ```transmartURL``` is now set to:"+this.transmartURL);
+		logger.debug("setup() ```transmartURL``` is now set to:"+this.transmartURL);
 
 		super.setup(parameters);
 	}
@@ -262,16 +262,21 @@ public class I2B2TranSMARTResourceImplementation extends
 			Map<String, String> aliasMap, String resultId)
 			throws ResultSetException, ClientProtocolException, IOException,
 			PersistableException, JsonException {
+		
+		logger.debug("runClinicalDataQuery() Starting ...");
 		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
+			logger.debug("runClinicalDataQuery() calling createInitialDataset()");
 			rs = createInitialDataset(result, aliasMap);
 		}
 
 		// Get additional fields to grab from alias
 		List<String> additionalFields = new ArrayList<String>();
 		for (String key : aliasMap.keySet()) {
+			logger.debug("runClinicalDataQuery() aliasMap.key:"+key);
 			if (!key.startsWith("\\")) {
+				logger.debug("runClinicalDataQuery() add it to additionalFields");
 				additionalFields.add(key);
 			}
 		}
@@ -301,11 +306,14 @@ public class I2B2TranSMARTResourceImplementation extends
 			counter++;
 		}
 		if (!parameters.equals("")) {
+			logger.debug("runClinicalDataQuery() adding `parameters` as ["+parameters+"] to `parameterList`");
 			parameterList.add(parameters);
 		}
 
 		for (String parameter : parameterList) {
 			// Call the tranSMART API to get the dataset
+			logger.debug("runClinicalDataQuery() calling transmart API....");
+			
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
 					+ resultId
@@ -315,7 +323,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(url);
-			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
+			logger.debug("runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
 			JsonParser parser = Json.createParser(response.getEntity()
@@ -515,7 +523,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 
 		} catch (URISyntaxException | JsonException | IOException e) {
-			logger.log(Level.SEVERE, "searchObservationOnly() Exception: "+e.getMessage());
+			logger.error("searchObservationOnly() Exception: "+e.getMessage());
 		}
 
 		return entities;
