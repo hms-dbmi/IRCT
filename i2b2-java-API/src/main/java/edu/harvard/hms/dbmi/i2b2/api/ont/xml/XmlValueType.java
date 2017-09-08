@@ -37,7 +37,7 @@ import org.w3c.dom.Element;
 })
 public class XmlValueType {
 
-    @XmlAnyElement
+    @XmlAnyElement(UnknownTypeHandler.class)
     protected List<Element> any;
 
     /**
