@@ -6,6 +6,9 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 import java.io.IOException;
 
 import javax.inject.Inject;
+import javax.naming.InitialContext;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.servlet.Filter;
@@ -47,6 +50,8 @@ public class SessionFilter implements Filter {
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
 
+	private String tokenServiceUrl = null;
+
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 
@@ -58,6 +63,14 @@ public class SessionFilter implements Filter {
 
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
+		try {
+			tokenServiceUrl = (String)InitialContext.doLookup("java:global/check_token_endpoint");
+		} catch (NameNotFoundException e) {
+			// do nothing, the naming parameter is just not set in standalone.xml
+		} catch (NamingException e){
+			logger.error("init() Unknown naming exception caught." + e);
+		}
+		
 	}
 
 	@Override
@@ -73,9 +86,16 @@ public class SessionFilter implements Filter {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
 			try {
-				User user = session.getAttribute("user") == null ?
-						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-						: (User)session.getAttribute("user");
+				User user;
+				if (session.getAttribute("user") == null) {
+					user = sc.ensureUserExists(tokenServiceUrl == null ?
+							Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret) :
+							Utilities.getUserIdFromRemoteService((HttpServletRequest) req, tokenServiceUrl));
+				}
+				else {
+					user = (User)session.getAttribute("user");
+				}
+				
 				logger.debug("doFilter() got user object.");
 
 				Token token = session.getAttribute("token") == null ?

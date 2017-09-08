@@ -1,0 +1,9 @@
+{"script": "bar",
+  "resultSets" : {
+    "fooSet" : 12345,
+    "barSet" : 34567
+  },
+  "scriptOptions" : {
+  	"foo" : "bar"
+  }
+}

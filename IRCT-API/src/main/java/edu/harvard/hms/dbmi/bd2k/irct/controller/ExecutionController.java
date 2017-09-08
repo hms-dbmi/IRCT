@@ -5,7 +5,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
-import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
@@ -17,6 +16,8 @@ import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.UserTransaction;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.action.JoinAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.ProcessAction;
@@ -44,8 +45,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 @Stateless
 public class ExecutionController {
 
-	@Inject
-	Logger log;
+	Logger logger = Logger.getLogger(this.getClass());
 
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
@@ -103,31 +103,49 @@ public class ExecutionController {
 	 */
 	public Long runQuery(Query query, SecureSession secureSession)
 			throws PersistableException {
+		logger.debug("runQuery() Starting...");
 
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
+		logger.debug("runQuery() Set `newResult` as type:EXECUTION");
 
 		// Add the current user to the query.
 		newResult.setUser(secureSession.getUser());
-
+		logger.debug("runQuery() Set `newResult` as user:"+newResult.getUser().getUserId());
+		
 		newResult.setResultStatus(ResultStatus.RUNNING);
+		logger.debug("runQuery() Set `newResult` as type:EXECUTION");
+
 		entityManager.persist(newResult);
+		logger.debug("runQuery() persited `newResult`");
 
 		QueryAction qa = new QueryAction();
+		
 		edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
+		logger.debug("runQuery() `QueryAction` and `Resource` are set.");
+		
 		if(!resource.isSetup()) {
+			logger.debug("runQuery() Resource `"+resource.getName()+"` is not set up, yet.");
 			resource = rc.getResource(resource.getName());
+		} else {
+			logger.debug("runQuery() Resource is already set up. "+resource.getName());
 		}
+		logger.debug("runQuery() Resource `"+resource.getName()+"` is now should be all set.");
+		
+		logger.debug("runQuery() Setting up queryaction with resource and query.");
 		qa.setup(resource, query);
+		logger.debug("runQuery() `QueryAction` setup is now complete.");
 
 		ExecutableLeafNode eln = new ExecutableLeafNode();
 		eln.setAction(qa);
+		logger.debug("runQuery() Added `QueryAction` to `ExecutableLeafNode`.");
 
 		ExecutionPlan exp = new ExecutionPlan();
 		exp.setup(eln, secureSession);
-
+		logger.debug("runQuery() `ExecutionPlan` is all set up. Try runExecutionPlan() now");
+		
 		runExecutionPlan(exp, newResult);
-
+		logger.debug("runQuery() returning `newResult.id` as "+newResult.getId());
 		return newResult.getId();
 	}
 
@@ -178,12 +196,16 @@ public class ExecutionController {
 	@Asynchronous
 	public void runExecutionPlan(final ExecutionPlan executionPlan,
 			final Result result) throws PersistableException {
-
+		
+		logger.debug("runExectionPlan() Starting...");
 		Callable<Result> runPlan = new Callable<Result>() {
 			@Override
 			public Result call() {
+				logger.debug("Callable.call() starting in inner class");
+				
 				try {
 					result.setStartTime(new Date());
+					logger.debug("Callable.call() Calling run() on `executionPlan` "+executionPlan.getClass().getName());
 					executionPlan.run();
 
 					Result finalResult = executionPlan.getResults();
@@ -206,25 +228,37 @@ public class ExecutionController {
 					}
 
 					result.setEndTime(new Date());
+					
 					UserTransaction userTransaction = lookup();
+					
 					userTransaction.begin();
 					entityManager.merge(result);
 					userTransaction.commit();
+					
 				} catch (PersistableException e) {
+					logger.error("Callable.call() PersistableException:"+e.getMessage());
+					
 					result.setResultStatus(ResultStatus.ERROR);
 					result.setMessage(e.getMessage());
 				} catch (Exception e) {
 					e.printStackTrace();
-					log.info(e.getMessage());
+					logger.error("Callable.call() Exception:"+e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
 				} finally {
-
+					logger.debug("Callable.call() done with the method");
 				}
+				logger.debug("Callable.call() returning `result` with status "+result.getResultStatus().toString());
 				return result;
 			}
 		};
-
-		mes.submit(runPlan);
+		logger.debug("runExecutionPlan() created `Callable`. calling submit() of ManagedExecutionService");
+		try {
+			mes.submit(runPlan);
+		} catch (Exception e) {
+			logger.error("runExecutionPlan() >>>Exception: "+e.getMessage());
+		} finally {
+			logger.debug("runExecutionPlan() Finished.");
+		}
 	}
 
 	private UserTransaction lookup() throws NamingException {
