@@ -92,6 +92,7 @@ public class QueryAction implements Action {
 					.getImplementingInterface();
 			
 			if (queryInterface == null) {
+				logger.error("run() `queryInterface` is not found for "+resource.getName()+" resource");
 				throw new RuntimeException("Unknown implementing interface for resource `"+resource.getName()+"`");
 			}
 
