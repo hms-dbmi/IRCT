@@ -330,7 +330,6 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 			}
 			
 			byte[] byteArray = read.array();
-			boolean isBreakout = false;
 			logger.trace("moveForward() populated byteArray.");
 			for (int position = 0; position < nRead; position++) {
 				char charRead = (char) byteArray[position];
@@ -349,7 +348,6 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 						
 						logger.trace("moveForward() advancing the `FileChannel` pointer by "+(position + 1));
 						dataReadFC.position(originalPosition + position + 1);
-						isBreakout = true;
 						logger.trace("moveForward() --- breaking out of the byte reading loop.");
 						break;
 					} else {
@@ -357,7 +355,6 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 					}
 				}
 			}
-			logger.trace("moveForward() isBreakout:"+isBreakout);
 			
 			logger.trace("moveForward() advancing the `FileChannel.originalPosition` by "+this.maxReadSize);
 			originalPosition += this.maxReadSize;
