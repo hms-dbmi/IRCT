@@ -16,6 +16,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 import edu.harvard.hms.dbmi.scidb.exception.SciDBOperationException;
@@ -32,6 +33,8 @@ public class SciDB {
 	private String url;
 	private String sessionId;
 	private HttpClient client;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 	
 
 	/**
@@ -2246,6 +2249,36 @@ public class SciDB {
 			e.printStackTrace();
 		}
 
+		return null;
+	}
+
+	public String executeAflQuery(String aflqueryString)
+			throws NotConnectedException {
+		logger.debug("executeAflQuery() Starting...");
+		
+		if (!this.connected) {
+			logger.error("executeAflQuery() not connected.");
+			throw new NotConnectedException();
+		}
+
+		try {
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query");
+			uriBuilder.addParameter("id", this.sessionId);
+			uriBuilder.addParameter("query", aflqueryString);
+			uriBuilder.addParameter("save", "dcsv");
+			URI uri = uriBuilder.build();
+			logger.debug("executeAflQuery() URI:"+uri.toASCIIString());
+			
+			HttpGet runQuery = new HttpGet(uri);
+			HttpResponse response = client.execute(runQuery);
+			
+			logger.debug("executeAflQuery() Returning response");
+			return inputStreamToString(response.getEntity().getContent());
+			
+		} catch (Exception e) {
+			logger.error("executeAflQuery() ");
+		}
+		logger.debug("executeAflQuery() Returning null");
 		return null;
 	}
 

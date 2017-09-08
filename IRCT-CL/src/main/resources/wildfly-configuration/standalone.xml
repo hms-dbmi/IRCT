@@ -360,8 +360,8 @@
 				<simple name="java:global/userField" value="email" />
 				<simple name="java:global/resultDataFolder"
 					value="scratch/irct" />
-				<simple name="java:global/client_secret" value="nQWNixJHJ_jRWd6ZuFY9XJNdt9-gDvqBkpN9b80qHn7ySpCUfTdwIm0F85UZgbB4" />
-				<simple name="java:global/client_id" value="ywAq4Xu4Kl3uYNdm3m05Cc5ow0OibvXt" />
+				<simple name="java:global/client_secret" value="<INSERT_CLIENT_SECRET>" />
+				<simple name="java:global/client_id" value="<INSERT_CLIENT_ID>" />
 				<simple name="java:global/KeyTimeOutInMinutes" value="720" />
 				<!--simple name="java:global/check_token_endpoint" value="NONE"/-->
 			</bindings>

@@ -6,7 +6,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -26,6 +25,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
@@ -108,6 +109,9 @@ public class Resource implements Serializable {
 	@Transient
 	private boolean setup = false;
 	
+	@Transient
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	/**
 	 * Sets up the Resource and the implementing interface
 	 * @throws ResourceInterfaceException Throws a resource interface
@@ -118,7 +122,7 @@ public class Resource implements Serializable {
 			implementingInterface.setup(this.parameters);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
+			logger.error("Resource.setup() Exception:"+e.getMessage());
 			e.printStackTrace();
 		}
 		this.setSetup(isDoneSettingUp);
@@ -440,6 +444,7 @@ public class Resource implements Serializable {
 	 * @return the implementingInterface
 	 */
 	public ResourceImplementationInterface getImplementingInterface() {
+		logger.debug("getImplementingInterface() Starting ");
 		return implementingInterface;
 	}
 
@@ -451,6 +456,7 @@ public class Resource implements Serializable {
 	 */
 	public void setImplementingInterface(
 			ResourceImplementationInterface implementingInterface) {
+		logger.debug("setImplementingInterface() to "+implementingInterface.getType()+" "+implementingInterface.toString());
 		this.implementingInterface = implementingInterface;
 	}
 
