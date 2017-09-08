@@ -333,7 +333,10 @@ public class I2B2TranSMARTResourceImplementation extends
 					additionalFields);
 
 		}
+		logger.debug("runClinicalDataQuery() Setting data of `result` object.");
 		result.setData(rs);
+		
+		logger.debug("runClinicalDataQuery() Finished. Returning `result`");
 		return result;
 	}
 
