@@ -14,7 +14,7 @@ import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.Matchers.*;
 
 import java.util.List;
-public class Practice {
+public class ResourceService_StatusCode {
   
 	 @BeforeClass
 	  public void setBaseUri () {
