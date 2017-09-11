@@ -6,7 +6,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -19,12 +18,15 @@ import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
@@ -63,11 +65,11 @@ public class Resource implements Serializable {
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;
 
-	@ElementCollection
+	@ElementCollection(fetch = FetchType.EAGER)
 	@Convert(converter = DataTypeConverter.class)
 	private List<DataType> dataTypes;
 
-	@ElementCollection
+	@ElementCollection(fetch = FetchType.EAGER)
 	@Convert(converter = OntologyRelationshipConverter.class)
 	private List<OntologyRelationship> relationships;
 
@@ -98,7 +100,7 @@ public class Resource implements Serializable {
 	@OneToMany
 	private List<VisualizationType> supportedVisualizations;
 
-	@ElementCollection
+	@ElementCollection(fetch = FetchType.EAGER)
 	@MapKeyColumn(name = "name")
 	@Column(name = "value")
 	@CollectionTable(name = "resource_parameters", joinColumns = @JoinColumn(name = "id"))
@@ -107,20 +109,26 @@ public class Resource implements Serializable {
 	@Transient
 	private boolean setup = false;
 	
+	@Transient
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	/**
 	 * Sets up the Resource and the implementing interface
 	 * @throws ResourceInterfaceException Throws a resource interface
 	 */
 	public void setup() throws ResourceInterfaceException {
+		logger.debug("Resource.setup() Starting...");
+		
 		boolean isDoneSettingUp = false;
 		try {
 			implementingInterface.setup(this.parameters);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
+			logger.error("Resource.setup() Exception:"+e.getMessage());
 			e.printStackTrace();
 		}
 		this.setSetup(isDoneSettingUp);
+		logger.debug("Resource.setup() Finished");
 	}
 
 	/**
@@ -439,6 +447,7 @@ public class Resource implements Serializable {
 	 * @return the implementingInterface
 	 */
 	public ResourceImplementationInterface getImplementingInterface() {
+		logger.debug("getImplementingInterface() Starting ");
 		return implementingInterface;
 	}
 
@@ -450,6 +459,7 @@ public class Resource implements Serializable {
 	 */
 	public void setImplementingInterface(
 			ResourceImplementationInterface implementingInterface) {
+		logger.debug("setImplementingInterface() to "+implementingInterface.getType()+" "+implementingInterface.toString());
 		this.implementingInterface = implementingInterface;
 	}
 
