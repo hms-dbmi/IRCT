@@ -87,10 +87,9 @@ public class SciDBAFLResourceImplementation implements
 	Logger logger = Logger.getLogger(getClass());
 
 	private String resourceName;
-	private String clientId;
-	private String namespace;
-	private boolean ignoreCertificate;
 	private String resourceURL;
+	private String username;
+	private String password;
 
 	private ResourceState resourceState;
 
@@ -107,27 +106,29 @@ public class SciDBAFLResourceImplementation implements
 		
 		this.resourceName = parameters.get("resourceName");
 		if (this.resourceName == null) {
-			logger.error( "setup() ```resourceName``` parameter is missing.");
-			throw new RuntimeException("Missing ```resourceName``` parameter.");
+			logger.error( "setup() `resourceName` parameter is missing.");
+			throw new RuntimeException("Missing `resourceName` parameter.");
 		}
 		
 		this.resourceURL = parameters.get("resourceURL");
 		if (this.resourceURL == null) {
-			logger.error( "setup() ```resourceURL``` parameter is missing.");
-			throw new RuntimeException("Missing ```resourceURL``` parameter.");
+			logger.error( "setup() `resourceURL` parameter is missing.");
+			throw new RuntimeException("Missing `resourceURL` parameter.");
 
 		}
 		
-/*		this.clientId = parameters.get("clientId");
-		this.namespace = parameters.get("namespace");
-		String certificateString = parameters.get("ignoreCertificate");
-
-		if (certificateString != null && certificateString.equals("true")) {
-			this.ignoreCertificate = true;
-		} else {
-			this.ignoreCertificate = false;
+		this.username = parameters.get("username");
+		if (this.username == null) {
+			logger.error( "setup() `username` parameter is missing.");
+			throw new RuntimeException("Missing `username` parameter.");
 		}
-*/
+		
+		this.password = parameters.get("password");
+		if (this.password == null) {
+			logger.error( "setup() `password` parameter is missing.");
+			throw new RuntimeException("Missing `password` parameter.");
+		}
+
 		logger.debug( "setup() Finished. Resource is in READY state.");
 		resourceState = ResourceState.READY;
 	}
@@ -156,7 +157,7 @@ public class SciDBAFLResourceImplementation implements
 		String[] pathComponents = basePath.split("/");
 		CSVParser parser = null;
 
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		logger.debug( "getPathRelationship() Connected to SciDB at "+this.resourceURL);
 		try {
@@ -258,7 +259,7 @@ public class SciDBAFLResourceImplementation implements
 		
 		// Setup SciDB connection
 		HttpClient client = createClient(session);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		logger.debug("runQuery() connecting to resource "+this.resourceURL);
 		sciDB.connect(client, this.resourceURL);
 		if (sciDB.getSessionId()==null) {
@@ -541,7 +542,7 @@ public class SciDBAFLResourceImplementation implements
 		logger.debug( "getResults() `ResultStatus` is :"+result.getResultStatus());
 		
 		HttpClient client = createClient(session);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		logger.debug( "getResults() connecting to "+this.resourceURL);
 		
@@ -630,7 +631,7 @@ public class SciDBAFLResourceImplementation implements
 		logger.debug( "runProcess() Starting...");
 		
 		HttpClient client = createClient(session);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		sciDB.close();
 		
@@ -692,31 +693,21 @@ public class SciDBAFLResourceImplementation implements
 		logger.debug( "createClient() Starting...");
 		
 		// SSL WRAPAROUND
-		HttpClientBuilder returns = null;
+		HttpClientBuilder returns = HttpClientBuilder.create();
 
-		if (ignoreCertificate) {
+		if (true) {
 			try {
 				// CLIENT CONNECTION
 				returns = ignoreCertificate();
 			} catch (NoSuchAlgorithmException | KeyManagementException e) {
 				e.printStackTrace();
 			}
-		} else {
-			returns = HttpClientBuilder.create();
 		}
+		//else {
+		//	returns = HttpClientBuilder.create();
+		//}
 
 		List<Header> defaultHeaders = new ArrayList<Header>();
-
-/*		String token = session.getToken().toString();
-		if (this.clientId != null) {
-			token = SecurityUtility.delegateToken(this.namespace,
-					this.clientId, session);
-		}
-
-		if (session != null) {
-			defaultHeaders.add(new BasicHeader("Authorization", token));
-		}
-		*/
 		
 		defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);

@@ -39,7 +39,6 @@ public class QueryAction implements Action {
 	private Logger logger = Logger.getLogger(this.getClass());
 
 	private IRCTEventListener irctEventListener;
-	private Logger logger = Logger.getLogger(this.getClass());
 	
 	/**
 	 * Sets up the action to run a given query on a resource
