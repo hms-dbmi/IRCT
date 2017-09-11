@@ -46,17 +46,17 @@
 		</repository>
 	</repositories>
 	<dependencies>
-			<dependency>
-				<groupId>org.webjars</groupId>
-				<artifactId>underscorejs</artifactId>
-				<version>1.8.3</version>
-			</dependency>
-			<dependency>
-				<groupId>org.webjars.npm</groupId>
-				<artifactId>d3</artifactId>
-				<version>4.10.0</version>
-			</dependency>
-	
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>underscorejs</artifactId>
+			<version>1.8.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.webjars.npm</groupId>
+			<artifactId>d3</artifactId>
+			<version>4.10.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-RI</artifactId>
@@ -94,7 +94,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
-			</dependency>
+		</dependency>
 		<!-- Apache POI -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -274,7 +274,56 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-dependency-plugin</artifactId>
-						
+						<executions>
+							<execution>
+								<id>unpack-wildfly</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>unpack</goal>
+								</goals>
+								<inherited>false</inherited>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>org.wildfly</groupId>
+											<artifactId>wildfly-dist</artifactId>
+											<version>${version.wildfly}</version>
+											<type>zip</type>
+											<overWrite>false</overWrite>
+											<outputDirectory>${project.build.directory}</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+							<execution>
+								<id>retrieve-mysql-driver</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>copy</goal>
+								</goals>
+								<inherited>false</inherited>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>mysql</groupId>
+											<artifactId>mysql-connector-java</artifactId>
+											<version>5.1.38</version>
+											<type>jar</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${jboss.home}/modules/system/layers/base/com/sql/mysql/main/</outputDirectory>
+										</artifactItem>
+										<artifactItem>
+											<groupId>oracle</groupId>
+											<artifactId>ojdbc6</artifactId>
+											<version>11.2.0.3</version>
+											<type>jar</type>
+											<overWrite>true</overWrite>
+											<outputDirectory>${jboss.home}/modules/system/layers/base/com/oracle/main/</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+						</executions>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
