@@ -7,7 +7,6 @@
     <bean class="org.springframework.beans.factory.config.PreferencesPlaceholderConfigurer"/>
     <jaxrs:server id="services" address="/">
         <jaxrs:serviceBeans>
-            <bean class="edu.harvard.hms.dbmi.bd2k.irct.HelloWorld"/>
             <bean class="edu.harvard.hms.dbmi.bd2k.irct.TokenValidation"/>
         </jaxrs:serviceBeans>
         <jaxrs:providers>

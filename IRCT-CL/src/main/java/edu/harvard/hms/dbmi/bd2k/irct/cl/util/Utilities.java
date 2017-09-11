@@ -170,12 +170,12 @@ public class Utilities {
 	}
 	
 	/**
-	 * Calls token verifier Micro-Service and returns the User ID if token is validated
+	 * Calls token verifier Micro-Service and returns the email (user ID) if token is validated
 	 * @param reg Http request
 	 * @param url JDNI binded URL 
-	 * @return The user ID
+	 * @return email (user ID)
 	 */
-	public static String getUserIdFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
+	public static String getEmailFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
 		
 		String token = extractToken(req);
 		String userId;
@@ -197,7 +197,7 @@ public class Utilities {
 			}
 			InputStream responseContent = response.getEntity().getContent();
 			ObjectMapper mapper = new ObjectMapper();
-			userId =  (String) mapper.readValue(responseContent, Map.class).get("userId");
+			userId =  (String) mapper.readValue(responseContent, Map.class).get("email");
 		
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);

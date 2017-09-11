@@ -90,7 +90,7 @@ public class SessionFilter implements Filter {
 				if (session.getAttribute("user") == null) {
 					user = sc.ensureUserExists(tokenServiceUrl == null ?
 							Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret) :
-							Utilities.getUserIdFromRemoteService((HttpServletRequest) req, tokenServiceUrl));
+							Utilities.getEmailFromRemoteService((HttpServletRequest) req, tokenServiceUrl));
 				}
 				else {
 					user = (User)session.getAttribute("user");
