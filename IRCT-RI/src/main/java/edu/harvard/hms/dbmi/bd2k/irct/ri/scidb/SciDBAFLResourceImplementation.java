@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.scidb;
 
@@ -83,20 +83,19 @@ public class SciDBAFLResourceImplementation implements
 		PathResourceImplementationInterface,
 		QueryResourceImplementationInterface,
 		ProcessResourceImplementationInterface {
-	
+
 	Logger logger = Logger.getLogger(getClass());
 
 	private String resourceName;
-	private String clientId;
-	private String namespace;
-	private boolean ignoreCertificate;
 	private String resourceURL;
+	private String username;
+	private String password;
 
 	private ResourceState resourceState;
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * ResourceImplementationInterface#setup(java.util.Map)
 	 */
@@ -104,37 +103,39 @@ public class SciDBAFLResourceImplementation implements
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
 		logger.debug("setup() Starting...");
-		
+
 		this.resourceName = parameters.get("resourceName");
 		if (this.resourceName == null) {
-			logger.error( "setup() ```resourceName``` parameter is missing.");
-			throw new RuntimeException("Missing ```resourceName``` parameter.");
+			logger.error( "setup() `resourceName` parameter is missing.");
+			throw new RuntimeException("Missing `resourceName` parameter.");
 		}
-		
+
 		this.resourceURL = parameters.get("resourceURL");
 		if (this.resourceURL == null) {
-			logger.error( "setup() ```resourceURL``` parameter is missing.");
-			throw new RuntimeException("Missing ```resourceURL``` parameter.");
+			logger.error( "setup() `resourceURL` parameter is missing.");
+			throw new RuntimeException("Missing `resourceURL` parameter.");
 
 		}
-		
-/*		this.clientId = parameters.get("clientId");
-		this.namespace = parameters.get("namespace");
-		String certificateString = parameters.get("ignoreCertificate");
 
-		if (certificateString != null && certificateString.equals("true")) {
-			this.ignoreCertificate = true;
-		} else {
-			this.ignoreCertificate = false;
+		this.username = parameters.get("username");
+		if (this.username == null) {
+			logger.error( "setup() `username` parameter is missing.");
+			throw new RuntimeException("Missing `username` parameter.");
 		}
-*/
+
+		this.password = parameters.get("password");
+		if (this.password == null) {
+			logger.error( "setup() `password` parameter is missing.");
+			throw new RuntimeException("Missing `password` parameter.");
+		}
+
 		logger.debug( "setup() Finished. Resource is in READY state.");
 		resourceState = ResourceState.READY;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * PathResourceImplementationInterface
 	 * #getPathRelationship(edu.harvard.hms.dbmi
@@ -146,9 +147,9 @@ public class SciDBAFLResourceImplementation implements
 	public List<Entity> getPathRelationship(Entity path,
 			OntologyRelationship relationship, SecureSession session)
 			throws ResourceInterfaceException {
-		
+
 		logger.debug( "getPathRelationship() Starting...");
-		
+
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
 		HttpClient client = createClient(session);
@@ -156,7 +157,7 @@ public class SciDBAFLResourceImplementation implements
 		String[] pathComponents = basePath.split("/");
 		CSVParser parser = null;
 
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		logger.debug( "getPathRelationship() Connected to SciDB at "+this.resourceURL);
 		try {
@@ -244,7 +245,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * QueryResourceImplementationInterface
 	 * #runQuery(edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession,
@@ -255,10 +256,10 @@ public class SciDBAFLResourceImplementation implements
 	public Result runQuery(SecureSession session, Query query, Result result)
 			throws ResourceInterfaceException {
 		logger.log(Level.INFO, "runQuery() Starting");
-		
+
 		// Setup SciDB connection
 		HttpClient client = createClient(session);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		logger.debug("runQuery() connecting to resource "+this.resourceURL);
 		sciDB.connect(client, this.resourceURL);
 		if (sciDB.getSessionId()==null) {
@@ -268,22 +269,22 @@ public class SciDBAFLResourceImplementation implements
 			return result;
 		}
 		result.setResultStatus(ResultStatus.CREATED);
-		
+
 		List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
 		String queryId = "NOTSET";
 		// Execute AFL queries from the fields portion of the WHERE clause
 		for (WhereClause whereClause : whereClauses) {
 			Map<String, String> queries = whereClause.getStringValues();
-			
+
 			for(String queryString: queries.values()) {
 				logger.debug("runQuery() executing queryString:"+queryString);
 				try {
 					queryId = sciDB.executeAflQuery(queryString);
-					
+
 					if (queryId != null && queryId.contains("Exception")) {
 						// This is an error, and we should handle it as such.
 						logger.error("runQuery() SciDB Exception:"+queryId);
-						
+
 						result.setResultStatus(ResultStatus.ERROR);
 						// Now this is a guess and a risk, but hopefully
 						// not a big one. If in doubt, turn on DEBUG level
@@ -299,7 +300,7 @@ public class SciDBAFLResourceImplementation implements
 							break;
 						default:
 							result.setMessage("SciDB "+queryId.split("\n")[errormsg_linecount-3]);
-						
+
 						}
 						logger.error("runQuery() returning ERROR result.");
 						return result;
@@ -315,22 +316,22 @@ public class SciDBAFLResourceImplementation implements
 		}
 		logger.debug( "runQuery() completed all queries");
 		result.setResourceActionId(sciDB.getSessionId() + "|" + queryId);
-		
+
 		logger.debug("runQuery() returning `result` with status "+result.getResultStatus().toString());
 		return result;
 	}
 
 	private SciDBCommand createQuery(SciDB sciDB, Query query) {
 		logger.debug( "createQuery() ");
-		
+
 		SciDBCommand command = null;
 		// Parse all subqueries first
 		Map<String, SciDBCommand> subQueryCommands = new HashMap<String, SciDBCommand>();
-		
+
 		for (String subQueryID : query.getSubQueries().keySet()) {
 			subQueryCommands.put(subQueryID, createQuery(sciDB, query.getSubQuery(subQueryID)));
 		}
-		
+
 		// Parse all join clauses
 		logger.debug( "createQuery() Parse all join clauses");
 		List<JoinClause> joinClauses = query.getClausesOfType(JoinClause.class);
@@ -381,7 +382,7 @@ public class SciDBAFLResourceImplementation implements
 
 	private SciDBCommand addWhereOperation(SciDB sciDB,
 			SciDBCommand whereOperation, Map<String, SciDBCommand> subQueryCommands, WhereClause whereClause) {
-		
+
 		logger.debug( "addWhereOperation() Starting...");
 
 		String predicateName = whereClause.getPredicateType().getName();
@@ -391,7 +392,7 @@ public class SciDBAFLResourceImplementation implements
 			for(Field field: fields) {
 				logger.debug( "addWhereOperation() field:"+ field.getName()+" path:"+field.getPath());
 			}
-			whereOperation = new SciDBArray("scidblist");			
+			whereOperation = new SciDBArray("scidblist");
 			break;
 		default:
 			throw new RuntimeException("Unsupported PREDICATE operation.");
@@ -465,12 +466,12 @@ public class SciDBAFLResourceImplementation implements
 				joinOperation = sciDB.crossJoin(new SciDBArray(components[2]),
 						rightCommand, components[2] + "." + components[3],
 						rightDimension);
-				
+
 			} else if(joinClause.getObjectValues().containsKey("DIMENSIONS")) {
 				String[] dimensions = (String[]) joinClause.getObjectValues().get("DIMENSIONS");
 				String[] components = joinClause.getField().getPui().split("/");
 				SciDBCommand rightCommand = createQuery(sciDB, right);
-				
+
 				SciDBCommand leftCommand;
 				if(subQueryCommands.containsKey(components[2])) {
 					leftCommand = subQueryCommands.get(components[2]);
@@ -478,22 +479,22 @@ public class SciDBAFLResourceImplementation implements
 					leftCommand = new SciDBArray(components[2]);
 				}
 				joinOperation = sciDB.crossJoin(leftCommand, leftAlias, rightCommand, rightAlias, dimensions);
-				
+
 			}
 		}
 		return joinOperation;
 	}
-	
+
 	private SciDBCommand addSortOperation(SciDB sciDB,
 			SciDBCommand sortOperation,
 			Map<String, SciDBCommand> subQueryCommands, SortClause sortClause) {
 		String sortName = sortClause.getOperationType().getName();
-		
+
 		switch (sortName) {
 		case "SORT":
 			String field = null;
 			String[] components = sortClause.getParameter().getPui().split("/");
-			
+
 			if(components.length == 3) {
 				field = components[2];
 			} else if (components.length == 4) {
@@ -504,9 +505,9 @@ public class SciDBAFLResourceImplementation implements
 				}
 				field = components[3];
 			}
-			
+
 			String direction = sortClause.getStringValues().get("DIRECTION");
-			
+
 			if(field == null && direction == null) {
 				sortOperation = sciDB.sort(sortOperation);
 			} else if (field != null && direction == null) {
@@ -521,7 +522,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * QueryResourceImplementationInterface
 	 * #getResults(edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession,
@@ -531,20 +532,20 @@ public class SciDBAFLResourceImplementation implements
 	public Result getResults(SecureSession session, Result result)
 			throws ResourceInterfaceException {
 		logger.debug( "getResults() Starting ...");
-		
+
 		if (result.getResultStatus() == ResultStatus.COMPLETE
 				|| result.getResultStatus() == ResultStatus.ERROR) {
 			logger.debug( "getResults() `ResultStatus` is COMPLETE or ERROR, so returning immediately.");
 			return result;
 		}
-		
+
 		logger.debug( "getResults() `ResultStatus` is :"+result.getResultStatus());
-		
+
 		HttpClient client = createClient(session);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		logger.debug( "getResults() connecting to "+this.resourceURL);
-		
+
 		try {
 			BufferedReader in = new BufferedReader(
 					new InputStreamReader(sciDB.readLines(result
@@ -554,7 +555,7 @@ public class SciDBAFLResourceImplementation implements
 			boolean firstLine = true;
 			FileResultSet rs = (FileResultSet) result.getData();
 			logger.debug( "getResults() reading output from SciDB query response");
-			
+
 			while ((line = in.readLine()) != null) {
 				if (firstLine) {
 					rs = createColumns(result, line);
@@ -578,11 +579,11 @@ public class SciDBAFLResourceImplementation implements
 				}
 			}
 			logger.debug( "getResults() setting data for resultId:"+result.getId());
-			
+
 			logger.debug( "getResults() `FileResultSet` size:"+rs.getSize());
 			logger.debug( "getResults() `FileResultSet` closed?:"+rs.isClosed());
 			logger.debug( "getResults() `FileResultSet` persisted?:"+rs.isPersisted());
-			
+
 			result.setData(rs);
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (NotConnectedException | IOException | ResultSetException | PersistableException e) {
@@ -600,7 +601,7 @@ public class SciDBAFLResourceImplementation implements
 	private FileResultSet createColumns(Result result, String headerLine)
 			throws ResultSetException {
 		logger.debug( "createColumns() Starting...");
-		
+
 		FileResultSet rs = (FileResultSet) result.getData();
 
 		headerLine = headerLine.replaceAll("\\{", "").replaceAll("\\} ", ",");
@@ -617,7 +618,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * ProcessResourceImplementationInterface
 	 * #runProcess(edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession,
@@ -628,19 +629,19 @@ public class SciDBAFLResourceImplementation implements
 	public Result runProcess(SecureSession session, IRCTProcess process,
 			Result result) throws ResourceInterfaceException {
 		logger.debug( "runProcess() Starting...");
-		
+
 		HttpClient client = createClient(session);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		sciDB.close();
-		
+
 		logger.debug( "runProcess() Finished.");
 		return result;
 	}
 
 	private SciDBCommand createSciDBFilterOperation(WhereClause whereClause) {
 		logger.debug( "createSciDBFilterOperation() Starting...");
-		
+
 		String value = whereClause.getStringValues().get("VALUE");
 
 		if (!isNumeric(value)) {
@@ -684,42 +685,35 @@ public class SciDBAFLResourceImplementation implements
 
 	/**
 	 * CREATES A CLIENT
-	 * 
+	 *
 	 * @param token
 	 * @return
 	 */
 	protected HttpClient createClient(SecureSession session) {
 		logger.debug( "createClient() Starting...");
-		
-		// SSL WRAPAROUND
-		HttpClientBuilder returns = null;
 
-		if (ignoreCertificate) {
+		// SSL WRAPAROUND
+		HttpClientBuilder returns = HttpClientBuilder.create();
+
+		if (1==1) {
+			logger.debug( "createClient() Ignoring certificate errors.");
 			try {
 				// CLIENT CONNECTION
 				returns = ignoreCertificate();
 			} catch (NoSuchAlgorithmException | KeyManagementException e) {
+				logger.error( "createClient() Failed to ignore certificate errors:"+e.getMessage());
 				e.printStackTrace();
 			}
-		} else {
-			returns = HttpClientBuilder.create();
 		}
+		//else {
+		//	returns = HttpClientBuilder.create();
+		//}
 
 		List<Header> defaultHeaders = new ArrayList<Header>();
-
-/*		String token = session.getToken().toString();
-		if (this.clientId != null) {
-			token = SecurityUtility.delegateToken(this.namespace,
-					this.clientId, session);
-		}
-
-		if (session != null) {
-			defaultHeaders.add(new BasicHeader("Authorization", token));
-		}
-		*/
-		
+		logger.error( "createClient() Set default header Content-type.");
 		defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
+
 		logger.debug( "createClient() Finished. Returning HttpClientBuilder instance.");
 		return returns.build();
 	}
@@ -727,7 +721,7 @@ public class SciDBAFLResourceImplementation implements
 	private HttpClientBuilder ignoreCertificate()
 			throws NoSuchAlgorithmException, KeyManagementException {
 		logger.debug( "ignoreCertificate() Starting...");
-		
+
 		System.setProperty("jsse.enableSNIExtension", "false");
 
 		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
@@ -762,7 +756,7 @@ public class SciDBAFLResourceImplementation implements
 
 		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
 				r);
-		
+
 		logger.debug( "ignoreCertificate() Finished.");
 		return HttpClients.custom().setConnectionManager(cm);
 	}
@@ -777,7 +771,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * ResourceImplementationInterface#getType()
 	 */
@@ -788,7 +782,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * QueryResourceImplementationInterface#getState()
 	 */
@@ -799,7 +793,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * QueryResourceImplementationInterface
 	 * #getQueryDataType(edu.harvard.hms.dbmi.bd2k.irct.model.query.Query)
@@ -811,7 +805,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * ProcessResourceImplementationInterface
 	 * #getProcessDataType(edu.harvard.hms.
@@ -824,7 +818,7 @@ public class SciDBAFLResourceImplementation implements
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.
 	 * PathResourceImplementationInterface
 	 * #find(edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity,

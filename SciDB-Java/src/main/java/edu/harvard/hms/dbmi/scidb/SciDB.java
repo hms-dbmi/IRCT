@@ -36,6 +36,23 @@ public class SciDB {
 	
 	private Logger logger = Logger.getLogger(this.getClass());
 	
+	private String username;
+	private String password;
+	
+	public SciDB(String username, String password) {
+		logger.debug("SciDB() Secure mode is turned");
+		
+		this.username = username;
+		this.password = password;
+	}
+	
+	public SciDB() {
+		logger.debug("SciDB() UnSecure mode is turned");
+		
+		this.username = "test";
+		this.password = "test";
+	}
+	
 
 	/**
 	 * Connect to a local SciDB instance running on port 8080. This command is
@@ -2140,20 +2157,27 @@ public class SciDB {
 		this.url = url;
 		
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			
 			URI uri = uriBuilder.build();
-			System.out.println(uri.toASCIIString());
+			logger.debug("connect() URI:"+uri.toString());
 			
 			HttpResponse response = client.execute(new HttpGet(uri));
 			
 			this.sessionId = inputStreamToString(response.getEntity()
 					.getContent());
 			this.connected = true;
+			logger.trace("connect() return true");
 			return true;
 		} catch (IOException | URISyntaxException e) {
+			logger.error("connect() OtherException:"+e.getMessage());
 			e.printStackTrace();
+		} catch (Exception e) {
+			logger.error("connect() OtherException:"+e.getMessage());
 		}
+		logger.trace("connect() return false");
 		return false;
 	}
 	
@@ -2161,17 +2185,17 @@ public class SciDB {
 		if (!this.connected) {
 			throw new NotConnectedException();
 		}
-		
-
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/version");
-			
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/version")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			URI uri = uriBuilder.build();
-			System.out.println(uri.toASCIIString());
+			logger.debug("version() uri:"+uri.toASCIIString());
 			HttpGet runQuery = new HttpGet(uri);
 			HttpResponse response = client.execute(runQuery);
 			return inputStreamToString(response.getEntity().getContent());
 		} catch (IOException | URISyntaxException e) {
+			logger.error("version() Exception:"+e.getMessage());
 			e.printStackTrace();
 		}
 
@@ -2184,10 +2208,13 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			
 			URI uri = uriBuilder.build();
-			System.out.println(uri.toASCIIString());
+			logger.debug("newSession() uri:"+uri);
+			
 			HttpGet runQuery = new HttpGet(uri);
 			HttpResponse response = client.execute(runQuery);
 			return inputStreamToString(response.getEntity().getContent());
@@ -2207,8 +2234,8 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/release_session");
-			uriBuilder.addParameter("id", sessionId);
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/release_session")
+					.addParameter("id", sessionId);
 			URI uri = uriBuilder.build();
 			System.out.println(uri.toASCIIString());
 			HttpGet runQuery = new HttpGet(uri);
@@ -2233,9 +2260,11 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query");
-			uriBuilder.addParameter("id", this.sessionId);
-			uriBuilder.addParameter("query", operation.toAFLQueryString());
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password)
+					.addParameter("id", this.sessionId)
+					.addParameter("query", operation.toAFLQueryString());
 			if (save != null) {
 				uriBuilder.addParameter("save", save);
 			}
@@ -2262,10 +2291,13 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query");
-			uriBuilder.addParameter("id", this.sessionId);
-			uriBuilder.addParameter("query", aflqueryString);
-			uriBuilder.addParameter("save", "dcsv");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password)
+					.addParameter("id", this.sessionId)
+					.addParameter("query", aflqueryString)
+					.addParameter("save", "dcsv");
+			
 			URI uri = uriBuilder.build();
 			logger.debug("executeAflQuery() URI:"+uri.toASCIIString());
 			
@@ -2293,16 +2325,22 @@ public class SciDB {
 
 		try {
 			URIBuilder uriBuilder = new URIBuilder(this.url + "/read_lines")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password)
 					.addParameter("id", sessionID);
 			
 			URI uri = uriBuilder.build();
-			System.out.println(uri.toASCIIString());
+			logger.debug("readLines() uri:"+uri);
 			
 			HttpGet runQuery = new HttpGet(uri);
 			HttpResponse response = client.execute(runQuery);
+			
 			return response.getEntity().getContent();
 		} catch (IOException | URISyntaxException e) {
+			logger.error("readLines() OtherException:"+e.getMessage());
 			e.printStackTrace();
+		} catch (Exception e) {
+			logger.error("readLines() Exception:"+e.getMessage());
 		}
 
 		return null;

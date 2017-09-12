@@ -13,8 +13,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -34,6 +32,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -64,12 +63,13 @@ public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String transmartURL;
 
-	final static Logger logger = Logger.getGlobal();
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
 
-		logger.log(java.util.logging.Level.INFO, "setup() start");
+		logger.debug("setup() start");
 
 		if (!parameters.keySet().contains("resourceName")) {
 			throw new ResourceInterfaceException("Missing ```resourceName``` parameter.");
@@ -83,10 +83,10 @@ public class I2B2TranSMARTResourceImplementation extends
 		if (!parameters.keySet().contains("domain")) {
 			throw new ResourceInterfaceException("Missing ```domain``` parameter.");
 		}
-		logger.log(Level.FINE, "setup() All mandatory parameters are there.");
+		logger.debug("setup() All mandatory parameters are there.");
 
 		this.transmartURL = parameters.get("transmartURL");
-		logger.log(Level.FINE, "setup() ```transmartURL``` is now set to:"+this.transmartURL);
+		logger.debug("setup() ```transmartURL``` is now set to:"+this.transmartURL);
 
 		super.setup(parameters);
 	}
@@ -98,7 +98,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		List<Entity> returns = super.getPathRelationship(path, relationship,
 				session);
 
-		java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ");
+		logger.debug("getPathRelationship() Starting...");
 		// Get the counts from the tranSMART server
 		try {
 			HttpClient client = createClient(session);
@@ -114,33 +114,31 @@ public class I2B2TranSMARTResourceImplementation extends
 				basePath = pathComponents[0] + "/" + pathComponents[1] + "/"
 						+ pathComponents[2];
 
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() URL:"+this.transmartURL
-				+ "/chart/childConceptPatientCounts");
-				HttpPost post = new HttpPost(this.transmartURL
-						+ "/chart/childConceptPatientCounts");
+				
+				HttpPost post = new HttpPost(this.transmartURL + "/chart/childConceptPatientCounts");
 				List<NameValuePair> formParameters = new ArrayList<NameValuePair>();
-				formParameters.add(new BasicNameValuePair("charttype",
-						"childconceptpatientcounts"));
-				formParameters.add(new BasicNameValuePair("concept_key", myPath
-						+ "\\"));
+				formParameters.add(new BasicNameValuePair("charttype","childconceptpatientcounts"));
+				formParameters.add(new BasicNameValuePair("concept_key", myPath + "\\"));
 				formParameters.add(new BasicNameValuePair("concept_level", ""));
-
 				post.setEntity(new UrlEncodedFormEntity(formParameters));
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() making call over HTTP");
+				logger.debug("getPathRelationship() POST method to "+post.getURI().toString());
+				
 				HttpResponse response = client.execute(post);
 
 				JsonReader jsonReader = Json.createReader(response.getEntity()
 						.getContent());
 				JsonObject responseContent = jsonReader.readObject();
-
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ResponseEntity:"
-						+responseContent.toString());
+				logger.debug("getPathRelationship() ResponseEntity:" +responseContent.toString());
 
 				JsonObject counts = responseContent.getJsonObject("counts");
+				logger.debug("getPathRelationship() got `counts` object.");
 
+				logger.debug("getPathRelationship() now iterate through "+returns.size()+" entities in `returns`");
+				// TO-DO: I don't understand WHY this is here?!!!!
 				for (Entity singleReturn : returns) {
 					String singleReturnMyPath = convertPUItoI2B2Path(singleReturn
 							.getPui());
+					logger.trace("getPathRelationship() `singleReturnMyPath` is set to '"+singleReturnMyPath+"'");
 
 					if (counts.containsKey(singleReturnMyPath)) {
 						singleReturn.getCounts().put("count",
@@ -149,70 +147,105 @@ public class I2B2TranSMARTResourceImplementation extends
 				}
 			}
 		} catch (Exception e) {
-			java.util.logging.Logger.getGlobal().log(java.util.logging.Level.SEVERE, "getPathRelationship() Exception "+e.getMessage());
-			e.printStackTrace();
+			logger.error("getPathRelationship() Exception "+e.getMessage());
 		}
-
+		logger.debug("getPathRelationship() Finished. Returning `List<Entity>`");
 		return returns;
 	}
 
 	@Override
 	public Result runQuery(SecureSession session, Query query, Result result)
 			throws ResourceInterfaceException {
+		logger.debug("runQuery() Starting ...");
+		
+		logger.debug("runQuery() super.runQuery()");
 		result = super.runQuery(session, query, result);
+		logger.debug("runQuery() completed super.runQuery()");
 
 		if (result.getResultStatus() != ResultStatus.ERROR) {
+			logger.debug("runQuery() result is in ERROR status.");
+			
 			String resultInstanceId = result.getResourceActionId();
+			logger.debug("runQuery() `resultInstanceId` is "+resultInstanceId);
+			
 			String resultId = resultInstanceId.split("\\|")[2];
+			logger.debug("runQuery() `resultId` is "+resultId+" from "+resultInstanceId);
+			
 			try {
 				// Wait for it to be either ready or fail
+				logger.trace("runQuery() calling checkForResult()");
 				result = checkForResult(session, result);
+				
 				while ((result.getResultStatus() != ResultStatus.ERROR)
 						&& (result.getResultStatus() != ResultStatus.COMPLETE)) {
+					logger.trace("runQuery() Sleeping for 3000 millisec");
 					Thread.sleep(3000);
+					logger.trace("runQuery() calling checkForResult() again");
 					result = checkForResult(session, result);
 				}
 				if (result.getResultStatus() == ResultStatus.ERROR) {
+					logger.trace("runQuery() returning `result` with 'ERROR' status. Missing message?");
 					return result;
 				}
+				// TO-DO: How can we be in RUNNING status? The loop above ends only if 
+				//        it is in ERROR or COMPLETE? Why are we resetting the status 
+				//        here to RUNNING?
+				logger.debug("runQuery() setting result to RUNNING status (but why?)");
 				result.setResultStatus(ResultStatus.RUNNING);
 
 				// Gather Select Clauses
+				logger.debug("runQuery() gathering SELECT clauses");
 				Map<String, String> aliasMap = new HashMap<String, String>();
 
 				for (SelectClause selectClause : query
 						.getClausesOfType(SelectClause.class)) {
+					
+					logger.trace("runQuery() `selectClause` got one");
+					
 					String pui = selectClause.getParameter().getPui()
 							.replaceAll("/" + this.resourceName + "/", "");
+					logger.trace("runQuery() `pui` is now "+pui);
 
 					String rawPUI = selectClause.getParameter().getPui();
 					if (rawPUI.endsWith("*")) {
+						logger.trace("runQuery() `rawPUI` ends with '*'");
+						
 						//Get the base PUI
 						String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
+						logger.trace("runQuery() `basePUI` is now '"+basePUI+"'");
 						boolean compact = false;
 						String subPUI = null;
 
 						if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
+							logger.trace("runQuery() this is a 'compact' field");
 							compact = true;
 						}
 						if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
+							logger.trace("runQuery() 'REMOVEPREPEND' has been specified on this field.");
+							
 							subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
+							logger.trace("runQuery() set `subPUI` to '"+subPUI+"' value");
 						}
 
 						//Loop through all the children and add them to the aliasMap
+						logger.trace("runQuery() adding this whole mess to `aliasMap`");
 						aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, session));
 
 					} else {
+						logger.trace("runQuery() get pui from converting it from i2b2Path");
 						pui = convertPUItoI2B2Path(selectClause.getParameter()
 								.getPui());
+						logger.trace("runQuery() now `pui` is '"+pui+"' and adding it to aliasMap");
 						aliasMap.put(pui.replaceAll("%2[f,F]", "/") + "\\",
 								selectClause.getAlias());
 					}
 				}
 
 				// Run Additional Queries and Create Result Set
-				result = runClinicalDataQuery(session, result, aliasMap,
-						resultId);
+				logger.debug("runQuery() additional queries, calling runClinicalDataQuery()");
+				result = runClinicalDataQuery(session, result, aliasMap, resultId);
+				
+				logger.debug("runQuery() set `result` status to 'COMPLETE'");
 				result.setResultStatus(ResultStatus.COMPLETE);
 
 				// Set the status to complete
@@ -220,23 +253,35 @@ public class I2B2TranSMARTResourceImplementation extends
 					| IOException | ResultSetException | PersistableException | JsonException e) {
 				result.setResultStatus(ResultStatus.ERROR);
 				result.setMessage(e.getMessage());
+			} catch (Exception e) {
+				logger.error("runQuery() OtherException:"+e.getMessage());
+				result.setResultStatus(ResultStatus.ERROR);
+				result.setMessage(e.getMessage());
 			}
+		} else {
+			logger.debug("runQuery() result is already in ERROR status!");
 		}
+		logger.debug("runQuery() Finished. Returning `result`");
 		return result;
 	}
 
 	private Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, SecureSession session) throws ResourceInterfaceException {
+		logger.debug("getAllChildrenAsAliasMap() Starting ...");
 		Map<String, String> returns = new HashMap<String, String>();
 
 		Entity baseEntity = new Entity(basePUI);
 		for(Entity entity : super.getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, session)) {
+			logger.trace("getAllChildrenAsAliasMap() get `entity` children of "+baseEntity.getName());
 
 			if(entity.getAttributes().containsKey("visualattributes")) {
+				logger.trace("getAllChildrenAsAliasMap() check the visualattribuets");
 				String visualAttributes = entity.getAttributes().get("visualattributes");
 
 				if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
+					logger.trace("getAllChildrenAsAliasMap() visualattributes call for going into this node");
 					returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, session));
 				} else if (visualAttributes.startsWith("L")) {
+					logger.trace("getAllChildrenAsAliasMap() `visualAttributes` is L. call convertPUItoI2B2Path()");
 					String pui = convertPUItoI2B2Path(entity.getPui()).replaceAll("%2[f,F]", "/")  + "\\";
 					String alias =  pui;
 					if(compact) {
@@ -248,13 +293,14 @@ public class I2B2TranSMARTResourceImplementation extends
 					if(alias.endsWith("/")) {
 						alias = alias.substring(0, alias.length() - 1);
 					}
+					logger.trace("getAllChildrenAsAliasMap() after convertsion, '"+pui+"' is mapped to '"+alias+"'");
 					returns.put(pui, alias);
 				}
-
+			} else {
+				logger.trace("getAllChildrenAsAliasMap() there are no visualattributes for `entity`:"+entity.getName());
 			}
 		}
-
-
+		logger.debug("getAllChildrenAsAliasMap() Finished. Returning `Map<String,String>`");
 		return returns;
 	}
 
@@ -262,16 +308,21 @@ public class I2B2TranSMARTResourceImplementation extends
 			Map<String, String> aliasMap, String resultId)
 			throws ResultSetException, ClientProtocolException, IOException,
 			PersistableException, JsonException {
+		logger.debug("runClinicalDataQuery() Starting ...");
+		
 		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
+			logger.debug("runClinicalDataQuery() calling createInitialDataset()");
 			rs = createInitialDataset(result, aliasMap);
 		}
 
 		// Get additional fields to grab from alias
 		List<String> additionalFields = new ArrayList<String>();
 		for (String key : aliasMap.keySet()) {
+			logger.debug("runClinicalDataQuery() aliasMap.key:"+key);
 			if (!key.startsWith("\\")) {
+				logger.debug("runClinicalDataQuery() add it to additionalFields");
 				additionalFields.add(key);
 			}
 		}
@@ -283,6 +334,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		// Loop through the columns submitting and appending to the
 		// rows every 10
+		// WTF is this??????? (question by Gabe)
 
 
 		List<String> parameterList = new ArrayList<String>();
@@ -301,11 +353,14 @@ public class I2B2TranSMARTResourceImplementation extends
 			counter++;
 		}
 		if (!parameters.equals("")) {
+			logger.debug("runClinicalDataQuery() adding `parameters` as ["+parameters+"] to `parameterList`");
 			parameterList.add(parameters);
 		}
 
 		for (String parameter : parameterList) {
 			// Call the tranSMART API to get the dataset
+			logger.debug("runClinicalDataQuery() calling transmart API....");
+			
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
 					+ resultId
@@ -315,17 +370,23 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(url);
-			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
+			logger.info("runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
+			logger.trace("runClinicalDataQuery() creating JsonParser from Entity");
 			JsonParser parser = Json.createParser(response.getEntity()
 					.getContent());
-
+			
+			logger.debug("runClinicalDataQuery() calling convertJsonStreamToResultSet()");
 			convertJsonStreamToResultSet(rs, parser, aliasMap, pivot, entryMap,
 					additionalFields);
+			logger.debug("runClinicalDataQuery() `ResultSet` is created from `JsonStream`");
 
 		}
+		logger.debug("runClinicalDataQuery() Setting data of `result` object.");
 		result.setData(rs);
+		
+		logger.debug("runClinicalDataQuery() Finished. Returning `result`");
 		return result;
 	}
 
@@ -333,49 +394,66 @@ public class I2B2TranSMARTResourceImplementation extends
 			JsonParser parser, Map<String, String> aliasMap, String pivot,
 			Map<String, Long> entryMap, List<String> additionalFields)
 			throws ResultSetException, PersistableException, JsonException {
+		
+		logger.debug("convertJsonStreamToResultSet() Starting...");
 
 		while (parser.hasNext()) {
 			JsonObject obj = convertStreamToObject(parser);
 
 			if (!obj.containsKey(pivot)) {
+				logger.debug("convertJsonStreamToResultSet() already has `pivot`:"+pivot);
 				break;
 			}
 			String id = obj.getString(pivot);
-
+			logger.debug("convertJsonStreamToResultSet() set `id` to "+id);
+			
 			if (entryMap.containsKey(id)) {
+				logger.debug("convertJsonStreamToResultSet() "+id+" is already in `entryMap`");
+				
 				// Is already in the resultset
 				rs.absolute(entryMap.get(id));
 				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")),
 						obj.getString("VALUE"));
 
 			} else {
+				logger.debug("convertJsonStreamToResultSet() "+id+" is not in the resultset.");
 				// Is not in the resultset
 				rs.appendRow();
+				logger.debug("convertJsonStreamToResultSet() add a new row");
+				
+				logger.trace("convertJsonStreamToResultSet() calling updateString("+pivot+","+id+")");
 				rs.updateString(pivot, id);
+				
 				// Add concept value
+				logger.trace("convertJsonStreamToResultSet() calling updateString() for CONCEPT_PATH/VALUE");
 				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")),
 						obj.getString("VALUE"));
 
 				// Add fields
+				logger.trace("convertJsonStreamToResultSet() adding `additionalFields` from `aliasMap`");
 				for (String field : additionalFields) {
 					if (obj.containsKey(field)) {
 						rs.updateString(aliasMap.get(field),
 								obj.getString(field));
 					}
 				}
+				logger.trace("convertJsonStreamToResultSet() adding `id`:"+id+" to `entryMap`");
 				entryMap.put(id, rs.getRow());
 			}
 
 		}
-
+		logger.trace("convertJsonStreamToResultSet() Finished. Returning result");
 		return rs;
 	}
 
 	private ResultSet createInitialDataset(Result result,
 			Map<String, String> aliasMap) throws ResultSetException {
+		logger.debug("createInitialDataset() Starting"); 
+		
 		ResultSet rs = (ResultSet) result.getData();
 
 		// Set up the columns
+		logger.debug("createInitialDataset() creating PATIENT_NUM column");
 		Column idColumn = new Column();
 		idColumn.setName("PATIENT_NUM");
 		idColumn.setDataType(PrimitiveDataType.STRING);
@@ -389,15 +467,18 @@ public class I2B2TranSMARTResourceImplementation extends
 				newColumn.setName(aliasMap.get(aliasKey));
 			}
 			newColumn.setDataType(PrimitiveDataType.STRING);
-
+			logger.debug("createInitialDataset() adding new column:"+newColumn.getName());
 			rs.appendColumn(newColumn);
 		}
-
+		logger.debug("createInitialDataset() calling setData()"); 
 		result.setData(rs);
+		logger.debug("createInitialDataset() Finished"); 
 		return rs;
 	}
 
 	private JsonObject convertStreamToObject(JsonParser parser) {
+		logger.debug("convertStreamToObject() Starting..."); 
+		
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		String key = null;
 		boolean endObj = false;
@@ -428,9 +509,10 @@ public class I2B2TranSMARTResourceImplementation extends
 				endObj = true;
 				break;
 			default:
+				logger.warn("convertStreamToObject() unknown `event` type:"+event.toString());
 			}
 		}
-
+		logger.debug("convertStreamToObject() Finished. Returning `JsonObject`"); 
 		return build.build();
 	}
 
@@ -482,7 +564,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	public List<Entity> searchObservationOnly(String searchTerm,
 			String strategy, SecureSession session, String onlObs) {
 		List<Entity> entities = new ArrayList<Entity>();
-
+		logger.debug("searchObservationOnly() Starting...");
 		try {
 			URI uri = new URI(this.transmartURL.split("://")[0],
 					this.transmartURL.split("://")[1].split("/")[0], "/"
@@ -492,6 +574,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			HttpClient client = createClient(session);
 			HttpGet get = new HttpGet(uri);
+			logger.debug("searchObservationOnly() calling `uri`:"+uri.toString());
 			HttpResponse response = client.execute(get);
 			JsonReader reader = Json.createReader(response.getEntity()
 					.getContent());
@@ -515,9 +598,9 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 
 		} catch (URISyntaxException | JsonException | IOException e) {
-			logger.log(Level.SEVERE, "searchObservationOnly() Exception: "+e.getMessage());
+			logger.error("searchObservationOnly() Exception: "+e.getMessage());
 		}
-
+		logger.debug("searchObservationOnly() Finished. Returning `entities`");
 		return entities;
 	}
 
