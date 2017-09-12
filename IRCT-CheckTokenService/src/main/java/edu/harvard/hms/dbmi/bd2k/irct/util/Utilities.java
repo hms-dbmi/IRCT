@@ -2,7 +2,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 

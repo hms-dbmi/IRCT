@@ -178,7 +178,7 @@ public class Utilities {
 	public static String getEmailFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
 		
 		String token = extractToken(req);
-		String userId;
+		String email;
 		HttpClient httpclient = HttpClientBuilder.create()
 				  .build();
 		
@@ -197,13 +197,13 @@ public class Utilities {
 			}
 			InputStream responseContent = response.getEntity().getContent();
 			ObjectMapper mapper = new ObjectMapper();
-			userId =  (String) mapper.readValue(responseContent, Map.class).get("email");
+			email =  (String) mapper.readValue(responseContent, Map.class).get("email");
 		
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new NotAuthorizedException(Response.status(401)
 					.entity("Could not validate the JWT token passed in."));
 		}
-		return userId;
+		return email;
 	}
 }
