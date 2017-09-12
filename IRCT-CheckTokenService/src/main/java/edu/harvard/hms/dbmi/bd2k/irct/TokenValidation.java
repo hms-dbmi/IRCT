@@ -2,30 +2,34 @@ package edu.harvard.hms.dbmi.bd2k.irct;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
+import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
 
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 
 @Path("/token")
-public class TokenValidation {
+@RequestScoped
+public class TokenValidation  {
+	
+	@Inject
+	private Utilities utilities;
 	
 	@POST
 	@Consumes("application/json")
 	@Produces("application/json")
 	public boolean validateToken(String token) throws IllegalArgumentException, UnsupportedEncodingException{
 		System.out.println("validateToken() - start");
-		Utilities.extractEmailFromJWT(token, null);
+		utilities.extractEmailFromJWT(token, null);
 		System.out.println("validateToken() - token: " + token);
 		return false;
 	}
@@ -33,14 +37,13 @@ public class TokenValidation {
 	@POST
 	@Path("/validate")
 	@Consumes("application/json")
-	@Produces("application/json")
 	public Response getUserIdFromToken(Token token) throws IOException{
 		
 		String userId = null;
 		 
 		try {
 			
-			userId = Utilities.extractUserIdFromJWT(token.getToken(), null);
+			userId = utilities.extractEmailFromJWT(token.getToken(), null);
 		
 		} catch (NotAuthorizedException ex) {
 			String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+ex.getMessage()+"\"}";

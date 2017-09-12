@@ -6,6 +6,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -71,7 +72,7 @@ public class Resource implements Serializable {
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@Convert(converter = OntologyRelationshipConverter.class)
-	private List<OntologyRelationship> relationships;
+	private Set<OntologyRelationship> relationships;
 
 	@ElementCollection(targetClass = LogicalOperator.class)
 	@CollectionTable(name = "Resource_LogicalOperator", joinColumns = @JoinColumn(name = "id"))
@@ -487,7 +488,7 @@ public class Resource implements Serializable {
 	 * 
 	 * @return the relationships
 	 */
-	public List<OntologyRelationship> getRelationships() {
+	public Set<OntologyRelationship> getRelationships() {
 		return relationships;
 	}
 
@@ -497,7 +498,7 @@ public class Resource implements Serializable {
 	 * @param relationships
 	 *            the relationships to set
 	 */
-	public void setRelationships(List<OntologyRelationship> relationships) {
+	public void setRelationships(Set<OntologyRelationship> relationships) {
 		this.relationships = relationships;
 	}
 
