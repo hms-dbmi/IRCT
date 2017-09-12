@@ -176,7 +176,7 @@ public class Utilities {
 	 * @return email (user ID)
 	 */
 	public static String getEmailFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
-		
+		logger.debug("getEmailFromRemoteService() Starting");
 		String token = extractToken(req);
 		String email;
 		HttpClient httpclient = HttpClientBuilder.create()
@@ -204,6 +204,7 @@ public class Utilities {
 			throw new NotAuthorizedException(Response.status(401)
 					.entity("Could not validate the JWT token passed in."));
 		}
+		logger.debug("getEmailFromRemoteService() Finished. Returns userID: " + email);
 		return email;
 	}
 }
