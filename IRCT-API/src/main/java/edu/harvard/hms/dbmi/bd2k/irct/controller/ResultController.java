@@ -6,8 +6,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -17,6 +15,8 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
@@ -45,9 +45,8 @@ public class ResultController {
 
 	@Inject
 	private IRCTApplication irctApp;
-	
-	@Inject
-	private Logger logger;
+
+	private Logger logger = Logger.getLogger(this.getClass());
 	
 	@Inject
 	private IRCTEventListener irctEventListener;
@@ -139,7 +138,7 @@ public class ResultController {
 	public ResultDataStream getResultDataStream(User user, Long resultId,
 			String format) {
 		
-		logger.log(Level.FINE, "getResultDataStream() user:"+user.getName()+" resultId:"+resultId+" format:"+(format==null?"NULL":format));
+		logger.debug("getResultDataStream() user:"+user.getName()+" resultId:"+resultId+" format:"+(format==null?"NULL":format));
 		ResultDataStream rds = new ResultDataStream();
 		List<Result> results = getResults(user, resultId);
 
@@ -147,11 +146,11 @@ public class ResultController {
 			rds.setMessage("Unable to find result");
 			return rds;
 		} else {
-			logger.log(Level.FINE, "getResultDataStream() there are ```"+results.size()+"``` results found.");
+			logger.debug("getResultDataStream() there are ```"+results.size()+"``` results found.");
 		}
 		Result result = results.get(0);
 		
-		logger.log(Level.FINE, "getResultDataStream() The first result status is "+result.getResultStatus().name());
+		logger.debug("getResultDataStream() The first result status is "+result.getResultStatus().name());
 		if(result.getResultStatus() != ResultStatus.AVAILABLE) {
 			rds.setMessage("Result is not available");
 			return rds;
@@ -160,16 +159,20 @@ public class ResultController {
 		ResultDataConverter rdc = irctApp.getResultDataConverter(
 				result.getDataType(), format);
 		
-		logger.log(Level.FINE, "getResultDataStream() ResultDataConverter has been retrieved");
+		logger.debug("getResultDataStream() ResultDataConverter has been retrieved");
 		if (rdc == null) {
 			rds.setMessage("Unable to find format");
 			return rds;
 		}
 
+		logger.debug("getResultDataStream() setting mediaType:"+rdc.getMediaType());
 		rds.setMediaType(rdc.getMediaType());
+		logger.debug("getResultDataStream() calling setResult()");
 		rds.setResult(rdc.createStream(result));
+		logger.debug("getResultDataStream() setting fileExtension:"+rdc.getFileExtension());
 		rds.setFileExtension(rdc.getFileExtension());
-
+		
+		logger.debug("getResultDataStream() Finished. Returning ResultDataStream");
 		return rds;
 	}
 
@@ -231,30 +234,42 @@ public class ResultController {
 	 */
 	public Result createResult(ResultDataType resultDataType)
 			throws PersistableException {
-		logger.log(Level.FINE, "createResult() "+resultDataType.toString());
+		logger.debug("createResult() `resultDataType` :"+resultDataType);
 		
 		Result result = new Result();
+		logger.debug("createResult() persist initial empty `result` in the database.");
 		entityManager.persist(result);
 		
+		logger.debug("createResult() setting `result` dataType");
 		result.setDataType(resultDataType);
+		logger.debug("createResult() setting `result` startTime");
 		result.setStartTime(new Date());
 		
 		if (resultDataType == ResultDataType.TABULAR) {
+			logger.debug("createResult() Setting `result.data` from FileResultSet");
+			
 			FileResultSet frs = new FileResultSet();
 			frs.persist(irctApp.getResultDataFolder()
 					+ "/" + result.getId());
 			result.setResultSetLocation(irctApp.getResultDataFolder()
 					+ "/" + result.getId());
+			logger.debug("createResult() calling setData() with `FileResultSet`");
 			result.setData(frs);
+			
 		} else if (resultDataType == ResultDataType.JSON) {
-			logger.log(Level.FINE, "createResult() JSON DataType is NOT persisted!!!");
+			logger.debug("createResult() JSON DataType is NOT persisted!!!");
 		} else {
+			logger.error("createResult() Unknown Result Data Type");
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage("Unknown Result Data Type");
+			logger.error("createResult() Returning ERROR `result`");
 			return result;
 		}
+		logger.debug("createResult() setting `result` status to CREATED");
 		result.setResultStatus(ResultStatus.CREATED);
+		logger.debug("createResult() saving `result` to database");
 		entityManager.merge(result);
+		logger.debug("createResult() Finished. Returning `result`");
 		return result;
 	}
 

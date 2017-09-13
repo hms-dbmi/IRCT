@@ -24,6 +24,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonParser;
 import javax.json.stream.JsonParser.Event;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
@@ -163,7 +164,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		logger.debug("runQuery() completed super.runQuery()");
 
 		if (result.getResultStatus() != ResultStatus.ERROR) {
-			logger.debug("runQuery() result is in ERROR status.");
+			logger.debug("runQuery() result is NOT in ERROR status.");
 			
 			String resultInstanceId = result.getResourceActionId();
 			logger.debug("runQuery() `resultInstanceId` is "+resultInstanceId);
@@ -251,12 +252,16 @@ public class I2B2TranSMARTResourceImplementation extends
 				// Set the status to complete
 			} catch (InterruptedException | UnsupportedOperationException
 					| IOException | ResultSetException | PersistableException | JsonException e) {
+				e.printStackTrace();
+				
+				logger.error("runQuery() OtherException:"+e.getMessage()+":"+e.toString());
+				
 				result.setResultStatus(ResultStatus.ERROR);
-				result.setMessage(e.getMessage());
+				result.setMessage("runQuery() OtherException:"+e.getMessage());
 			} catch (Exception e) {
-				logger.error("runQuery() OtherException:"+e.getMessage());
+				logger.error("runQuery() Exception:"+e.getMessage()+":"+e.toString());
 				result.setResultStatus(ResultStatus.ERROR);
-				result.setMessage(e.getMessage());
+				result.setMessage("runQuery() Exception:"+e.getMessage());
 			}
 		} else {
 			logger.debug("runQuery() result is already in ERROR status!");
@@ -326,6 +331,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				additionalFields.add(key);
 			}
 		}
+		
 
 		String pivot = "PATIENT_NUM";
 
@@ -372,10 +378,9 @@ public class I2B2TranSMARTResourceImplementation extends
 			HttpGet get = new HttpGet(url);
 			logger.info("runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
-
+			
 			logger.trace("runClinicalDataQuery() creating JsonParser from Entity");
-			JsonParser parser = Json.createParser(response.getEntity()
-					.getContent());
+			JsonParser parser = Json.createParser(response.getEntity().getContent());
 			
 			logger.debug("runClinicalDataQuery() calling convertJsonStreamToResultSet()");
 			convertJsonStreamToResultSet(rs, parser, aliasMap, pivot, entryMap,
@@ -396,7 +401,8 @@ public class I2B2TranSMARTResourceImplementation extends
 			throws ResultSetException, PersistableException, JsonException {
 		
 		logger.debug("convertJsonStreamToResultSet() Starting...");
-
+		logger.debug("convertJsonStreamToResultSet() entryMap:"+StringUtils.join( entryMap.keySet().toArray(), ","));
+		
 		while (parser.hasNext()) {
 			JsonObject obj = convertStreamToObject(parser);
 
@@ -405,22 +411,21 @@ public class I2B2TranSMARTResourceImplementation extends
 				break;
 			}
 			String id = obj.getString(pivot);
+
 			logger.debug("convertJsonStreamToResultSet() set `id` to "+id);
 			
 			if (entryMap.containsKey(id)) {
-				logger.debug("convertJsonStreamToResultSet() "+id+" is already in `entryMap`");
-				
-				// Is already in the resultset
+				logger.debug("convertJsonStreamToResultSet() "+id+" is in `entryMap`");
 				rs.absolute(entryMap.get(id));
 				rs.updateString(aliasMap.get(obj.getString("CONCEPT_PATH")),
 						obj.getString("VALUE"));
+				rs.updateString("IndividualId","GabeWasHere");
 
 			} else {
-				logger.debug("convertJsonStreamToResultSet() "+id+" is not in the resultset.");
-				// Is not in the resultset
-				rs.appendRow();
-				logger.debug("convertJsonStreamToResultSet() add a new row");
+				logger.debug("convertJsonStreamToResultSet() "+id+" is not in `entryMap`.");
 				
+				logger.debug("convertJsonStreamToResultSet() add a new row");
+				rs.appendRow();
 				logger.trace("convertJsonStreamToResultSet() calling updateString("+pivot+","+id+")");
 				rs.updateString(pivot, id);
 				
@@ -430,13 +435,20 @@ public class I2B2TranSMARTResourceImplementation extends
 						obj.getString("VALUE"));
 
 				// Add fields
-				logger.trace("convertJsonStreamToResultSet() adding `additionalFields` from `aliasMap`");
+				logger.trace("convertJsonStreamToResultSet() adding `additionalFields` from `aliasMap`"+StringUtils.join(additionalFields, ","));
 				for (String field : additionalFields) {
+					logger.trace("convertJsonStreamToResultSet() additional field:"+field);
 					if (obj.containsKey(field)) {
-						rs.updateString(aliasMap.get(field),
-								obj.getString(field));
+						if (field == "PATIENT_IDE") {
+							rs.updateString("PATIENT_IDE", obj.getString(field));
+						} else {
+							rs.updateString(aliasMap.get(field), obj.getString(field));
+						}
+					} else {
+						logger.trace("convertJsonStreamToResultSet() additional field:"+field+" not in key list.");
 					}
 				}
+				
 				logger.trace("convertJsonStreamToResultSet() adding `id`:"+id+" to `entryMap`");
 				entryMap.put(id, rs.getRow());
 			}
@@ -454,10 +466,10 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		// Set up the columns
 		logger.debug("createInitialDataset() creating PATIENT_NUM column");
-		Column idColumn = new Column();
-		idColumn.setName("PATIENT_NUM");
-		idColumn.setDataType(PrimitiveDataType.STRING);
-		rs.appendColumn(idColumn);
+		Column column = new Column();
+		column.setName("PATIENT_NUM");
+		column.setDataType(PrimitiveDataType.STRING);
+		rs.appendColumn(column);
 
 		for (String aliasKey : aliasMap.keySet()) {
 			Column newColumn = new Column();
@@ -470,6 +482,15 @@ public class I2B2TranSMARTResourceImplementation extends
 			logger.debug("createInitialDataset() adding new column:"+newColumn.getName());
 			rs.appendColumn(newColumn);
 		}
+		
+		// Adding mapped PATIENT_IDE
+		
+		Column newColumn2 = new Column();
+		newColumn2.setName("PATIENT_IDE");
+		newColumn2.setDataType(PrimitiveDataType.STRING);
+		rs.appendColumn(newColumn2);
+		logger.debug("createInitialDataset() adding new column:"+newColumn2.getName());
+		
 		logger.debug("createInitialDataset() calling setData()"); 
 		result.setData(rs);
 		logger.debug("createInitialDataset() Finished"); 
@@ -484,32 +505,42 @@ public class I2B2TranSMARTResourceImplementation extends
 		boolean endObj = false;
 		while (parser.hasNext() && !endObj) {
 			Event event = parser.next();
-
 			switch (event) {
 			case KEY_NAME:
 				key = parser.getString();
+				logger.trace("convertStreamToObject() key:"+key); 
+				
 				break;
 			case VALUE_STRING:
+				logger.trace("convertStreamToObject() value(STRING):"+parser.getString());
 				build.add(key, parser.getString());
+				logger.trace("convertStreamToObject() key is reset");
 				key = null;
 				break;
 			case VALUE_NUMBER:
+				logger.trace("convertStreamToObject() value(NUMBER):"+parser.getBigDecimal());
 				build.add(key, parser.getBigDecimal());
+				logger.trace("convertStreamToObject() key is reset");
 				key = null;
 				break;
 			case VALUE_TRUE:
+				logger.trace("convertStreamToObject() value(BOOLEAN):true");
 				build.add(key, true);
+				logger.trace("convertStreamToObject() key is reset");
 				key = null;
 				break;
 			case VALUE_FALSE:
+				logger.trace("convertStreamToObject() value(BOOLEAN):false");
 				build.add(key, false);
+				logger.trace("convertStreamToObject() key is reset");
 				key = null;
 				break;
 			case END_OBJECT:
+				logger.trace("convertStreamToObject() end object");
 				endObj = true;
 				break;
 			default:
-				logger.warn("convertStreamToObject() unknown `event` type:"+event.toString());
+				logger.trace("convertStreamToObject() unknown `event` type:"+event.toString());
 			}
 		}
 		logger.debug("convertStreamToObject() Finished. Returning `JsonObject`"); 

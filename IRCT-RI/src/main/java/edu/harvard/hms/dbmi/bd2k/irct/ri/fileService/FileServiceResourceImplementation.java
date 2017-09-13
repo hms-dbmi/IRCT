@@ -133,11 +133,12 @@ public class FileServiceResourceImplementation implements
 			result.setData(rs);
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (Exception e) {
+			logger.error("runQuery() Exception:"+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage());
 			e.printStackTrace();
 		}
-		
+		logger.error("runQuery() Finished. Returning `result`.");
 		return result;
 	}
 	

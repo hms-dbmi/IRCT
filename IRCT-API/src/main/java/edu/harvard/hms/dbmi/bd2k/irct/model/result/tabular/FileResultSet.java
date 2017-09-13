@@ -649,6 +649,9 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 		} catch (IOException | ResultSetException e) {
 			throw new PersistableException("Unable to persist the result set",
 					e);
+		} catch (Exception e) {
+			throw new PersistableException("Cannot save data to filesystem."+e.getMessage(),
+					e);
 		}
 
 	}

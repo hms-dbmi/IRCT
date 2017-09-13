@@ -237,9 +237,8 @@ public class ExecutionController {
 					
 				} catch (PersistableException e) {
 					logger.error("Callable.call() PersistableException:"+e.getMessage());
-					
 					result.setResultStatus(ResultStatus.ERROR);
-					result.setMessage(e.getMessage());
+					result.setMessage("Callable.call() "+e.getMessage());
 				} catch (Exception e) {
 					e.printStackTrace();
 					logger.error("Callable.call() Exception:"+e.getMessage());
@@ -247,7 +246,7 @@ public class ExecutionController {
 				} finally {
 					logger.debug("Callable.call() done with the method");
 				}
-				logger.debug("Callable.call() returning `result` with status "+result.getResultStatus().toString());
+				logger.debug("Callable.call() Finished. Returning `result` with status "+result.getResultStatus());
 				return result;
 			}
 		};

@@ -118,11 +118,12 @@ public class QueryAction implements Action {
 			logger.error("run() Exception: "+e.getMessage());
 			this.status = ActionStatus.ERROR;
 			if (this.result == null) {
-        logger.error("run() `result` is null");
+				logger.error("run() `result` is null");
 				throw new RuntimeException(e);
 			} else {
+				logger.error("run() `result` is NOT null");
 			  this.result.setResultStatus(ResultStatus.ERROR);
-			  this.result.setMessage(e.getMessage());
+			  this.result.setMessage("run() "+e.getMessage());
 			}
 		}
 		
@@ -159,8 +160,9 @@ public class QueryAction implements Action {
 
 			result.getData().close();
 		} catch (Exception e) {
+			logger.error("getResults() Exception:"+e.getMessage());
 			this.result.setResultStatus(ResultStatus.ERROR);
-			this.result.setMessage(e.getMessage());
+			this.result.setMessage("getResults() "+e.getMessage());
 		}
 
 		result.setEndTime(new Date());
@@ -169,10 +171,11 @@ public class QueryAction implements Action {
 			ActionUtilities.mergeResult(result);
 			this.status = ActionStatus.COMPLETE;
 		} catch (NamingException e) {
-			result.setMessage(e.getMessage());
+			logger.error("getResults() NamingException:"+e.getMessage());
+			result.setMessage("getResults() NamingException:"+e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-
+		logger.error("getResults() Finished. Returning `this.result`");
 		return this.result;
 	}
 
