@@ -170,15 +170,15 @@ public class Utilities {
 	}
 	
 	/**
-	 * Calls token verifier Micro-Service and returns the User ID if token is validated
+	 * Calls token verifier Micro-Service and returns the email (user ID) if token is validated
 	 * @param reg Http request
 	 * @param url JDNI binded URL 
-	 * @return The user ID
+	 * @return email (user ID)
 	 */
-	public static String getUserIdFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
-		
+	public static String getEmailFromRemoteService(HttpServletRequest req, String url) {// throws ClientProtocolException, IOException {
+		logger.debug("getEmailFromRemoteService() Starting");
 		String token = extractToken(req);
-		String userId;
+		String email;
 		HttpClient httpclient = HttpClientBuilder.create()
 				  .build();
 		
@@ -197,13 +197,14 @@ public class Utilities {
 			}
 			InputStream responseContent = response.getEntity().getContent();
 			ObjectMapper mapper = new ObjectMapper();
-			userId =  (String) mapper.readValue(responseContent, Map.class).get("userId");
+			email =  (String) mapper.readValue(responseContent, Map.class).get("email");
 		
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new NotAuthorizedException(Response.status(401)
 					.entity("Could not validate the JWT token passed in."));
 		}
-		return userId;
+		logger.debug("getEmailFromRemoteService() Finished. Returns userID: " + email);
+		return email;
 	}
 }
