@@ -175,7 +175,7 @@ public class QueryAction implements Action {
 			result.setMessage("getResults() NamingException:"+e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-		logger.error("getResults() Finished. Returning `this.result`");
+		logger.debug("getResults() Finished. Returning `this.result`");
 		return this.result;
 	}
 

@@ -439,16 +439,14 @@ public class I2B2TranSMARTResourceImplementation extends
 				for (String field : additionalFields) {
 					logger.trace("convertJsonStreamToResultSet() additional field:"+field);
 					if (obj.containsKey(field)) {
-						if (field == "PATIENT_IDE") {
-							rs.updateString("PATIENT_IDE", obj.getString(field));
-						} else {
-							rs.updateString(aliasMap.get(field), obj.getString(field));
-						}
+						rs.updateString(aliasMap.get(field), obj.getString(field));
 					} else {
 						logger.trace("convertJsonStreamToResultSet() additional field:"+field+" not in key list.");
 					}
 				}
-				
+				if (obj.getString("PATIENT_IDE")!=null) {
+					rs.updateString("PATIENT_IDE", obj.getString("PATIENT_IDE"));
+				}
 				logger.trace("convertJsonStreamToResultSet() adding `id`:"+id+" to `entryMap`");
 				entryMap.put(id, rs.getRow());
 			}

@@ -188,7 +188,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 		
 		logger.debug("absolute() size:"+getSize());
 		if ((newRow != 0) && ((newRow > getSize() - 1) || (newRow < 0))) {
-			logger.error("absolute() Row "+newRow+" is not in ResultSet");
+			//logger.error("absolute() Row "+newRow+" is not in ResultSet. ResultSet only has "+(getSize()-1)+" rows.");
 			throw new RowSetExeception("Row is not in ResultSet");
 		}
 		// Is the row already loaded into pending?
