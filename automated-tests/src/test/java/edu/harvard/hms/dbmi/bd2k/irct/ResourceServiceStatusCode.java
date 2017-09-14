@@ -14,7 +14,7 @@ import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.Matchers.*;
 
 import java.util.List;
-public class ResourceService_StatusCode {
+public class ResourceServiceStatusCode {
   
 	 @BeforeClass
 	  public void setBaseUri () {
@@ -23,7 +23,7 @@ public class ResourceService_StatusCode {
 	  }
 	  		
 		@Test
-		public void statuscodecheck_pui_test1() {
+		public void statuscodecheckpuitest1() {
 		    
 
 			//Verifying status code for URI and all PUIs of the response *******/nhanes/********//

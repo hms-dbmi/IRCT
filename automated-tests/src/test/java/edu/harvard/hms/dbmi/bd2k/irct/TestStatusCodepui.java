@@ -14,7 +14,7 @@ import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.Matchers.*;
 
 import java.util.List;
-public class TestStatusCode_pui {
+public class TestStatusCodepui {
   
 	 @BeforeClass
 	  public void setBaseUri () {
@@ -23,7 +23,7 @@ public class TestStatusCode_pui {
 	  }
 	  		
 		@Test
-		public void statuscodecheck_pui() {
+		public void statuscodecheckpui() {
 		    
 			
 			

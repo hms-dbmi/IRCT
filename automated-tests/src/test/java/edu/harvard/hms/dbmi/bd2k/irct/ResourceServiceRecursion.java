@@ -7,13 +7,13 @@ import org.testng.annotations.Test;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 
-public class ResourceService_Recursion 
+public class ResourceServiceRecursion 
 {
   
 String path = "http://nhanes.hms.harvard.edu/rest/v1/resourceService/path";
 	
 @Test
-  public void recursion_path(String path) 
+  public void recursionpath(String path) 
 		{
 	//String path = "http://nhanes.hms.harvard.edu/rest/v1/resourceService/path";
     	

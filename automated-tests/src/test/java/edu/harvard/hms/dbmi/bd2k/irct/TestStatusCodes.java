@@ -11,7 +11,7 @@ import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings("unused")
 
-public class TestStatus_Codes {
+public class TestStatusCodes {
   
 /*@BeforeTest
     public void setUp() {
@@ -21,7 +21,7 @@ public class TestStatus_Codes {
 */        
         
 @Test
-  public void statusCode_path() 
+  public void statusCodePath() 
 {
 	//given().when().get("http://restcountries.eu/rest/v1/name/austria").then().statusCode(200).log().all();
 	//
@@ -33,7 +33,7 @@ public class TestStatus_Codes {
 }
 
 @Test
-public void statusCode_path_nhanes() 
+public void statusCodePathNhanes() 
 {
 	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes").then().statusCode(200).log().all();
 	
@@ -41,7 +41,7 @@ public void statusCode_path_nhanes()
 }
 
 @Test
-public void statusCode_demo() 
+public void statusCodeDemo() 
 {
 	
 	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo").then().statusCode(200);
@@ -50,7 +50,7 @@ public void statusCode_demo()
 }
 
 @Test
-public void statusCode_Demographics() 
+public void statusCodeDemographics() 
 {
 	
 	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/demographics/demographics").then().statusCode(200);
@@ -58,7 +58,7 @@ public void statusCode_Demographics()
 
 }			
 @Test
-public void statusCode_examination() 
+public void statusCodeExamination() 
 {
 	
 	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/examination/examination").then().statusCode(200);

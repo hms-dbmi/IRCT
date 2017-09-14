@@ -11,7 +11,7 @@ import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings("unused")
 
-public class TestStatus_Codes_pathVariable {
+public class TestStatusCodepathVariable {
 
 	  
 		 @BeforeClass
@@ -22,7 +22,7 @@ public class TestStatus_Codes_pathVariable {
 
        
 @Test
-  public void statusCode_path() 
+  public void statusCodepath() 
 {
 	
 	String path = "/path";
