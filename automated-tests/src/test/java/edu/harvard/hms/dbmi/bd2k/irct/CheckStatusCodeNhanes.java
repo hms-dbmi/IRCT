@@ -25,8 +25,8 @@ public class CheckStatusCodeNhanes
 			
 					String accesstoken=System.getProperty("accesstoken");
 					
-					System.out.println(endpoint);
-					System.out.println(accesstoken);
+					//System.out.println(endpoint);
+					//System.out.println(accesstoken);
 					checkcodegetpuis(endpoint, accesstoken);
 				}
 	
@@ -34,8 +34,9 @@ public class CheckStatusCodeNhanes
 	public void checkcodegetpuis(String puipath,String puiaccesstoken) 
 					{
 						
-						System.out.println("*****************pui path is ************"   +puipath);
-						given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(200).log().all();
+		try{
+			//			System.out.println("*****************pui path is ************"   +puipath);
+						given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(200).log().body();
 						
 						Response res=(Response)given().header("Authorization", puiaccesstoken).when()
 										     .get(puipath)
@@ -53,7 +54,7 @@ public class CheckStatusCodeNhanes
 										 {
 											
 											String childpath=endpoint+pui.get(i);
-											System.out.println("*********************PUI child path is *******************"+childpath);
+										System.out.println("*********************PUI child path is *******************"+childpath);
 											checkcodegetpuis(childpath,puiaccesstoken);
 										
 										 
@@ -61,5 +62,9 @@ public class CheckStatusCodeNhanes
 										 
 						}
 
+		catch(Exception e){System.out.println("Error Occured");}  
+					}
+	
+	
 }
 	
