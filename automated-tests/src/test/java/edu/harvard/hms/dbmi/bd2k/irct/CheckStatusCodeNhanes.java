@@ -16,9 +16,10 @@ import java.util.List;
 
 public class CheckStatusCodeNhanes
 {
-         
-	String endpoint=System.getProperty("path");	
+    
 	
+	String endpoint=System.getProperty("path");	
+	int counter=0;
 	@Test
 	public void getpathaccesstoken()
 				{
@@ -27,11 +28,11 @@ public class CheckStatusCodeNhanes
 					
 					//System.out.println(endpoint);
 					//System.out.println(accesstoken);
-					checkcodegetpuis(endpoint, accesstoken);
+					checkcodegetpuis(endpoint, accesstoken,counter);
 				}
 	
 	
-	public void checkcodegetpuis(String puipath,String puiaccesstoken) 
+	public void checkcodegetpuis(String puipath,String puiaccesstoken,int counter1) 
 					{
 						
 		try{
@@ -55,10 +56,12 @@ public class CheckStatusCodeNhanes
 											
 											String childpath=endpoint+pui.get(i);
 										System.out.println("*********************PUI child path is *******************"+childpath);
-											checkcodegetpuis(childpath,puiaccesstoken);
+											checkcodegetpuis(childpath,puiaccesstoken,counter1);
 										
-										 
+										counter1=counter1+1;
+										System.out.println(counter1);
 										 }	 		 
+									
 										 
 						}
 
