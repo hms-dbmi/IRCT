@@ -19,8 +19,9 @@ public class CheckStatusCodeNhanes
     
 	
 	String endpoint=System.getProperty("path");	
-	int counter=0;
-	@Test
+	public static int count;
+	
+	@Test (timeOut = 30000000 )
 	public void getpathaccesstoken()
 				{
 			
@@ -28,23 +29,34 @@ public class CheckStatusCodeNhanes
 					
 					//System.out.println(endpoint);
 					//System.out.println(accesstoken);
-					checkcodegetpuis(endpoint, accesstoken,counter);
+					checkcodegetpuis(endpoint, accesstoken);
 				}
 	
 	
-	public void checkcodegetpuis(String puipath,String puiaccesstoken,int counter1) 
+	public void checkcodegetpuis(String puipath,String puiaccesstoken) 
 					{
 						
 		try{
-			//			System.out.println("*****************pui path is ************"   +puipath);
-						given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(200).log().body();
-						
+	//					System.out.println("*****************pui path is ************"   +puipath);
+						given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(200).log().ifError();
+		}
+		
+		catch(Error e)
+		{
+			System.out.println("Error Occured");
+		}
+		
 						Response res=(Response)given().header("Authorization", puiaccesstoken).when()
 										     .get(puipath)
 										     .then()				          
 										     .extract().response();
 						
 						List<String> pui=res.getBody().jsonPath().getList("pui");
+		
+						count++;
+					
+						System.out.println("===========================PUIS======================================="+count);
+				
 						
 									if (pui==null || pui.size()==0)
 										{
@@ -55,18 +67,17 @@ public class CheckStatusCodeNhanes
 										 {
 											
 											String childpath=endpoint+pui.get(i);
-										System.out.println("*********************PUI child path is *******************"+childpath);
-											checkcodegetpuis(childpath,puiaccesstoken,counter1);
+										System.out.println("*********************PUI child path is *******************\n"+childpath);
+											checkcodegetpuis(childpath,puiaccesstoken);
 										
-										counter1=counter1+1;
-										System.out.println(counter1);
-										 }	 		 
-									
+										
+								}	 		 
+						
+				System.out.println("----------------------------Number of puis--------------------------"+count);
 										 
 						}
 
-		catch(Exception e){System.out.println("Error Occured");}  
-					}
+		
 	
 	
 }
