@@ -11,7 +11,7 @@ import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings("unused")
 
-public class TestStatusCodes {
+public class PracticeTestStatusCodes {
           
         
 @Test
