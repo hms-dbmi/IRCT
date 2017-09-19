@@ -1,3 +1,4 @@
+
 package edu.harvard.hms.dbmi.bd2k.irct;
 
 import org.testng.annotations.BeforeTest;
@@ -9,7 +10,7 @@ import junit.framework.Assert;
 import static io.restassured.RestAssured.*;
 import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.Matchers.*;
-
+import org.apache.log4j.Logger;
 import java.util.List;
 
 @SuppressWarnings("unused")
@@ -17,6 +18,7 @@ import java.util.List;
 public class CheckStatusCodeNhanes
 {
     
+	static Logger log = Logger.getLogger(CheckStatusCodeNhanes.class.getName());
 	
 	String endpoint=System.getProperty("path");	
 	public static int count;
@@ -27,8 +29,6 @@ public class CheckStatusCodeNhanes
 			
 					String accesstoken=System.getProperty("accesstoken");
 					
-					//System.out.println(endpoint);
-					//System.out.println(accesstoken);
 					checkcodegetpuis(endpoint, accesstoken);
 				}
 	
@@ -38,12 +38,12 @@ public class CheckStatusCodeNhanes
 						
 		try{
 	//					System.out.println("*****************pui path is ************"   +puipath);
-						given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(200).log().ifError();
+						given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(300).log().ifValidationFails();
 		}
 		
-		catch(Error e)
+		catch(AssertionError e)
 		{
-			System.out.println("Error Occured");
+		e.printStackTrace();
 		}
 		
 						Response res=(Response)given().header("Authorization", puiaccesstoken).when()
