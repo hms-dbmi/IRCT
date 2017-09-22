@@ -30,7 +30,8 @@ import java.util.logging.Level;
  * CheckStatusCodeNhanes.java class which check the response of End Points(PUIs),validate
  * it and counts the number of Puis under base project.  
  * @author Atul 
- * @Version 1.0
+ * @Version 1.0	BufferedWriter bw = null;
+	FileWriter fw = null;
  */
 
 
@@ -39,13 +40,26 @@ public class CheckStatusCodeNhanes
     
 	
 	private static final Logger LOGGER = Logger.getLogger( CheckStatusCodeNhanes.class.getName() );
-
-	public static int count;
-	
 	DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss"); 
-    File file = new File( "Nhanes_puipaths_Check_Code_"+df.format(new Date())+".csv");
+	File file = new File( "Nhanes_puipaths_Check_Code_"+df.format(new Date())+".csv");
+	public static int count;
+	BufferedWriter bw = null;
+	FileWriter fw = null;
+
+	@SuppressWarnings("resource")
 	
+	@Test
 	
+	public void FileCreation() throws IOException
+	{
+
+		fw = new FileWriter(file.getAbsoluteFile(), true);
+		bw = new BufferedWriter(fw);
+		bw.write("PUIPath");
+	}
+
+	
+    
 	 /**  
 	    * Retrieve the value of endpoint (baseURI) from pom.xml    
 	 */  
@@ -84,7 +98,8 @@ public class CheckStatusCodeNhanes
 	
 	@SuppressWarnings({ })
 	public void checkcodegetpuis(String puipath,String puiaccesstoken) throws IOException 
-	
+	{
+
 	{
 		
 						
@@ -122,26 +137,11 @@ public class CheckStatusCodeNhanes
 											
 										String childpath=endpoint+pui.get(i);
 										System.out.println("*********************PUI child path is *******************\n"+childpath);
-											
-										BufferedWriter bw = null;
-										FileWriter fw = null;
 
 										try {
-
-/*											File file = new File(FILENAME);
-
-											// if file doesnt exists, then create it
-											if (!file.exists()) {
-										
-												file.createNewFile();
-											}
-*/
-											// true = append file
-											fw = new FileWriter(file.getAbsoluteFile(), true);
-											bw = new BufferedWriter(fw);
-											bw.write("PUI Path");
-											bw.newLine();
+											
 											bw.write(childpath);
+											bw.newLine();
 											System.out.println("Done");
 						} catch (IOException e) {
 
@@ -176,4 +176,4 @@ public class CheckStatusCodeNhanes
 	
 }
 	
-	
+}
