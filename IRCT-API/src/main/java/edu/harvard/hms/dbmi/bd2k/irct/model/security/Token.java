@@ -17,7 +17,9 @@ import javax.persistence.SequenceGenerator;
  * 
  * @author Jeremy R. Easton-Marks
  *
+ * Note: DI-887 Token is a string and it is not needed to be stored in the database.
  */
+@Deprecated
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public class Token implements Serializable {
