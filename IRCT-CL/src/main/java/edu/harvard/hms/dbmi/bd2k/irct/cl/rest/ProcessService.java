@@ -69,6 +69,8 @@ public class ProcessService implements Serializable {
 	 * 
 	 * @return Conversation Id
 	 */
+	// TO-DO: DI-887 THis does not make sense. What is loading a process means?
+	@Deprecated
 	@GET
 	@Path("/startProcess")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -88,6 +90,8 @@ public class ProcessService implements Serializable {
 	 * 
 	 * @return Process Id
 	 */
+	// TO-DO: DI-887 The endpoint does not even match the method name!
+	@Deprecated
 	@GET
 	@Path("/saveProcess")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -113,6 +117,8 @@ public class ProcessService implements Serializable {
 	 *            Process Id
 	 * @return Conversation Id
 	 */
+	// TO-DO: DI-887 THis does not make sense. What is loading a process means?
+	@Deprecated
 	@GET
 	@Path("/loadProcess")
 	@Produces(MediaType.APPLICATION_JSON)

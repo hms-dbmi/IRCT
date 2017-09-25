@@ -17,6 +17,7 @@ import javax.persistence.PersistenceUnit;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Deprecated
 @Dependent
 public class Resources {
 	

@@ -16,6 +16,8 @@ import javax.inject.Named;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Deprecated
+// Note: DI-887 Conversations are NOT part of the current work/processflow
 @ApplicationScoped
 @Startup
 @Named("admin")

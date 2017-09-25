@@ -47,6 +47,8 @@ import us.monoid.web.Resty;
  * @author Jeremy R. Easton-Marks
  *
  */
+// TO-DO: DI-887 Switching to JWT based authentication would enabled us to remove this.
+@Deprecated
 @Path("/securityService")
 @SessionScoped
 @ManagedBean

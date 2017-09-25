@@ -9,6 +9,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.result.exception;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Deprecated
 public class PersistableException extends Exception {
 	private static final long serialVersionUID = -8653407809077481304L;
 

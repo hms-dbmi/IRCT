@@ -86,6 +86,7 @@ public class QueryService implements Serializable {
 	 * 
 	 * @return Conversation id
 	 */
+	@Deprecated
 	@GET
 	@Path("/startQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -105,6 +106,9 @@ public class QueryService implements Serializable {
 	 * 
 	 * @return Query Id
 	 */
+	// TO-DO: DI-887 This should be automatic, query currently is not persisted, and
+	//        cannot be replayed or recovered with the current API!
+	@Deprecated
 	@GET
 	@Path("/saveQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -130,6 +134,9 @@ public class QueryService implements Serializable {
 	 *            Query Id
 	 * @return Conversation Id
 	 */
+	// TO-DO: DI-887 This is useless, should be handled through a /query endpoint, controlled
+	//        by HTTP methods, like GET,PUT,POST,DELETE (like RESTFul)
+	@Deprecated
 	@GET
 	@Path("/loadQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -163,6 +170,8 @@ public class QueryService implements Serializable {
 	 *            JSON
 	 * @return Clause Id
 	 */
+	// TO-DO: DI-887 There should be a different model to update/augment queries
+	@Deprecated
 	@POST
 	@Path("/clause")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -212,6 +221,8 @@ public class QueryService implements Serializable {
 	 *            URI information
 	 * @return Clause Id
 	 */
+	// TO-DO: DI-887 There should be a different model to update/augment queries
+	@Deprecated
 	@GET
 	@Path("/clause")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -325,6 +336,9 @@ public class QueryService implements Serializable {
 	 *            JSON
 	 * @return Query Id
 	 */
+	// TO-DO: DI-887 save query should NOT be a separate endpoint. it should automatically
+	//        be done when running a query.
+	@Deprecated
 	@POST
 	@Path("/saveQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -412,6 +426,7 @@ public class QueryService implements Serializable {
 	 * 
 	 * @return Result Id
 	 */
+	// TO-DO: DI-887 Not sure which query this would run?!
 	@GET
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
