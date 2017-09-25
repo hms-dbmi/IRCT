@@ -11,6 +11,8 @@ import junit.framework.Assert;
 import static io.restassured.RestAssured.*;
 import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.Matchers.*;
+
+import org.apache.bcel.classfile.Constant;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedWriter;
@@ -42,15 +44,14 @@ public class CheckStatusCodeNhanes
 	private static final Logger LOGGER = Logger.getLogger( CheckStatusCodeNhanes.class.getName() );
 	DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss"); 
 	File file = new File( "Nhanes_puipaths_Check_Code_"+df.format(new Date())+".csv");
-	public static int count;
-	BufferedWriter bw = null;
-	FileWriter fw = null;
+	public static int countpui;
 
+	
 	@SuppressWarnings("resource")
 	
-	@Test
+	//@Test
 	
-	public void FileCreation() throws IOException
+/*	public void FileCreation() throws IOException
 	{
 
 		fw = new FileWriter(file.getAbsoluteFile(), true);
@@ -58,13 +59,14 @@ public class CheckStatusCodeNhanes
 		bw.write("PUIPath");
 	}
 
-	
+*/	
     
 	 /**  
 	    * Retrieve the value of endpoint (baseURI) from pom.xml    
 	 */  
-    String endpoint=System.getProperty("path");	//Getting  the value from pom.xml
+    String baseuri=System.getProperty("path");	//Getting  the value from pom.xml
 	
+    
 	
 	 /**  
 	    * Retrieve the value of accesstoken from pom.xml and set timeout of  30000000 milliseonds for getting
@@ -75,11 +77,11 @@ public class CheckStatusCodeNhanes
 	
 	
 	@Test (timeOut = 30000000 )
-	public void getpathaccesstoken() throws IOException
+	public void getpathAccessToken_TestCheckCode() throws IOException
 				{
 			
 					String accesstoken=System.getProperty("accesstoken");
-					checkcodegetpuis(endpoint, accesstoken);
+					checkSatausCodeGetPuis(baseuri, accesstoken);
 				}
 	
 	
@@ -97,22 +99,23 @@ public class CheckStatusCodeNhanes
 	
 	
 	@SuppressWarnings({ })
-	public void checkcodegetpuis(String puipath,String puiaccesstoken) throws IOException 
+	public void checkSatausCodeGetPuis(String puipath,String puiaccesstoken) throws IOException 
 	{
 
-	{
+		{
 		
 						
 			try{
 		
-					given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(200).log().ifValidationFails();
+					given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(300).log().ifValidationFails();
 			    
 				}
 		
 					catch(AssertionError e)
 					{
-						   LOGGER.assertLog(true,e.getMessage());
-						  					  
+						   
+						   LOGGER.info("Rest URI has Exception/Error"+e.getStackTrace());
+		
 					}
 		
 						Response res=(Response)given().header("Authorization", puiaccesstoken).when()
@@ -120,11 +123,23 @@ public class CheckStatusCodeNhanes
 										     .then()				          
 										     .extract().response();
 						
+						
 						List<String> pui=res.getBody().jsonPath().getList("pui");
-		
-						count++;
-					
-			System.out.println("===========================PUIS======================================="+count);
+						
+						if (pui==null || pui.size()==0)
+						{
+						int NO_PUI=0;
+						LOGGER.info("=========================== No Puis====================      : "+ NO_PUI);	
+						}
+						{
+						LOGGER.info("***************PUIs in response************************      : "+pui.toString());
+						LOGGER.info("***************Count of child puis*********************      : "+pui.size());
+						int puicount=pui.size();					
+						}
+						
+						countpui++;
+											   
+			//System.out.println("===========================PUIS======================================="+count);
 				
 					
 									if (pui==null || pui.size()==0)
@@ -134,13 +149,16 @@ public class CheckStatusCodeNhanes
 									
 									for (int i=0;i<pui.size();i++)
 										 {
+									
+									String childpuipath=baseuri+pui.get(i);
+									//System.out.println("*********************PUI child path is *******************\n"+childpuipath);
+									//LOGGER.info("PUI path  number :                                       "+countpui);
+									LOGGER.info("-----------------------------------------------------------------------------------------------");
+									LOGGER.info("Path Unique Identifier with baseURI             :" +countpui+"  : "+childpuipath);
+									LOGGER.info("-----------------------------------------------------------------------------------------------");
+/*										try {
 											
-										String childpath=endpoint+pui.get(i);
-										System.out.println("*********************PUI child path is *******************\n"+childpath);
-
-										try {
-											
-											bw.write(childpath);
+											bw.write(childpuipath);
 											bw.newLine();
 											System.out.println("Done");
 						} catch (IOException e) {
@@ -162,18 +180,19 @@ public class CheckStatusCodeNhanes
 												ex.printStackTrace();
 
 											}
-												
-										checkcodegetpuis(childpath,puiaccesstoken);
-											//Logger.getInstance("PUI testing"+childpath);	
+*/												
+											checkSatausCodeGetPuis(childpuipath,puiaccesstoken);
+											//Logger.getInstance("PUI testing"+childpath);
+											
+										
 										 }	 		 
 						
 							
 				//System.out.println("----------------------------Number of puis--------------------------"+count);
-										 
+								
 			}
 	
 	}	
 	
 }
 	
-}
