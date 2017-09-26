@@ -171,8 +171,8 @@ public class CheckStatusCodeNhanes
 
 												if (bw != null)
 													bw.close();
-
 												if (fw != null)
+
 													fw.close();
 
 											} catch (IOException ex) {
@@ -196,3 +196,4 @@ public class CheckStatusCodeNhanes
 	
 }
 	
+			
