@@ -6,22 +6,17 @@ import org.testng.annotations.Test;
 import io.restassured.RestAssured;
 import io.restassured.config.LogConfig;
 import io.restassured.response.Response;
-import junit.framework.Assert;
+
 
 import static io.restassured.RestAssured.*;
-import static io.restassured.matcher.RestAssuredMatchers.*;
-import static org.hamcrest.Matchers.*;
 
 import org.apache.bcel.classfile.Constant;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -37,61 +32,46 @@ import java.util.logging.Level;
  */
 
 
-public class CheckStatusCodeNhanes
+public class NhanesResourceServiceTest
 {
     
 	
-	private static final Logger LOGGER = Logger.getLogger( CheckStatusCodeNhanes.class.getName() );
+	private static final Logger LOGGER = Logger.getLogger( NhanesResourceServiceTest.class.getName() );
 	DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss"); 
 	File file = new File( "Nhanes_puipaths_Check_Code_"+df.format(new Date())+".csv");
-	public static int countpui;
+	public static int countPui;
 
 	
 	@SuppressWarnings("resource")
 	
-	//@Test
-	
-/*	public void FileCreation() throws IOException
-	{
-
-		fw = new FileWriter(file.getAbsoluteFile(), true);
-		bw = new BufferedWriter(fw);
-		bw.write("PUIPath");
-	}
-
-*/	
     
 	 /**  
 	    * Retrieve the value of endpoint (baseURI) from pom.xml    
 	 */  
-    String baseuri=System.getProperty("path");	//Getting  the value from pom.xml
+
+	String baseUri=System.getProperty("path");	//Getting  the value from pom.xml
 	
     
 	
 	 /**  
-	    * Retrieve the value of accesstoken from pom.xml and set timeout of  30000000 milliseonds for getting
+	    * Retrieve the value of accessToken from pom.xml and set timeout of  30000000 milliseonds for getting
 	     the response.
-	 * @throws IOException 
+	 * @throws IOException i
 	    * 
 	  */  
 	
 	
 	@Test (timeOut = 30000000 )
-	public void getpathAccessToken_TestCheckCode() throws IOException
+	public void ResourceServiceCheckStatusCode() throws IOException
 				{
 			
-					String accesstoken=System.getProperty("accesstoken");
-					checkSatausCodeGetPuis(baseuri, accesstoken);
+					String accessToken=System.getProperty("accessToken");
+					resourceServiceStatusCodePuis(baseUri, accessToken);
 				}
 	
-	
-	/*public void Filewrite(String pathtest)
-	{
-
-*/
 
 
-	 /**  
+	/**  
 	    * Check the status code of all the puis and gets the count of number of puis 
 	 * @throws IOException 
 	    * 
@@ -99,7 +79,8 @@ public class CheckStatusCodeNhanes
 	
 	
 	@SuppressWarnings({ })
-	public void checkSatausCodeGetPuis(String puipath,String puiaccesstoken) throws IOException 
+	
+	public void resourceServiceStatusCodePuis(String puiPath,String puiAccessToken) throws IOException 
 	{
 
 		{
@@ -107,7 +88,7 @@ public class CheckStatusCodeNhanes
 						
 			try{
 		
-					given().header("Authorization", puiaccesstoken).when().get(puipath).then().statusCode(300).log().ifValidationFails();
+					given().header("Authorization", puiAccessToken).when().get(puiPath).then().statusCode(200).log().ifValidationFails();
 			    
 				}
 		
@@ -118,8 +99,8 @@ public class CheckStatusCodeNhanes
 		
 					}
 		
-						Response res=(Response)given().header("Authorization", puiaccesstoken).when()
-										     .get(puipath)
+						Response res=(Response)given().header("Authorization", puiAccessToken).when()
+										     .get(puiPath)
 										     .then()				          
 										     .extract().response();
 						
@@ -128,16 +109,16 @@ public class CheckStatusCodeNhanes
 						
 						if (pui==null || pui.size()==0)
 						{
-						int NO_PUI=0;
-						LOGGER.info("=========================== No Puis====================      : "+ NO_PUI);	
+						int noPui=0;
+						LOGGER.info("=========================== No Puis====================      : "+ noPui);	
 						}
 						{
 						LOGGER.info("***************PUIs in response************************      : "+pui.toString());
 						LOGGER.info("***************Count of child puis*********************      : "+pui.size());
-						int puicount=pui.size();					
+						int puiCount=pui.size();					
 						}
 						
-						countpui++;
+						countPui++;
 											   
 			//System.out.println("===========================PUIS======================================="+count);
 				
@@ -150,42 +131,19 @@ public class CheckStatusCodeNhanes
 									for (int i=0;i<pui.size();i++)
 										 {
 									
-									String childpuipath=baseuri+pui.get(i);
+									String childPuiPath=baseUri+pui.get(i);
+									
 									//System.out.println("*********************PUI child path is *******************\n"+childpuipath);
 									//LOGGER.info("PUI path  number :                                       "+countpui);
+									
+									
 									LOGGER.info("-----------------------------------------------------------------------------------------------");
-									LOGGER.info("Path Unique Identifier with baseURI             :" +countpui+"  : "+childpuipath);
+									LOGGER.info("Path Unique Identifier with baseURI             :" +countPui+"  : "+childPuiPath);
 									LOGGER.info("-----------------------------------------------------------------------------------------------");
-/*										try {
-											
-											bw.write(childpuipath);
-											bw.newLine();
-											System.out.println("Done");
-						} catch (IOException e) {
-
-											e.printStackTrace();
-
-										} finally {
-
-											try {
-
-												if (bw != null)
-													bw.close();
-												if (fw != null)
-
-													fw.close();
-
-											} catch (IOException ex) {
-
-												ex.printStackTrace();
-
-											}
-*/												
-											checkSatausCodeGetPuis(childpuipath,puiaccesstoken);
-											//Logger.getInstance("PUI testing"+childpath);
-											
+									resourceServiceStatusCodePuis(childPuiPath,puiAccessToken);
+									
 										
-										 }	 		 
+						}	 		 
 						
 							
 				//System.out.println("----------------------------Number of puis--------------------------"+count);
