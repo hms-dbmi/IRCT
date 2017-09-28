@@ -70,7 +70,7 @@ public class SessionFilter implements Filter {
 		} catch (NamingException e){
 			logger.error("init() Unknown naming exception caught." + e);
 		}
-		
+
 	}
 
 	@Override
@@ -85,7 +85,7 @@ public class SessionFilter implements Filter {
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
-			
+
 			try {
 				User user;
 				if (session.getAttribute("user") == null) {
@@ -96,7 +96,7 @@ public class SessionFilter implements Filter {
 				else {
 					user = (User)session.getAttribute("user");
 				}
-				
+
 				logger.debug("doFilter() got user object.");
 
 				Token token = session.getAttribute("token") == null ?
@@ -104,16 +104,16 @@ public class SessionFilter implements Filter {
 						: (Token)session.getAttribute("token");
 				logger.debug("doFilter() got token object.");
 
-				//SecureSession secureSession = session.getAttribute("secureSession") == null ?
-				//		sc.validateKey(sc.createKey(user, token))
-				//		: (SecureSession)session.getAttribute("secureSession");
+				SecureSession secureSession = session.getAttribute("secureSession") == null ?
+						sc.validateKey(sc.createKey(user, token))
+						: (SecureSession)session.getAttribute("secureSession");
 				logger.debug("doFilter() got securesession object.");
-				
-				setSessionAndRequestAttributes(req, session, user, token); //, secureSession);
+
+				setSessionAndRequestAttributes(req, session, user, token, secureSession);
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {
-				logger.error("EXCEPTION: "+e.getMessage());
+				logger.error("doFilter() Exception: "+e.getMessage());
 
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
 
@@ -136,18 +136,10 @@ public class SessionFilter implements Filter {
 	private void setSessionAndRequestAttributes(ServletRequest req, HttpSession session, User user, Token token, SecureSession secureSession) {
 		session.setAttribute("user", user);
 		session.setAttribute("token", token);
-		//session.setAttribute("secureSession", secureSession);
+		session.setAttribute("secureSession", secureSession);
 		req.setAttribute("user", user);
 		req.setAttribute("token", token);
-		//req.setAttribute("secureSession", secureSession);
-	}
-	private void setSessionAndRequestAttributes(ServletRequest req, HttpSession session, User user, Token token) {
-		session.setAttribute("user", user);
-		session.setAttribute("token", token);
-		//session.setAttribute("secureSession", secureSession);
-		req.setAttribute("user", user);
-		req.setAttribute("token", token);
-		//req.setAttribute("secureSession", secureSession);
+		req.setAttribute("secureSession", secureSession);
 	}
 
 	@Override
