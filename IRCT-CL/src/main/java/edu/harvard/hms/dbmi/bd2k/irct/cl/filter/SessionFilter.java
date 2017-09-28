@@ -108,6 +108,7 @@ public class SessionFilter implements Filter {
 				//		sc.validateKey(sc.createKey(user, token))
 				//		: (SecureSession)session.getAttribute("secureSession");
 				logger.debug("doFilter() got securesession object.");
+				
 				setSessionAndRequestAttributes(req, session, user, token); //, secureSession);
 				logger.debug("doFilter() set session attributes.");
 
