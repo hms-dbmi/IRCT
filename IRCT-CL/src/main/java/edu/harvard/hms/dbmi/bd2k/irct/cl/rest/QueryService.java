@@ -72,8 +72,8 @@ public class QueryService implements Serializable {
 	@Inject
 	private ResourceController rc;
 
-	@Inject
-	private AdminBean admin;
+	//@Inject
+	//private AdminBean admin;
 
 	@Inject
 	private ExecutionController ec;
@@ -92,11 +92,11 @@ public class QueryService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startQuery() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
+		//String conversationId = admin.startConversation();
 
 		qc.createQuery();
 
-		response.add("cid", conversationId);
+		//response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -142,7 +142,7 @@ public class QueryService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response loadQuery(@QueryParam(value = "queryId") Long queryId) {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
+		//String conversationId = admin.startConversation();
 
 		if (queryId == null) {
 			response.add("status", "Invalid Request");
@@ -158,7 +158,7 @@ public class QueryService implements Serializable {
 			return Response.status(400).entity(response.build()).build();
 		}
 
-		response.add("cid", conversationId);
+		//response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -435,12 +435,12 @@ public class QueryService implements Serializable {
 		try {
 			response.add("resultId", ec.runQuery(qc.getQuery(),
 					(SecureSession) session.getAttribute("secureSession")));
-		} catch (PersistableException e) {
-			response.add("status", "Error running request");
-			response.add("message", "An error occurred running this request");
+		} catch (Exception e) {
+			response.add("status", "error");
+			response.add("message", "Could not run query."+e.getMessage());
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
+		//admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
