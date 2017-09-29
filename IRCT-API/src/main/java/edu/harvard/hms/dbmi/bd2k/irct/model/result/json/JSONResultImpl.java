@@ -12,6 +12,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Deprecated
 public interface JSONResultImpl extends Data {
 	/**
 	 * Close the json result implementation

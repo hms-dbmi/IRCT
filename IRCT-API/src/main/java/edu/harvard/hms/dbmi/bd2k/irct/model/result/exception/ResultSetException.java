@@ -9,6 +9,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.result.exception;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Deprecated
 public class ResultSetException extends Exception {
 	private static final long serialVersionUID = -2674146066302094719L;
 	/**

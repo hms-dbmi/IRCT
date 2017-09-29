@@ -70,7 +70,7 @@ public class SessionFilter implements Filter {
 		} catch (NamingException e){
 			logger.error("init() Unknown naming exception caught." + e);
 		}
-		
+
 	}
 
 	@Override
@@ -85,6 +85,7 @@ public class SessionFilter implements Filter {
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
+
 			try {
 				User user;
 				if (session.getAttribute("user") == null) {
@@ -95,7 +96,7 @@ public class SessionFilter implements Filter {
 				else {
 					user = (User)session.getAttribute("user");
 				}
-				
+
 				logger.debug("doFilter() got user object.");
 
 				Token token = session.getAttribute("token") == null ?
@@ -107,11 +108,12 @@ public class SessionFilter implements Filter {
 						sc.validateKey(sc.createKey(user, token))
 						: (SecureSession)session.getAttribute("secureSession");
 				logger.debug("doFilter() got securesession object.");
+
 				setSessionAndRequestAttributes(req, session, user, token, secureSession);
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {
-				logger.error("EXCEPTION: "+e.getMessage());
+				logger.error("doFilter() Exception: "+e.getMessage());
 
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
 

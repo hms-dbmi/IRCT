@@ -24,8 +24,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
  * Defines the visualization type
  * 
  * @author Jeremy R. Easton-Marks
- *
+ * Note: DI-887 This is not supported by any existing resource
  */
+@Deprecated
 @Entity
 public class VisualizationType implements Serializable {
 	private static final long serialVersionUID = 30045608286165958L;

@@ -42,6 +42,7 @@ public class SystemService {
 	 * Returns a JSON Array of supported Data Types by the IRCT core.
 	 *
 	 * @return JSON Array of data types
+	 * TO-DO: DI-887 Useless?!
 	 */
 	@GET
 	@Path("/dataTypes")

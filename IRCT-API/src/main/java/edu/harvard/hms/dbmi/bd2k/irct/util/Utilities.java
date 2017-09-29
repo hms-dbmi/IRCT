@@ -3,8 +3,11 @@ package edu.harvard.hms.dbmi.bd2k.irct.util;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+import org.apache.log4j.Logger;
 
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+@Deprecated
+// Note: DI-887 This is unused
 public class Utilities {
 	
 	public static IRCTEventListener getIRCTEventListener() {

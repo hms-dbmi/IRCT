@@ -72,8 +72,8 @@ public class QueryService implements Serializable {
 	@Inject
 	private ResourceController rc;
 
-	@Inject
-	private AdminBean admin;
+	//@Inject
+	//private AdminBean admin;
 
 	@Inject
 	private ExecutionController ec;
@@ -86,16 +86,17 @@ public class QueryService implements Serializable {
 	 * 
 	 * @return Conversation id
 	 */
+	@Deprecated
 	@GET
 	@Path("/startQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startQuery() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
+		//String conversationId = admin.startConversation();
 
 		qc.createQuery();
 
-		response.add("cid", conversationId);
+		//response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -105,6 +106,9 @@ public class QueryService implements Serializable {
 	 * 
 	 * @return Query Id
 	 */
+	// TO-DO: DI-887 This should be automatic, query currently is not persisted, and
+	//        cannot be replayed or recovered with the current API!
+	@Deprecated
 	@GET
 	@Path("/saveQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -130,12 +134,15 @@ public class QueryService implements Serializable {
 	 *            Query Id
 	 * @return Conversation Id
 	 */
+	// TO-DO: DI-887 This is useless, should be handled through a /query endpoint, controlled
+	//        by HTTP methods, like GET,PUT,POST,DELETE (like RESTFul)
+	@Deprecated
 	@GET
 	@Path("/loadQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response loadQuery(@QueryParam(value = "queryId") Long queryId) {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
+		//String conversationId = admin.startConversation();
 
 		if (queryId == null) {
 			response.add("status", "Invalid Request");
@@ -151,7 +158,7 @@ public class QueryService implements Serializable {
 			return Response.status(400).entity(response.build()).build();
 		}
 
-		response.add("cid", conversationId);
+		//response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -163,6 +170,8 @@ public class QueryService implements Serializable {
 	 *            JSON
 	 * @return Clause Id
 	 */
+	// TO-DO: DI-887 There should be a different model to update/augment queries
+	@Deprecated
 	@POST
 	@Path("/clause")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -212,6 +221,8 @@ public class QueryService implements Serializable {
 	 *            URI information
 	 * @return Clause Id
 	 */
+	// TO-DO: DI-887 There should be a different model to update/augment queries
+	@Deprecated
 	@GET
 	@Path("/clause")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -325,6 +336,9 @@ public class QueryService implements Serializable {
 	 *            JSON
 	 * @return Query Id
 	 */
+	// TO-DO: DI-887 save query should NOT be a separate endpoint. it should automatically
+	//        be done when running a query.
+	@Deprecated
 	@POST
 	@Path("/saveQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -412,6 +426,7 @@ public class QueryService implements Serializable {
 	 * 
 	 * @return Result Id
 	 */
+	// TO-DO: DI-887 Not sure which query this would run?!
 	@GET
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -420,12 +435,12 @@ public class QueryService implements Serializable {
 		try {
 			response.add("resultId", ec.runQuery(qc.getQuery(),
 					(SecureSession) session.getAttribute("secureSession")));
-		} catch (PersistableException e) {
-			response.add("status", "Error running request");
-			response.add("message", "An error occurred running this request");
+		} catch (Exception e) {
+			response.add("status", "error");
+			response.add("message", "Could not run query."+e.getMessage());
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
+		//admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}

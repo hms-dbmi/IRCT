@@ -18,6 +18,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
  * @author Jeremy R. Easton-Marks
  *
  */
+@Deprecated
 public class JsonFileResult implements Persistable, JSONResultImpl {
 	private JsonStructure jsonStructure;
 	private String fileName;
