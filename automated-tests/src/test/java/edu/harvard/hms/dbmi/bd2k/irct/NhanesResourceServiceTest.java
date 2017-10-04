@@ -1,14 +1,15 @@
 
 package edu.harvard.hms.dbmi.bd2k.irct;
 
+
+import edu.harvard.hms.dbmi.bd2k.irct.Utils.RestUtils;
 import com.opencsv.*;
-
-
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.apache.log4j.Logger;
+import org.apache.log4j.net.SyslogAppender;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -16,56 +17,64 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
 import static io.restassured.RestAssured.given;
-
-@SuppressWarnings("unused")
+//import io.restassured.RestAssured;
+//import java.io.File;
+//import org.apache.http.impl.cookie.BasicSecureHandler;
 
 /**
  * CheckStatusCodeNhanes.java class which check the response of End Points(PUIs),validate
  * it and counts the number of Puis under base project.  
  * @author Atul
- * @Version 1.0    BufferedWriter bw = null;
-FileWriter fw = null;
+ * @Version 1.0    
  */
 
-
+;
 public class NhanesResourceServiceTest {
 
 
     private static final Logger LOGGER = Logger.getLogger(NhanesResourceServiceTest.class.getName());
     private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
-
     private static List<String[]> csvData = null;
     private static int countPui;
-
-
-    @SuppressWarnings("resource")
-
-
+    String baseUri;
+    //=System.getProperty("path")+"/resourceService/path";
+    String accessToken; 
+    //= System.getProperty("accessToken");
+    
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
-     */
-
-String baseUri = System.getProperty("path");    //Getting  the value from pom.xml
-//String endpoint=System.getProperty("path");
-//String baseUri="http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/questionnaire/questionnaire/alcohol use/";
+     *
+    **/
+   @BeforeMethod
+    public void setup()
+    {
+	  baseUri=RestUtils.BaseURIPath()+"/resourceService/path";
+	  System.out.println(baseUri);
+	  accessToken=RestUtils.AccessToken();
+	  RestUtils.setContentType(ContentType.JSON);
+    }
+   
+    
+    //String baseUri = System.getProperty("path");    //Getting  the value from pom.xml
+	//String endpoint=System.getProperty("path");
+	//String baseUri="http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/questionnaire/questionnaire/alcohol use/";
 
 
     /**
      * Retrieve the value of accessToken from pom.xml and set timeout of  30000000 milliseonds for getting
      * the response.
      *
-     * @throws IOException i
+     * @throws IOException 
      */
 
 
     @Test(timeOut = 30000000)
     public void ResourceServiceCheckStatusCode() throws IOException {
+    	
         countPui = 0;
         csvData = new ArrayList<>();
         String fileName = "Nhanes_Pui_Paths_Check_Code_" + df.format(new Date()) + ".csv";
-        String accessToken = System.getProperty("accessToken");
         resourceServiceStatusCodePuis(baseUri, accessToken);
         System.out.println("Test CSV");
         writeToCSV(csvData, fileName);
@@ -77,9 +86,6 @@ String baseUri = System.getProperty("path");    //Getting  the value from pom.xm
      *
      * @throws IOException
      */
-
-
-    @SuppressWarnings({})
 
     public void resourceServiceStatusCodePuis(String puiPath, String puiAccessToken) throws IOException {
         {

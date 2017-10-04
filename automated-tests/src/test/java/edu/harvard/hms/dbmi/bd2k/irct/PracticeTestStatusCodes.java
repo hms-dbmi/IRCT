@@ -17,12 +17,17 @@ public class PracticeTestStatusCodes {
 @Test
   public void statusCodePath() 
 {
-	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path").then().statusCode(200).log().all();
-	
+//	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path").then().statusCode(200).log().all();
+	given()
+    .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU")
+    .when()
+    .get("https://nhanes.hms.harvard.edu/rest/v1/resourceService/path/")
+    .then()
+    .statusCode(200);
 
 }
 
-@Test
+/*@Test
 public void statusCodePathNhanes() 
 {
 	given().header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU").when().get("http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes").then().statusCode(200).log().all();
@@ -55,7 +60,7 @@ public void statusCodeExamination()
 	
 
 }			
-
+*/
 
 
 }

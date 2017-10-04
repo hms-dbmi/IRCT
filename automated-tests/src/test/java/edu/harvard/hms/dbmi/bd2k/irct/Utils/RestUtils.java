@@ -22,12 +22,18 @@ public class RestUtils {
  
         }*/
     
-      public static String BaseURI()
+      public static String BaseURIPath()
       {
-    	  String baseURI=System.getProperty("path");
+    	  String baseURI=System.getProperty("basepath");
     	  return baseURI;
           
-      }
+      }/*
+      public static String queryServiceBaseURI()
+      {
+    	  String baseURI=System.getProperty("pathquery");
+    	  return baseURI;
+          
+      }*/
       
       public static String AccessToken()
       {
