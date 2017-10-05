@@ -25,6 +25,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -63,10 +65,19 @@ public class TestqueryServiceNhanes
 	   RestUtils.setContentType(ContentType.JSON);
     }
    
+  
+ public String generateStringFromResource(String path) throws IOException {
+
+	    return new String(Files.readAllBytes(Paths.get(path)));
+
+	}
+   
  @Test  
-public void runQuery(){
-  String APIUrl = baseUri+"/runQuery/";
+public void runQuery() throws IOException{
+  String APIUrl = baseUri+"queryService/runQuery/";
   System.out.println(APIUrl);
+  String jsonBody = generateStringFromResource("/src/main/resources/Search.json");
+
   //RestAssured.registerParser("text/plain", Parser.TEXT);
   given()
   		.contentType("application/json")

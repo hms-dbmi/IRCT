@@ -309,8 +309,8 @@
         <version>2.12.4</version>
         <configuration>
           <systemPropertyVariables>
-            <path>http://nhanes.hms.harvard.edu/rest/v1/resourceService/path</path>
-            <accessToken>"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU"</accessToken>
+            <basepath>https://nhanes.hms.harvard.edu/rest/v1</basepath>
+			<accessToken>"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0fGF2bGJvdEBkYm1pLmhtcy5oYXJ2YXJkLmVkdSIsImVtYWlsIjoiYXZsYm90QGRibWkuaG1zLmhhcnZhcmQuZWR1In0.51TYsm-uw2VtI8aGawdggbGdCSrPJvjtvzafd2Ii9NU"</accessToken>
           </systemPropertyVariables>
         </configuration>
         <executions>
