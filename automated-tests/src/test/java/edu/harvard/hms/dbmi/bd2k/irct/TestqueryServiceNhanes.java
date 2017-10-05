@@ -12,7 +12,7 @@ import io.restassured.config.LogConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-
+import java.io.InputStreamReader;
 
 import static io.restassured.RestAssured.*;
 import static io.restassured.matcher.RestAssuredMatchers.*;
@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DateFormat;
@@ -49,7 +50,7 @@ public class TestqueryServiceNhanes
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
 	private static final Logger LOGGER = Logger.getLogger( TestqueryServiceNhanes.class.getName() );
-    String baseUri;
+    String APIUrl;
     String accessToken;
     //RestAssured.defaultParser = Parser.JSON;
     
@@ -60,7 +61,7 @@ public class TestqueryServiceNhanes
    @BeforeMethod
     public void setup()
     {
-	   baseUri=RestUtils.BaseURIPath();
+	   APIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";;
 	   accessToken=RestUtils.AccessToken();
 	   RestUtils.setContentType(ContentType.JSON);
     }
@@ -74,15 +75,18 @@ public class TestqueryServiceNhanes
    
  @Test  
 public void runQuery() throws IOException{
-  String APIUrl = baseUri+"queryService/runQuery/";
-  System.out.println(APIUrl);
-  String jsonBody = generateStringFromResource("/src/main/resources/Search.json");
-
+  
+  String root=System.getProperty("user.dir");
+  String abspathFile=root+"/src/test/resources/queryService.json";
+  String jsonBody = generateStringFromResource(abspathFile);
+  //InputStream jsontest=this.getClass().getClassLoader().getResourceAsStream("queryService.json");
+  //System.out.println(abspathFile);
+  //System.out.println(jsonBody);
   //RestAssured.registerParser("text/plain", Parser.TEXT);
   given()
   		.contentType("application/json")
   		.header("Authorization", accessToken)
-  		.body(new HashMap<String, Object>() 
+/*		.body(new HashMap<String, Object>() 
   		{{
   			put("Select", new HashMap<String, Object>()
   			
@@ -96,13 +100,21 @@ public void runQuery() throws IOException{
   				}});
   			
   		}}).
+*/  			
+  		.body(jsonBody).
   when().
   		post(APIUrl).
-  then().
-   		body("ResultId",  notNullValue());
-  		//statusCode(200);
- }
-	/*@Test
+  then().statusCode(200).log().all();
+  
+
+		//body("ResultId",  notNullValue())
+
+}
+ 
+}
+
+/*
+	
 		public void httpPost() throws InterruptedException {
 			
 			//Initializing Rest API's URL
@@ -131,15 +143,17 @@ public void runQuery() throws IOException{
 			JSONObject JSONResponseBody = new JSONObject(response.body().asString());
 
 			//Fetching the desired value of a parameter
+
 //			String result = JSONResponseBody.getString({key});
 				
 			//Asserting that result 
-	//		Assert.assertEquals(result, "{expectedValue}");
+	Assert.assertEquals(result, "{expectedValue}");
 
 			}
-*/
+
 }			
 
+}
 
 
-
+*/

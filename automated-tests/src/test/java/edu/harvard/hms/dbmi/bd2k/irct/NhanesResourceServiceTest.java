@@ -3,6 +3,8 @@ package edu.harvard.hms.dbmi.bd2k.irct;
 
 
 import edu.harvard.hms.dbmi.bd2k.irct.Utils.RestUtils;
+
+import com.fasterxml.jackson.databind.ser.ContainerSerializer;
 import com.opencsv.*;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -36,8 +38,9 @@ public class NhanesResourceServiceTest {
     private static final Logger LOGGER = Logger.getLogger(NhanesResourceServiceTest.class.getName());
     private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
     private static List<String[]> csvData = null;
-    private static int countPui;
+    private int countPui;
     String baseUri;
+    String baseResource;
     //=System.getProperty("path")+"/resourceService/path";
     String accessToken; 
     //= System.getProperty("accessToken");
@@ -50,7 +53,8 @@ public class NhanesResourceServiceTest {
     public void setup()
     {
 	  baseUri=RestUtils.BaseURIPath()+"/resourceService/path";
-	  System.out.println(baseUri);
+	 // System.out.println(baseUri);
+	  baseResource=RestUtils.BaseURIPath()+"/resourceService/resources";
 	  accessToken=RestUtils.AccessToken();
 	  RestUtils.setContentType(ContentType.JSON);
     }
@@ -60,17 +64,67 @@ public class NhanesResourceServiceTest {
 	//String endpoint=System.getProperty("path");
 	//String baseUri="http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/questionnaire/questionnaire/alcohol use/";
 
+   /**
+    * Method ResourceServiceResourcesStatusCode test the "resources" and verify that the content loads correctly.
+    * the response.
+    *
+    * @throws IOException 
+    */
+   
+   
+   @Test
+   
+   public void ResourceServiceResourcesStatusCode() throws IOException {
+	   
+	   
+       try {
+    	   	
+    	   String response = given()
+                   .header("Authorization", accessToken)
+                   .when()
+                   .get(baseResource)
+                   .then()
+                   .extract()
+                   .response().asString();
+    	      	   System.out.println(response);
+    	      	   //if (response.asString().contains("implementationr")){
+    	      		   
+    	      		 //  System.out.println("Passed");
+    	      	   //}
+    	      	  
+    	      	  //System.out.println("failed");
+    	   
+    	   
+    	   //String implement=
+    	   	/*		given()
+                   .header("Authorization", accessToken).
+                when()
+                   .get(baseResource).
+                then()
+                	.statusCode(200)
+                	.assertThat();
+            */    //	.extract()
+                	//.path("implementation");
+    	   			
+                   //.body(ContainerSerializer, arg1);
 
-    /**
-     * Retrieve the value of accessToken from pom.xml and set timeout of  30000000 milliseonds for getting
-     * the response.
-     *
-     * @throws IOException 
-     */
+                	//LOGGER.info("Resources is loading successfully     : value of Name field"  +implement);
+    	   		
+       } catch (AssertionError e) {
+           LOGGER.error("Rest URI has Exception/Error", e);
+       }
 
 
-    @Test(timeOut = 30000000)
-    public void ResourceServiceCheckStatusCode() throws IOException {
+       /**
+        * Retrieve the value of accessToken from pom.xml and set timeout of  30000000 milliseonds for getting
+        * the response.
+        *
+        * @throws IOException 
+        */
+	   
+   }
+@Test(timeOut = 30000000)
+    public void ResourceServicePathCheckStatusCode() throws IOException {
     	
         countPui = 0;
         csvData = new ArrayList<>();
