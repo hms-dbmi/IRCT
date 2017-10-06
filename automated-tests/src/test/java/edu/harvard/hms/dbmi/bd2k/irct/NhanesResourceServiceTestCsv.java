@@ -1,18 +1,14 @@
 
 package edu.harvard.hms.dbmi.bd2k.irct;
 
-
-import edu.harvard.hms.dbmi.bd2k.irct.Utils.RestUtils;
-
-import com.fasterxml.jackson.databind.ser.ContainerSerializer;
 import com.opencsv.*;
-import io.restassured.http.ContentType;
+
+
 import io.restassured.response.Response;
 import org.apache.log4j.Logger;
-import org.apache.log4j.net.SyslogAppender;
-import org.junit.Assert;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -20,142 +16,57 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 import static io.restassured.RestAssured.given;
-//import io.restassured.RestAssured;
-//import java.io.File;
-//import org.apache.http.impl.cookie.BasicSecureHandler;
+
+@SuppressWarnings("unused")
 
 /**
  * CheckStatusCodeNhanes.java class which check the response of End Points(PUIs),validate
  * it and counts the number of Puis under base project.  
  * @author Atul
- * @Version 1.0    
+ * @Version 1.0    BufferedWriter bw = null;
+FileWriter fw = null;
  */
 
-;
-public class NhanesResourceServiceTest {
+
+public class NhanesResourceServiceTestCsv {
 
 
-    private static final Logger LOGGER = Logger.getLogger(NhanesResourceServiceTest.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(NhanesResourceServiceTestCsv.class.getName());
     private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
-	private static final Object AccessToken = null;
+
     private static List<String[]> csvData = null;
-    private int countPui;
-    String baseUri;
-    String baseResource;
-    //=System.getProperty("path")+"/resourceService/path";
-    String accessToken; 
-    //= System.getProperty("accessToken");
-    
+    private static int countPui;
+
+
+    @SuppressWarnings("resource")
+
+
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
-     *
-    **/
-   @BeforeMethod
-    public void setup()
-    {
-	  baseUri=RestUtils.BaseURIPath()+"/resourceService/path";
-	 // System.out.println(baseUri);
-	  baseResource=RestUtils.BaseURIPath()+"/resourceService/resources";
-	  accessToken=RestUtils.AccessToken();
-	  RestUtils.setContentType(ContentType.JSON);
-    }
-   
+     */
+
+String baseUri = System.getProperty("path");    //Getting  the value from pom.xml
+//String endpoint=System.getProperty("path");
     
-    //String baseUri = System.getProperty("path");    //Getting  the value from pom.xml
-	//String endpoint=System.getProperty("path");
 	//String baseUri="http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/questionnaire/questionnaire/alcohol use/";
 
-   /**
-    * Method ResourceServiceResourcesStatusCode test the "resources" and verify that the content loads correctly.
-    * the response.
-    *
-    * @throws IOException 
-    */
-   
-   
-@Test
-   
-   public void ResourceServiceResourcesStatusCode() throws IOException {
-	   
-	   
-       try {
-    	   	
-    	   	Response res=(Response) given()
-                   .header("Authorization", accessToken)
-                   .when()
-                   .get(baseResource)
-                   .then()
-                   .statusCode(200);
-    	   	Assert.assertEquals(res.statusCode(), 2	);
-       }
-    	   //String implement=
-    	   	/*		given()
-                   .header("Authorization", accessToken).
-                when()
-                   .get(baseResource).
-                then()
-                	.statusCode(200)
-                	.assertThat();
-            */    //	.extract()
-                	//.path("implementation");
-    	   			
-                   //.body(ContainerSerializer, arg1);
 
-                	//LOGGER.info("Resources is loading successfully     : value of Name field"  +implement);
-    
-       catch (AssertionError e) 
-       {
-           LOGGER.error("Rest URI has Exception/Error", e);
-    	}
-    }
-
-      @Test
-       
-       public void ResourceServiceResourcesResponseCheck() throws IOException {
-    	   
-    	   
-           try {
-        	   	
-               Response response = (Response) given()
-                       .header("Authorization", accessToken)
-                       .when()
-                       .get(baseResource)
-                       .then()
-                       .extract()
-                       .response();
-            Assert.assertNotEquals(response.toString().contains("implementation"), "implementation");
-               
-               /*          
-        	   if (response.toString().contains("implementation")){
-        	      		   
-        	      		  System.out.println("Passed");
-        	   }
-        	      	   else
-        	      	   {
-        	      	  
-        	      		  System.out.println("failed");
-        	      	   }    	      	   
-        	*/
-        	   		
-           } 
-        	      	   catch (AssertionError e) {
-               LOGGER.error("Rest URI has Exception/Error", e);
-           }
+    /**
+     * Retrieve the value of accessToken from pom.xml and set timeout of  30000000 milliseonds for getting
+     * the response.
+     *
+     * @throws IOException i
+     */
 
 
-       /**
-        * Retrieve the value of accessToken from pom.xml and set timeout of  30000000 milliseonds for getting
-        * the response.
-        *
-        * @throws IOException 
-        */
-	   
-   }
-@Test(timeOut = 30000000)
-    public void ResourceServicePathCheckStatusCode() throws IOException {        countPui = 0;
+    @Test(timeOut = 30000000)
+    public void ResourceServiceCheckStatusCode() throws IOException {
+        countPui = 0;
         csvData = new ArrayList<>();
         String fileName = "Nhanes_Pui_Paths_Check_Code_" + df.format(new Date()) + ".csv";
+        String accessToken = System.getProperty("accessToken");
         resourceServiceStatusCodePuis(baseUri, accessToken);
         System.out.println("Test CSV");
         writeToCSV(csvData, fileName);
@@ -167,6 +78,9 @@ public class NhanesResourceServiceTest {
      *
      * @throws IOException
      */
+
+
+    @SuppressWarnings({})
 
     public void resourceServiceStatusCodePuis(String puiPath, String puiAccessToken) throws IOException {
         {
@@ -211,8 +125,8 @@ public class NhanesResourceServiceTest {
                 countPui++;
 
                 for (int i = 0; i < pui.size(); i++) {
-                String childPuiPath = baseUri + pui.get(i);
-      //    	String childPuiPath = "http://nhanes.hms.harvard.edu/rest/v1/resourceService/path" + pui.get(i);
+        //            String childPuiPath = baseUri + pui.get(i);
+          	String childPuiPath = "http://nhanes.hms.harvard.edu/rest/v1/resourceService/path" + pui.get(i);
                     LOGGER.info("-----------------------------------------------------------------------------------------------");
                     LOGGER.info("Path Unique Identifier with baseURI             :" + countPui + "  : " + childPuiPath);
                     LOGGER.info("-----------------------------------------------------------------------------------------------");
