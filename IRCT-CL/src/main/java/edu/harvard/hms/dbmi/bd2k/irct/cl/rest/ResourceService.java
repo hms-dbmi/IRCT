@@ -6,14 +6,12 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
-import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -24,6 +22,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -32,13 +32,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the resource service
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Path("/resourceService")
 public class ResourceService {
@@ -52,8 +49,11 @@ public class ResourceService {
 	@Inject
 	Logger logger;
 
-	@Context
-	private HttpServletRequest request;
+	//@Context
+	//private HttpServletRequest request;
+
+	@Inject
+	private HttpSession session;
 
 	/**
 	 * Returns a list of all resources. If a type is chosen then only resources
@@ -145,11 +145,11 @@ public class ResourceService {
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
 				
-		logger.log(Level.FINE, "/search queryString:"+info.getQueryParameters().keySet().toString());
+		logger.debug("/search queryString:"+info.getQueryParameters().keySet().toString());
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
 			List<String> values = info.getQueryParameters().get(categoryName);
-			logger.log(Level.FINE, "/search is ["+categoryName+"] valid?");
+			logger.debug("/search is ["+categoryName+"] valid?");
 			if (!rc.isValidCategory(categoryName)) {
 				JsonObjectBuilder build = Json.createObjectBuilder();
 				build.add("status", "Invalid resource category");
@@ -224,9 +224,9 @@ public class ResourceService {
 
 		// Run find
 		try {
-			entities = pc.searchForTerm(resource, resourcePath, findInformation, (SecureSession) request.getAttribute("secureSession"));
+			entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
 		} catch (ResourceInterfaceException e) {
-			logger.log(Level.SEVERE, "/find Exception:" + e.getMessage());
+			logger.error("/find Exception:" + e.getMessage());
 			return invalidRequest(e.getMessage());
 		}
 
@@ -262,33 +262,32 @@ public class ResourceService {
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
-			logger.log(Level.FINE, "/path path:"+path.toString());
+			logger.debug("/path path:"+path.toString());
 			
-			logger.log(Level.FINE, "/path call getResource("+path.split("/")[1]+")");
+			logger.debug("/path call getResource("+path.split("/")[1]+")");
 			resource = rc.getResource(path.split("/")[1]);
 			
-			logger.log(Level.FINE, "/path create Entity("+path+")");
+			logger.debug("/path create Entity("+path+")");
 			resourcePath = new Entity(path);		
 		}
 		
-		logger.log(Level.FINE, "/path resource {\"name\":\""+(resource==null?"NULL":resource.getName()+"\", "+
+		logger.debug("/path resource {\"name\":\""+(resource==null?"NULL":resource.getName()+"\", "+
 				"\"ontologyType\":\""+resource.getOntologyType().toString()+"\"}"));
-		//logger.log(Level.FINE, "/path resource "+resource.toJson().toString());
+		//logger.debug("/path resource "+resource.toJson().toString());
 		
-		logger.log(Level.FINE, "/path resourcePath:"+(resourcePath==null?"NULL":resourcePath.getName()));
+		logger.debug("/path resourcePath:"+(resourcePath==null?"NULL":resourcePath.getName()));
 
 		if (resource != null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
 			try {
-				logger.log(Level.FINE, "/path traversing resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
+				logger.debug("/path traversing resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
 				entities = pc.traversePath(resource, resourcePath,
 						resource.getRelationshipByName(relationshipString),
-						(SecureSession) request.getAttribute("secureSession"));
+						(User) session.getAttribute("user"));
 			} catch (ResourceInterfaceException e) {
-				logger.log(Level.SEVERE,
-						"Error in /resourceService/path/" + path
+				logger.error("/path Error in /resourceService/path/" + path
 								+ "?relationship=" + relationshipString + " : "
 								, e);
 				return invalidRequest(e.toString()+"/"+e.getMessage()+" path:"+path);

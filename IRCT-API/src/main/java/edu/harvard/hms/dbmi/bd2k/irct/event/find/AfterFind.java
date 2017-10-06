@@ -8,16 +8,13 @@ import java.util.List;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run after a find is executed
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface AfterFind extends IRCTEvent {
 
-	void fire(List<Entity> matches, FindInformationInterface findInformation, SecureSession session);
+	void fire(List<Entity> matches, FindInformationInterface findInformation, User user);
 
 }

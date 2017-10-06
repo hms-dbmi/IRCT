@@ -32,6 +32,8 @@ public class User implements Principal, Serializable {
 
 	private String userId;
 	
+	private String token;
+	
 	/**
 	 * Creates a new user
 	 */
@@ -87,5 +89,19 @@ public class User implements Principal, Serializable {
 	@Override
 	public String getName() {
 		return this.userId;
+	}
+
+	/**
+	 * @return the token
+	 */
+	public String getToken() {
+		return token;
+	}
+
+	/**
+	 * @param token the token to set
+	 */
+	public void setToken(String token) {
+		this.token = token;
 	}
 }

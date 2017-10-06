@@ -5,11 +5,11 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -18,14 +18,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * A stateless controller that manages the relationships, and paths for a
  * resource
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Stateless
 public class PathController {
@@ -33,8 +30,7 @@ public class PathController {
 	@Inject
 	private ResourceController rc;
 
-	@Inject
-	Logger logger;
+	private Logger logger = Logger.getLogger(this.getClass());
 	
 	@Inject
 	private IRCTEventListener irctEventListener;
@@ -55,22 +51,22 @@ public class PathController {
 	 *             A resource interface exception occurred
 	 */
 	public List<Entity> traversePath(Resource resource, Entity resourcePath,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
-		logger.log(Level.FINE, "traversePath() resource:"+resource.getName()+" resourcePath:"+resourcePath.toString());
+		logger.debug("traversePath() resource:"+resource.getName()+" resourcePath:"+resourcePath.toString());
 		
 		if (resource.getImplementingInterface() == null) {
-			logger.log(Level.FINE, "traversePath() is an interface implementing NULL");
+			logger.debug("traversePath() is an interface implementing NULL");
 		}
 		
 		if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(
-					resourcePath, relationship, session);
+					resourcePath, relationship, user);
 		} else {
-			logger.log(Level.SEVERE, "traversePath() resource ```"+resource.getName()+"``` does not implement PathResource");
+			logger.error("traversePath() resource ```"+resource.getName()+"``` does not implement PathResource");
 		}
-		logger.log(Level.FINE, "traversePath() returning NULL");
+		logger.debug("traversePath() returning NULL");
 		return null;
 	}
 
@@ -91,13 +87,13 @@ public class PathController {
 	 *             A resource interface exception occurred
 	 */
 	public List<Entity> searchForTerm(Resource resource, Entity resourcePath,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		List<Entity> matches = new ArrayList<Entity>();
 		List<FindInformationInterface> findInformationList = new ArrayList<FindInformationInterface>();
 		findInformationList.add(findInformation);
 		
-		irctEventListener.beforeFind(resource, resourcePath, findInformationList, session);
+		irctEventListener.beforeFind(resource, resourcePath, findInformationList, user);
 		
 		for (FindInformationInterface findInformationEntry : findInformationList) {
 			if (resource == null) {
@@ -105,7 +101,7 @@ public class PathController {
 					matches.addAll(find(
 							(PathResourceImplementationInterface) searchResource
 									.getImplementingInterface(), null,
-							findInformationEntry, session));
+							findInformationEntry, user));
 				}
 				
 			} else {
@@ -113,24 +109,23 @@ public class PathController {
 					matches.addAll(find(
 							(PathResourceImplementationInterface) resource
 									.getImplementingInterface(),
-							resourcePath, findInformationEntry, session));
+							resourcePath, findInformationEntry, user));
 				}
 			}
-		}
-		
-		irctEventListener.afterFind(matches, findInformation, session);
+		}		
+		irctEventListener.afterFind(matches, findInformation, user);
 		
 		return matches;
 	}
 
 	private List<Entity> find(PathResourceImplementationInterface resource,
 			Entity resourcePath, FindInformationInterface findInformation,
-			SecureSession session) {
+			User user) {
 		List<Entity> entities = new ArrayList<Entity>();
 		try {
-			entities = resource.find(resourcePath, findInformation, session);
+			entities = resource.find(resourcePath, findInformation, user);
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "find() Unable to search for term on resource " + resource
+			logger.error("find() Unable to search for term on resource " + resource
 					+ " message: " + e.getMessage());
 		}
 		return entities;

@@ -3,20 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.executable;
 
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * The executable interface provides a set of methods that an executable must
  * implement. An executable is the implementing class for any type of process,
  * query, or action.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface Executable {
-	void setup(SecureSession secureSession);
+	void setup(User user);
 
 	/**
 	 * Run the executable

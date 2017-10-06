@@ -34,13 +34,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.exception.ProcessException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the process service
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Path("/processService")
 @ConversationScoped
@@ -226,8 +223,7 @@ public class ProcessService implements Serializable {
 	public Response runProcess() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		try {
-			response.add("resultId", ec.runProcess(pc.getProcess(),
-					(SecureSession) session.getAttribute("secureSession")));
+			response.add("resultId", ec.runProcess(pc.getProcess(), (User) session.getAttribute("user")));
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
@@ -287,8 +283,7 @@ public class ProcessService implements Serializable {
 
 		try {
 			pc.updateProcess(resource, pt, fields);
-			response.add("resultId", ec.runProcess(pc.getProcess(),
-					(SecureSession) session.getAttribute("secureSession")));
+			response.add("resultId", ec.runProcess(pc.getProcess(), (User) session.getAttribute("user")));
 
 		} catch (PersistableException | ProcessException e) {
 			response.add("status", "Error running request");

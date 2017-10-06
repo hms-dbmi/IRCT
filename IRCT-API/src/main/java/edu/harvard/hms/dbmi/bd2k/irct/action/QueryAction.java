@@ -8,6 +8,8 @@ import java.util.Map;
 
 import javax.naming.NamingException;
 
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
@@ -16,10 +18,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourc
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 
 /**
  * Implements the Action interface to run a query on a specific instance
@@ -67,8 +67,8 @@ public class QueryAction implements Action {
 	}
 
 	@Override
-	public void run(SecureSession session) {
-		irctEventListener.beforeQuery(session, resource, query);
+	public void run(User user) {
+		irctEventListener.beforeQuery(user, resource, query);
 		this.status = ActionStatus.RUNNING;
 		try {
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
@@ -76,14 +76,9 @@ public class QueryAction implements Action {
 
 			this.result = ActionUtilities.createResult(queryInterface
 					.getQueryDataType(query));
+			this.result.setUser(user);
 
-			if (session != null) {
-				this.result.setUser(session.getUser());
-			}
-			
-			
-
-			this.result = queryInterface.runQuery(session, query, result);
+			this.result = queryInterface.runQuery(user, query, result);
 
 			// Update the result in the database
 			ActionUtilities.mergeResult(this.result);
@@ -92,22 +87,22 @@ public class QueryAction implements Action {
 			this.result.setMessage(e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-		irctEventListener.afterQuery(session, resource, query);
+		irctEventListener.afterQuery(user, resource, query);
 	}
 
 	@Override
-	public Result getResults(SecureSession session)
+	public Result getResults(User user)
 			throws ResourceInterfaceException {
 		try {
 			this.result = ((QueryResourceImplementationInterface) resource
-					.getImplementingInterface()).getResults(session, result);
+					.getImplementingInterface()).getResults(user, result);
 
 			while ((this.result.getResultStatus() != ResultStatus.ERROR)
 					&& (this.result.getResultStatus() != ResultStatus.COMPLETE)) {
 				Thread.sleep(3000);
 				this.result = ((QueryResourceImplementationInterface) resource
 						.getImplementingInterface())
-						.getResults(session, result);
+						.getResults(user, result);
 			}
 
 			if (this.result.getResultStatus() == ResultStatus.COMPLETE) {
@@ -116,7 +111,6 @@ public class QueryAction implements Action {
 				} else {
 					((Persistable) result.getData()).persist();
 				}
-
 			}
 
 			result.getData().close();

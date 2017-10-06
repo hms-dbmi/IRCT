@@ -30,16 +30,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * The execution controller is a stateless controller that manages the
  * executions of different processes, queries, and joins by creating an
  * execution plan and running it.
- *
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Stateless
 public class ExecutionController {
@@ -61,18 +57,16 @@ public class ExecutionController {
 	 *
 	 * @param process
 	 *            Process to run
-	 * @param secureSession Session to run it in
+	 * @param user Credentials for the current user
 	 * @return result id
 	 * @throws PersistableException
 	 *             Persistable exception occurred
 	 */
-	public Long runProcess(IRCTProcess process, SecureSession secureSession)
+	public Long runProcess(IRCTProcess process, User user)
 			throws PersistableException {
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
-		if(secureSession != null) {
-			newResult.setUser(secureSession.getUser());
-		}
+		newResult.setUser(user);
 
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
@@ -84,7 +78,7 @@ public class ExecutionController {
 		eln.setAction(pa);
 
 		ExecutionPlan exp = new ExecutionPlan();
-		exp.setup(eln, secureSession);
+		exp.setup(eln, user);
 
 		runExecutionPlan(exp, newResult);
 
@@ -101,14 +95,14 @@ public class ExecutionController {
 	 * @throws PersistableException
 	 *             An error occurred
 	 */
-	public Long runQuery(Query query, SecureSession secureSession)
+	public Long runQuery(Query query, User user)
 			throws PersistableException {
 
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
 
 		// Add the current user to the query.
-		newResult.setUser(secureSession.getUser());
+		newResult.setUser(user);
 
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
@@ -124,7 +118,7 @@ public class ExecutionController {
 		eln.setAction(qa);
 
 		ExecutionPlan exp = new ExecutionPlan();
-		exp.setup(eln, secureSession);
+		exp.setup(eln, user);
 
 		runExecutionPlan(exp, newResult);
 
@@ -141,13 +135,11 @@ public class ExecutionController {
 	 * @throws PersistableException
 	 *             An error occurred
 	 */
-	public Long runJoin(Join join, SecureSession secureSession)
+	public Long runJoin(Join join, User user)
 			throws PersistableException {
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
-		if(secureSession != null) {
-			newResult.setUser(secureSession.getUser());
-		}
+		newResult.setUser(user);
 
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
@@ -159,7 +151,7 @@ public class ExecutionController {
 		eln.setAction(ja);
 
 		ExecutionPlan exp = new ExecutionPlan();
-		exp.setup(eln, secureSession);
+		exp.setup(eln, user);
 		runExecutionPlan(exp, newResult);
 
 		return newResult.getId();

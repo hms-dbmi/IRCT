@@ -4,11 +4,11 @@
 package edu.harvard.hms.dbmi.bd2k.irct.executable;
 
 
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 
 /**
  * An execution plan is series of executable processes that are run by the IRCT.
@@ -22,7 +22,7 @@ public class ExecutionPlan {
 	private ExecutableStatus status;
 	private Executable executable;
 	private Result results;
-	private SecureSession session;
+	private User user;
 
 	private IRCTEventListener irctEventListener;
 	
@@ -33,9 +33,9 @@ public class ExecutionPlan {
 	 *            Base executable
 	 * @param session Secure session to run in            
 	 */
-	public void setup(Executable executable, SecureSession session) {
+	public void setup(Executable executable, User user) {
 		this.executable = executable;
-		this.session = session;
+		this.user = user;
 		this.status = ExecutableStatus.CREATED;
 		this.results = null;
 		
@@ -46,11 +46,11 @@ public class ExecutionPlan {
 	 * Run the base execution plan
 	 */
 	public void run() {
-		irctEventListener.beforeExecutionPlan(session, executable);
+		irctEventListener.beforeExecutionPlan(user, executable);
 		
 		this.status = ExecutableStatus.RUNNING;
 		try {
-			this.executable.setup(session);
+			this.executable.setup(user);
 			this.executable.run();
 			this.results = this.executable.getResults();
 		} catch (ResourceInterfaceException e) {
@@ -58,7 +58,7 @@ public class ExecutionPlan {
 		}
 
 		this.status = ExecutableStatus.COMPLETED;
-		irctEventListener.afterExecutionPlan(session, executable);
+		irctEventListener.afterExecutionPlan(user, executable);
 	}
 
 	/**

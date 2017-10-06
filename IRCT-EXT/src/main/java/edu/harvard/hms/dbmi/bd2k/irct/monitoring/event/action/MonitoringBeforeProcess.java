@@ -11,13 +11,10 @@ import org.apache.commons.logging.LogFactory;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.action.BeforeProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Before a query write the Process information to the Action Monitoring log
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class MonitoringBeforeProcess implements BeforeProcess {
 	
@@ -28,8 +25,8 @@ public class MonitoringBeforeProcess implements BeforeProcess {
 	}
 
 	@Override
-	public void fire(SecureSession session, IRCTProcess process) {
-		log.info("PROCESS: " + session.getUser().getName() + " : " + process.toString());
+	public void fire(User user, IRCTProcess process) {
+		log.info("PROCESS: " + user.getName() + " : " + process.toString());
 		
 	}
 	

@@ -7,10 +7,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.ejb.Singleton;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.action.Action;
 import edu.harvard.hms.dbmi.bd2k.irct.event.action.AfterAction;
@@ -37,18 +37,14 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Manages the event listeners
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Singleton
 public class IRCTEventListener {
-	private static Logger logger = Logger.getGlobal();
+	private Logger logger = Logger.getLogger(this.getClass());
 	
 	private Map<String, List<IRCTEvent>> events;
 
@@ -65,21 +61,21 @@ public class IRCTEventListener {
 	 * @param eci Event Implementation
 	 */
 	public void registerListener(EventConverterImplementation eci) {
-		logger.log(Level.FINE, "registerListener() Starting eci:"+(eci==null?"null":eci.getName()));
+		logger.debug("registerListener() Starting eci:"+(eci==null?"null":eci.getName()));
 		IRCTEvent irctEvent = eci.getEventListener();
 		
 		String eventType = irctEvent.getClass().getInterfaces()[0]
 				.getSimpleName();
-		logger.log(Level.FINE, "registerListener() eventType:"+(eventType==null?"null":eventType));
+		logger.debug("registerListener() eventType:"+(eventType==null?"null":eventType));
 		if (!events.containsKey(eventType)) {
-			logger.log(Level.FINE, "registerListener() found in ```events```, will be added to list");
+			logger.debug("registerListener() found in ```events```, will be added to list");
 			events.put(eventType, new ArrayList<IRCTEvent>());
 		}
-		logger.log(Level.FINE, "registerListener() calling init() on eventListener with params:"+(eci.getParameters()==null?"null":eci.getParameters().toString()));
+		logger.debug("registerListener() calling init() on eventListener with params:"+(eci.getParameters()==null?"null":eci.getParameters().toString()));
 		irctEvent.init(eci.getParameters());
-		logger.log(Level.FINE, "registerListener() update Event in list with the IRCTEvent that was generated.");
+		logger.debug("registerListener() update Event in list with the IRCTEvent that was generated.");
 		events.get(eventType).add(irctEvent);
-		logger.log(Level.FINE, "registerListener() Finished.");
+		logger.debug("registerListener() Finished.");
 	}
 
 	// Action Events
@@ -91,12 +87,12 @@ public class IRCTEventListener {
 	 * @param action
 	 *            Action
 	 */
-	public void afterAction(SecureSession session, Action action) {
+	public void afterAction(User user, Action action) {
 		List<IRCTEvent> irctEvents = events.get("AfterAction");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((AfterAction) irctEvent).fire(session, action);
+			((AfterAction) irctEvent).fire(user, action);
 		}
 	}
 
@@ -108,12 +104,12 @@ public class IRCTEventListener {
 	 * @param executable
 	 *            Execution Plan
 	 */
-	public void afterExecutionPlan(SecureSession session, Executable executable) {
+	public void afterExecutionPlan(User user, Executable executable) {
 		List<IRCTEvent> irctEvents = events.get("AfterExecutionPlan");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((AfterExecutionPlan) irctEvent).fire(session, executable);
+			((AfterExecutionPlan) irctEvent).fire(user, executable);
 		}
 	}
 
@@ -125,12 +121,12 @@ public class IRCTEventListener {
 	 * @param join
 	 *            Type of Join
 	 */
-	public void afterJoin(SecureSession session, Join join) {
+	public void afterJoin(User user, Join join) {
 		List<IRCTEvent> irctEvents = events.get("AfterJoin");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((AfterJoin) irctEvent).fire(session, join);
+			((AfterJoin) irctEvent).fire(user, join);
 		}
 	}
 
@@ -142,12 +138,12 @@ public class IRCTEventListener {
 	 * @param process
 	 *            Process
 	 */
-	public void afterProcess(SecureSession session, IRCTProcess process) {
+	public void afterProcess(User user, IRCTProcess process) {
 		List<IRCTEvent> irctEvents = events.get("AfterProcess");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((AfterProcess) irctEvent).fire(session, process);
+			((AfterProcess) irctEvent).fire(user, process);
 		}
 	}
 
@@ -161,17 +157,13 @@ public class IRCTEventListener {
 	 * @param query
 	 *            Query
 	 */
-	public void afterQuery(SecureSession session, Resource resource, Query query) {
+	public void afterQuery(User user, Resource resource, Query query) {
 		List<IRCTEvent> irctEvents = events.get("AfterQuery");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((AfterQuery) irctEvent).fire(session, resource, query);
+			((AfterQuery) irctEvent).fire(user, resource, query);
 		}
-	}
-
-	public void afterVisualization() {
-		// TODO: IMPLEMENTATION OF VISUALIZATION ACTION NEEDED
 	}
 
 	/**
@@ -182,12 +174,12 @@ public class IRCTEventListener {
 	 * @param action
 	 *            Action
 	 */
-	public void beforeAction(SecureSession session, Action action) {
+	public void beforeAction(User user, Action action) {
 		List<IRCTEvent> irctEvents = events.get("BeforeAction");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((BeforeAction) irctEvent).fire(session, action);
+			((BeforeAction) irctEvent).fire(user, action);
 		}
 	}
 
@@ -199,12 +191,12 @@ public class IRCTEventListener {
 	 * @param executable
 	 *            Execution Plan
 	 */
-	public void beforeExecutionPlan(SecureSession session, Executable executable) {
+	public void beforeExecutionPlan(User user, Executable executable) {
 		List<IRCTEvent> irctEvents = events.get("BeforeExecutionPlan");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((BeforeExecutionPlan) irctEvent).fire(session, executable);
+			((BeforeExecutionPlan) irctEvent).fire(user, executable);
 		}
 	}
 
@@ -216,12 +208,12 @@ public class IRCTEventListener {
 	 * @param join
 	 *            Join
 	 */
-	public void beforeJoin(SecureSession session, Join join) {
+	public void beforeJoin(User user, Join join) {
 		List<IRCTEvent> irctEvents = events.get("BeforeJoin");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((BeforeJoin) irctEvent).fire(session, join);
+			((BeforeJoin) irctEvent).fire(user, join);
 		}
 	}
 
@@ -233,12 +225,12 @@ public class IRCTEventListener {
 	 * @param process
 	 *            Process
 	 */
-	public void beforeProcess(SecureSession session, IRCTProcess process) {
+	public void beforeProcess(User user, IRCTProcess process) {
 		List<IRCTEvent> irctEvents = events.get("BeforeProcess");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((BeforeProcess) irctEvent).fire(session, process);
+			((BeforeProcess) irctEvent).fire(user, process);
 		}
 	}
 
@@ -252,13 +244,13 @@ public class IRCTEventListener {
 	 * @param query
 	 *            Query
 	 */
-	public void beforeQuery(SecureSession session, Resource resource,
+	public void beforeQuery(User user, Resource resource,
 			Query query) {
 		List<IRCTEvent> irctEvents = events.get("BeforeQuery");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((BeforeQuery) irctEvent).fire(session, resource, query);
+			((BeforeQuery) irctEvent).fire(user, resource, query);
 		}
 	}
 
@@ -306,19 +298,19 @@ public class IRCTEventListener {
 	 *            Result
 	 */
 	public void beforeGetResult(User user, Long resultId) {
-		logger.log(Level.FINE, "beforeGetResult() user:"+user.getName()+" resultId:"+resultId);
+		logger.debug("beforeGetResult() user:"+user.getName()+" resultId:"+resultId);
 		
-		logger.log(Level.FINE, "beforeGetResult() selecting ```BeforeGetResult``` from "+(events==null?"null":events.size())+" events.");
+		logger.debug("beforeGetResult() selecting ```BeforeGetResult``` from "+(events==null?"null":events.size())+" events.");
 		List<IRCTEvent> irctEvents = events.get("BeforeGetResult");
 		if (irctEvents == null) {
-			logger.log(Level.FINE, "beforeGetResult() There were no ```BeforeGetResult``` events.");
+			logger.debug("beforeGetResult() There were no ```BeforeGetResult``` events.");
 		} else {
-			logger.log(Level.FINE, "beforeGetResult() executing "+(irctEvents==null?"null":irctEvents.size())+" events.");
+			logger.debug("beforeGetResult() executing "+(irctEvents==null?"null":irctEvents.size())+" events.");
 			for (IRCTEvent irctEvent : irctEvents) {
-				logger.log(Level.FINE, "beforeGetResult() firing "+(((BeforeGetResult) irctEvent)==null?"null":((BeforeGetResult) irctEvent).toString())+" event.");
+				logger.debug("beforeGetResult() firing "+(((BeforeGetResult) irctEvent)==null?"null":((BeforeGetResult) irctEvent).toString())+" event.");
 				((BeforeGetResult) irctEvent).fire(user, resultId);
 			}
-			logger.log(Level.FINE, "beforeGetResult() Finished firing all ```BeforeGetResult``` events.");
+			logger.debug("beforeGetResult() Finished firing all ```BeforeGetResult``` events.");
 		}
 	}
 
@@ -329,12 +321,12 @@ public class IRCTEventListener {
 	 *            Result
 	 */
 	public void beforeSaveResult(Result result) {
-		logger.log(Level.FINE, "beforeSaveResult() result:"+(result==null?"null":result.getId()));
+		logger.debug("beforeSaveResult() result:"+(result==null?"null":result.getId()));
 		
-		logger.log(Level.FINE, "beforeSaveResult() selecting all ```BeforeSaveResult``` from "+(events==null?"null":events.size())+" events.");
+		logger.debug("beforeSaveResult() selecting all ```BeforeSaveResult``` from "+(events==null?"null":events.size())+" events.");
 		List<IRCTEvent> irctEvents = events.get("BeforeSaveResult");
 		if (irctEvents == null) {
-			logger.log(Level.FINE, "beforeSaveResult() there are no ```BeforeSaveResult``` events.");
+			logger.debug("beforeSaveResult() there are no ```BeforeSaveResult``` events.");
 		} else {
 			for (IRCTEvent irctEvent : irctEvents) {
 				((BeforeSaveResult) irctEvent).fire(result);
@@ -357,13 +349,13 @@ public class IRCTEventListener {
 	 */
 	public void beforeFind(Resource resource, Entity resourcePath,
 			List<FindInformationInterface> findInformation,
-			SecureSession session) {
+			User user) {
 		List<IRCTEvent> irctEvents = events.get("BeforeFind");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
 			((BeforeFind) irctEvent).fire(resource, resourcePath,
-					findInformation, session);
+					findInformation, user);
 		}
 	}
 
@@ -375,13 +367,13 @@ public class IRCTEventListener {
 	 * @param session Session Information
 	 */
 	public void afterFind(List<Entity> matches,
-			FindInformationInterface findInformation, SecureSession session) {
+			FindInformationInterface findInformation, User user) {
 
 		List<IRCTEvent> irctEvents = events.get("AfterFind");
 		if (irctEvents == null)
 			return;
 		for (IRCTEvent irctEvent : irctEvents) {
-			((AfterFind) irctEvent).fire(matches, findInformation, session);
+			((AfterFind) irctEvent).fire(matches, findInformation, user);
 		}
 	}
 }

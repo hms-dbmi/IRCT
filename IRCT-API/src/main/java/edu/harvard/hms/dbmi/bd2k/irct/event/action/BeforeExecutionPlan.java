@@ -5,16 +5,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run before an execution plan is run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface BeforeExecutionPlan extends IRCTEvent {
 
-	void fire(SecureSession session, Executable executable);
+	void fire(User user, Executable executable);
 
 }

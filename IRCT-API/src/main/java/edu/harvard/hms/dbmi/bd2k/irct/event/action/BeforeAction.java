@@ -5,16 +5,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 
 import edu.harvard.hms.dbmi.bd2k.irct.action.Action;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run before an action is run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface BeforeAction extends IRCTEvent {
 
-	void fire(SecureSession session, Action action);
+	void fire(User user, Action action);
 
 }

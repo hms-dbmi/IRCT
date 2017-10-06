@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -23,7 +23,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class HashJoinScaleTest {
 
@@ -285,7 +285,7 @@ public class HashJoinScaleTest {
 		rightAgeColumn.setName("Row");
 		rightAgeColumn.setDataType(PrimitiveDataType.STRING);
 
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -304,7 +304,7 @@ public class HashJoinScaleTest {
 						rightAgeColumn }, min, max));
 		join.getStringValues().put("RightColumn", "user_id");
 
-		return (ResultSetImpl) hashJoin.run(session, join, result).getData();
+		return (ResultSetImpl) hashJoin.run(user, join, result).getData();
 	}
 
 	private ResultSet createResultSet(int size, Column[] columns, int min,

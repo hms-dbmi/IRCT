@@ -8,14 +8,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Provides an implementation that describes the API for any resource that has
  * processes that can be run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface ProcessResourceImplementationInterface extends ResourceImplementationInterface {
 	
@@ -28,7 +25,7 @@ public interface ProcessResourceImplementationInterface extends ResourceImplemen
 	 * @return Results
 	 * @throws ResourceInterfaceException A resource exception occurred
 	 */
-	Result runProcess(SecureSession session, IRCTProcess process, Result result) throws ResourceInterfaceException;
+	Result runProcess(User user, IRCTProcess process, Result result) throws ResourceInterfaceException;
 	
 	/**
 	 * Returns the results of the process if they are available
@@ -38,7 +35,7 @@ public interface ProcessResourceImplementationInterface extends ResourceImplemen
 	 * @return Results
 	 * @throws ResourceInterfaceException A resource exception occurred
 	 */ 
-	Result getResults(SecureSession session, Result result) throws ResourceInterfaceException;
+	Result getResults(User user, Result result) throws ResourceInterfaceException;
 
 	/**
 	 * Returns the state of the resource

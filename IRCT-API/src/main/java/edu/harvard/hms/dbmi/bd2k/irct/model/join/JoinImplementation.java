@@ -10,15 +10,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * The JoinAction interface extends the Action interface for Joins. All joins
  * must implement this interface.
- * 
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface JoinImplementation {
 	/**
@@ -30,7 +26,7 @@ public interface JoinImplementation {
 	 */
 	void setup(Map<String, Object> parameters) throws JoinActionSetupException;
 
-	Result run(SecureSession session, Join join, Result result) throws ResultSetException, PersistableException;
+	Result run(User user, Join join, Result result) throws ResultSetException, PersistableException;
 	
 	Result getResults(Result result);
 	

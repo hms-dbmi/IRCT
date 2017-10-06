@@ -12,7 +12,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An implementation of a resource that communicates with an open CPU instance.
@@ -42,14 +42,14 @@ public class OpenCPUResourceImplementation implements
 	}
 
 	@Override
-	public Result runProcess(SecureSession session, IRCTProcess pep,
+	public Result runProcess(User user, IRCTProcess pep,
 			Result result) throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;

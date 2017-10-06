@@ -61,8 +61,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableExceptio
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.security.SecurityUtility;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.scidb.SciDB;
 import edu.harvard.hms.dbmi.scidb.SciDBAggregateFactory;
 import edu.harvard.hms.dbmi.scidb.SciDBArray;
@@ -75,7 +74,6 @@ import edu.harvard.hms.dbmi.scidb.SciDBListElement;
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 
 /**
- * @author Jeremy R. Easton-Marks
  *
  */
 public class SciDBResourceImplementation implements
@@ -132,11 +130,11 @@ public class SciDBResourceImplementation implements
 	 */
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		String basePath = path.getPui();
 		String[] pathComponents = basePath.split("/");
 		CSVParser parser = null;
@@ -236,9 +234,9 @@ public class SciDBResourceImplementation implements
 	 * edu.harvard.hms.dbmi.bd2k.irct.model.result.Result)
 	 */
 	@Override
-	public Result runQuery(SecureSession session, Query query, Result result)
+	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
 		result.setResultStatus(ResultStatus.CREATED);
@@ -500,14 +498,14 @@ public class SciDBResourceImplementation implements
 	 * edu.harvard.hms.dbmi.bd2k.irct.model.result.Result)
 	 */
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		if (result.getResultStatus() == ResultStatus.COMPLETE
 				|| result.getResultStatus() == ResultStatus.ERROR) {
 			return result;
 		}
 
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
 		try {
@@ -579,9 +577,9 @@ public class SciDBResourceImplementation implements
 	 * edu.harvard.hms.dbmi.bd2k.irct.model.result.Result)
 	 */
 	@Override
-	public Result runProcess(SecureSession session, IRCTProcess process,
+	public Result runProcess(User user, IRCTProcess process,
 			Result result) throws ResourceInterfaceException {
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
 
@@ -636,7 +634,7 @@ public class SciDBResourceImplementation implements
 	 * @param token
 	 * @return
 	 */
-	protected HttpClient createClient(SecureSession session) {
+	protected HttpClient createClient(User user) {
 		// SSL WRAPAROUND
 		HttpClientBuilder returns = null;
 
@@ -653,17 +651,7 @@ public class SciDBResourceImplementation implements
 
 		List<Header> defaultHeaders = new ArrayList<Header>();
 
-		String token = session.getToken().toString();
-		if (this.clientId != null) {
-			token = SecurityUtility.delegateToken(this.namespace,
-					this.clientId, session);
-		}
-
-		if (session != null) {
-			defaultHeaders.add(new BasicHeader("Authorization", token));
-		}
-		defaultHeaders.add(new BasicHeader("Content-Type",
-				"application/x-www-form-urlencoded"));
+		defaultHeaders.add(new BasicHeader("Content-Type","application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
 
 		return returns.build();
@@ -775,7 +763,7 @@ public class SciDBResourceImplementation implements
 	 */
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}

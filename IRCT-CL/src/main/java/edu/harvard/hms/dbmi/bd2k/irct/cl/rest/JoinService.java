@@ -31,7 +31,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 @Path("/joinService")
 @ConversationScoped
@@ -80,8 +80,7 @@ public class JoinService implements Serializable {
 		}
 
 		try {
-			response.add("resultId", ec.runJoin(join,
-					(SecureSession) session.getAttribute("secureSession")));
+			response.add("resultId", ec.runJoin(join, (User) session.getAttribute("user")));
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");

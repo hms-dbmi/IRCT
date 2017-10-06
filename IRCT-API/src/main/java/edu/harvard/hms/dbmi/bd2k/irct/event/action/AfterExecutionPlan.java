@@ -5,13 +5,10 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run after an execution plan is run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface AfterExecutionPlan extends IRCTEvent {
 
@@ -21,6 +18,6 @@ public interface AfterExecutionPlan extends IRCTEvent {
 	 * @param session Session
 	 * @param executable Executable
 	 */
-	void fire(SecureSession session, Executable executable);
+	void fire(User user, Executable executable);
 
 }

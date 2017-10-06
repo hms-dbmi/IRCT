@@ -24,12 +24,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
@@ -48,13 +44,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the query service
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Path("/queryService")
 @ConversationScoped
@@ -77,242 +70,10 @@ public class QueryService implements Serializable {
 	@Inject
 	private HttpSession session;
 
-	/**
-	 * Starts the creation of a query
-	 * 
-	 * @return Conversation id
-	 */
-	@GET
-	@Path("/startQuery")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response startQuery() {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
-
-		qc.createQuery();
-
-		response.add("cid", conversationId);
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
-
-	/**
-	 * Saves a query
-	 * 
-	 * @return Query Id
-	 */
-	@GET
-	@Path("/saveQuery")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response saveQuery() {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-		try {
-			qc.saveQuery();
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		response.add("queryId", qc.getQuery().getId());
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
-
-	/**
-	 * Loads a saved Query
-	 * 
-	 * @param queryId
-	 *            Query Id
-	 * @return Conversation Id
-	 */
-	@GET
-	@Path("/loadQuery")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response loadQuery(@QueryParam(value = "queryId") Long queryId) {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
-
-		if (queryId == null) {
-			response.add("status", "Invalid Request");
-			response.add("message", "queryId is not set");
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		try {
-			qc.loadQuery(queryId);
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		response.add("cid", conversationId);
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
-
-	/**
-	 * Adds a clause through a JSON representation
-	 * 
-	 * @param payload
-	 *            JSON
-	 * @return Clause Id
-	 */
-	@POST
-	@Path("/clause")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response clause(String payload) {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-
-		JsonReader jsonReader = Json.createReader(new StringReader(payload));
-		JsonObject clauseObject = jsonReader.readObject();
-		jsonReader.close();
-
-		Long clauseId = null;
-		if (!clauseObject.containsKey("type")) {
-			response.add("status", "Invalid Request");
-			response.add("message", "The clause type is unknown");
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		try {
-			if (clauseObject.getString("type").equals("where")) {
-				clauseId = addJsonWhereClauseToQuery(null, clauseObject);
-			} else if (clauseObject.getString("type").equals("select")) {
-				clauseId = addJsonSelectClauseToQuery(null, clauseObject);
-			} else if (clauseObject.getString("type").equals("join")) {
-				clauseId = addJsonJoinClauseToQuery(null, clauseObject);
-			} else {
-				response.add("status", "Invalid Request");
-				response.add("message", "The clause type is unknown");
-				return Response.status(400).entity(response.build()).build();
-			}
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		response.add("clauseId", clauseId);
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
-
-	/**
-	 * Adds a clause through URI information
-	 * 
-	 * @param type
-	 *            Type of clause
-	 * @param info
-	 *            URI information
-	 * @return Clause Id
-	 */
-	@GET
-	@Path("/clause")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response clause(@QueryParam(value = "type") String type,
-			@Context UriInfo info) {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-
-		MultivaluedMap<String, String> queryParameters = info
-				.getQueryParameters();
-
-		String path = queryParameters.getFirst("field");
-		Entity field = null;
-		Resource resource = null;
-		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
-			resource = rc.getResource(path.split("/")[1]);
-			field = new Entity(path);
-		}
-		String dataType = queryParameters.getFirst("dataType");
-		if ((dataType != null) && (field != null)) {
-			field.setDataType(resource.getDataTypeByName(dataType));
-		}
-
-		if ((resource == null) || (field == null)) {
-			response.add("status", "Invalid Request");
-			response.add("message", "Invalid Path");
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		Long clauseId = null;
-		if (queryParameters.containsKey("clauseId")) {
-			clauseId = Long.parseLong(queryParameters.getFirst("clauseId")
-					.trim());
-		}
-		try {
-			if (type.equals("where")) {
-				String predicateName = queryParameters.getFirst("predicate");
-
-				String logicalOperatorName = queryParameters
-						.getFirst("logicalOperator");
-
-				Map<String, String> fields = new HashMap<String, String>();
-				for (String key : queryParameters.keySet()) {
-					if (key.startsWith("data-")) {
-						fields.put(key.substring(5),
-								queryParameters.getFirst(key));
-					}
-				}
-
-				clauseId = validateWhereClause(null, clauseId, resource, field,
-						predicateName, logicalOperatorName, fields, null);
-
-			} else if (type.equals("select")) {
-				String alias = queryParameters.getFirst("alias");
-				String operationName = queryParameters.getFirst("operation");
-
-				Map<String, String> fields = new HashMap<String, String>();
-				for (String key : queryParameters.keySet()) {
-					if (key.startsWith("data-")) {
-						fields.put(key.substring(5),
-								queryParameters.getFirst(key));
-					}
-				}
-
-				clauseId = validateSelectClause(null, clauseId, resource,
-						field, alias, operationName, fields, null);
-
-			} else if (type.equals("join")) {
-				String joinType = queryParameters.getFirst("joinType");
-
-				Map<String, String> fields = new HashMap<String, String>();
-				for (String key : queryParameters.keySet()) {
-					if (key.startsWith("data-")) {
-						fields.put(key.substring(5),
-								queryParameters.getFirst(key));
-					}
-				}
-
-				clauseId = validateJoinClause(null, clauseId, resource, field,
-						joinType, fields, null);
-			} else if (type.equals("sort")) {
-				String sortType = queryParameters.getFirst("sortType");
-				Map<String, String> fields = new HashMap<String, String>();
-				for (String key : queryParameters.keySet()) {
-					if (key.startsWith("data-")) {
-						fields.put(key.substring(5),
-								queryParameters.getFirst(key));
-					}
-				}
-
-				clauseId = validateSortClause(null, clauseId, resource, field,
-						sortType, fields, null);
-			} else {
-				throw new QueryException("No type set");
-			}
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-		response.add("clauseId", clauseId);
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
+	// TODO For future generations
+	// qc.createQuery();
+	// qc.saveQuery();
+	// qc.loadQuery(queryId);
 
 	/**
 	 * Saves a query
@@ -379,8 +140,7 @@ public class QueryService implements Serializable {
 		}
 
 		try {
-			response.add("resultId", ec.runQuery(query,
-					(SecureSession) session.getAttribute("secureSession")));
+			response.add("resultId", ec.runQuery(query, (User) session.getAttribute("user")));
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
@@ -402,8 +162,7 @@ public class QueryService implements Serializable {
 	public Response runQuery() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		try {
-			response.add("resultId", ec.runQuery(qc.getQuery(),
-					(SecureSession) session.getAttribute("secureSession")));
+			response.add("resultId", ec.runQuery(qc.getQuery(),(User) session.getAttribute("user")));
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");

@@ -19,14 +19,10 @@ import javax.ws.rs.core.MediaType;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the systems service.
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Path("/systemService")
 @RequestScoped
@@ -88,13 +84,12 @@ public class SystemService {
 
 		// Add user details
 		User user = (User) session.getAttribute("user");
-		Token token = (Token) session.getAttribute("token");
 		
 		build.add(
 			Json.createObjectBuilder()
 			.add("userid", user.getUserId())
 			.add("name", user.getName())
-			.add("token", (token!=null?token.toString():"N/A"))
+			.add("token", user.getToken())
 		);
 		return build.build();
 	}

@@ -119,6 +119,11 @@ public class Utilities {
 		return userEmail;
 
 	}
+	
+	// TODO This is silly, but for backward compatibility
+	public static String extractHeaderValue(HttpServletRequest req, String headerType) {
+		return Utilities.extractToken(req);		
+	}
 
 	private static String extractToken(HttpServletRequest req) {
 		logger.debug("extractToken() Starting");
