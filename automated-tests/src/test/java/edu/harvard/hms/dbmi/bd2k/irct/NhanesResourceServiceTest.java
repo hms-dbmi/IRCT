@@ -4,6 +4,10 @@ package edu.harvard.hms.dbmi.bd2k.irct;
 
 import edu.harvard.hms.dbmi.bd2k.irct.Utils.RestUtils;
 
+import io.restassured.RestAssured.*;
+import io.restassured.matcher.RestAssuredMatchers.*;
+import org.hamcrest.Matchers.*;
+
 import com.fasterxml.jackson.databind.ser.ContainerSerializer;
 import com.opencsv.*;
 import io.restassured.http.ContentType;
@@ -43,39 +47,36 @@ public class NhanesResourceServiceTest {
     private int countPui;
     String baseUri;
     String baseResource;
-    //=System.getProperty("path")+"/resourceService/path";
     String accessToken; 
-    //= System.getProperty("accessToken");
+
     
     /**
-     * Retrieve the value of endpoint (baseURI) from pom.xml
+     * This setup() method initializes the BaseURL and contenttype values 
      *
     **/
    @BeforeMethod
     public void setup()
     {
 	  baseUri=RestUtils.BaseURIPath()+"/resourceService/path";
-	 // System.out.println(baseUri);
 	  baseResource=RestUtils.BaseURIPath()+"/resourceService/resources";
 	  accessToken=RestUtils.AccessToken();
 	  RestUtils.setContentType(ContentType.JSON);
+	  
+	  LOGGER.info("*****************baseURI, baseResource,accessToken and contentType are set up*******************");
+	  
     }
    
     
-    //String baseUri = System.getProperty("path");    //Getting  the value from pom.xml
-	//String endpoint=System.getProperty("path");
-	//String baseUri="http://nhanes.hms.harvard.edu/rest/v1/resourceService/path/nhanes/Demo/questionnaire/questionnaire/alcohol use/";
-
    /**
     * Method ResourceServiceResourcesStatusCode test the "resources" and verify that the content loads correctly.
     * the response.
     *
     * @throws IOException 
     */
+
    
    
-@Test
-   
+@Test(priority=1)	
    public void ResourceServiceResourcesStatusCode() throws IOException {
 	   
 	   
@@ -87,57 +88,32 @@ public class NhanesResourceServiceTest {
                    .get(baseResource)
                    .then()
                    .statusCode(200);
-    	   	Assert.assertEquals(res.statusCode(), 2	);
-       }
-    	   //String implement=
-    	   	/*		given()
-                   .header("Authorization", accessToken).
-                when()
-                   .get(baseResource).
-                then()
-                	.statusCode(200)
-                	.assertThat();
-            */    //	.extract()
-                	//.path("implementation");
-    	   			
-                   //.body(ContainerSerializer, arg1);
+    	   	
+    		  LOGGER.info("***************** /ResourceService/Resources/ returns 200 OK status code*******************");
+    	   	
+       		}    
+       			catch (AssertionError e) 
+		       		{
+		           	LOGGER.error("Rest URI has Exception/Error", e);
+		       		}
+    		}
 
-                	//LOGGER.info("Resources is loading successfully     : value of Name field"  +implement);
-    
-       catch (AssertionError e) 
-       {
-           LOGGER.error("Rest URI has Exception/Error", e);
-    	}
-    }
-
-      @Test
+@Test (priority=2)	
        
        public void ResourceServiceResourcesResponseCheck() throws IOException {
     	   
-    	   
            try {
-        	   	
-               Response response = (Response) given()
-                       .header("Authorization", accessToken)
+        	   			given()
+        	   			.header("Authorization", accessToken)
                        .when()
                        .get(baseResource)
-                       .then()
+                       .then()        
                        .extract()
-                       .response();
-            Assert.assertNotEquals(response.toString().contains("implementation"), "implementation");
-               
-               /*          
-        	   if (response.toString().contains("implementation")){
-        	      		   
-        	      		  System.out.println("Passed");
-        	   }
-        	      	   else
-        	      	   {
-        	      	  
-        	      		  System.out.println("failed");
-        	      	   }    	      	   
-        	*/
-        	   		
+                       .response()
+                       .getBody().
+                        jsonPath().get("name");
+        	          	   			
+        	   		LOGGER.info("*****************Response of /ResourceService/Resources/ returns correctly*******************");
            } 
         	      	   catch (AssertionError e) {
                LOGGER.error("Rest URI has Exception/Error", e);
@@ -152,8 +128,12 @@ public class NhanesResourceServiceTest {
         */
 	   
    }
-@Test(timeOut = 30000000)
-    public void ResourceServicePathCheckStatusCode() throws IOException {        countPui = 0;
+    
+    
+@Test(priority=3,timeOut = 30000000)
+
+    public void ResourceServicePathCheckStatusCode() throws IOException {
+		countPui = 0;
         csvData = new ArrayList<>();
         String fileName = "Nhanes_Pui_Paths_Check_Code_" + df.format(new Date()) + ".csv";
         resourceServiceStatusCodePuis(baseUri, accessToken);
@@ -197,9 +177,9 @@ public class NhanesResourceServiceTest {
                         .extract()
                         .response();
 
-                List<String> pui = response
-                        .getBody()
-                        .jsonPath()
+	                List<String> pui = response
+	                        .getBody()
+	                        .jsonPath()
                         .getList("pui");
 
                 LOGGER.info("***************PUIs in response************************      : " + pui.toString());
