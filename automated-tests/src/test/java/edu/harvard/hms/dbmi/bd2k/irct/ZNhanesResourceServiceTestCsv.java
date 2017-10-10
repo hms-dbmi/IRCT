@@ -30,10 +30,10 @@ FileWriter fw = null;
  */
 
 
-public class NhanesResourceServiceTestCsv {
+public class ZNhanesResourceServiceTestCsv {
 
 
-    private static final Logger LOGGER = Logger.getLogger(NhanesResourceServiceTestCsv.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ZNhanesResourceServiceTestCsv.class.getName());
     private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 
     private static List<String[]> csvData = null;

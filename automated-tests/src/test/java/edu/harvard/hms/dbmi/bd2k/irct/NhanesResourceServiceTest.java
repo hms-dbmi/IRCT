@@ -192,7 +192,7 @@ public class NhanesResourceServiceTest {
 
                 for (int i = 0; i < pui.size(); i++) {
                 String childPuiPath = baseUri + pui.get(i);
-      //    	String childPuiPath = "http://nhanes.hms.harvard.edu/rest/v1/resourceService/path" + pui.get(i);
+      
                     LOGGER.info("-----------------------------------------------------------------------------------------------");
                     LOGGER.info("Path Unique Identifier with baseURI             :" + countPui + "  : " + childPuiPath);
                     LOGGER.info("-----------------------------------------------------------------------------------------------");
@@ -213,7 +213,9 @@ public class NhanesResourceServiceTest {
             writer.writeNext(header);
             writer.writeAll(data);
           //  writer.close();
-        } catch (IOException e) {
+        }
+        catch (IOException e) 
+        {
             LOGGER.error("Exception Occurred : ", e);
         }
     }

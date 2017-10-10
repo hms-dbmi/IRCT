@@ -45,10 +45,10 @@ import io.restassured.parsing.Parser;
  * @Version 1.0	 */
 
 
-public class NhanesTestqueryService
+public class NhanesTestQueryService
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
-	private static final Logger LOGGER = Logger.getLogger( NhanesTestqueryService.class.getName() );
+	private static final Logger LOGGER = Logger.getLogger( NhanesTestQueryService.class.getName() );
     String APIUrl;
     String accessToken;
     //RestAssured.defaultParser = Parser.JSON;
@@ -82,28 +82,16 @@ public void runQuery() throws IOException{
   //System.out.println(abspathFile);
   //System.out.println(jsonBody);
   //RestAssured.registerParser("text/plain", Parser.TEXT);
-  given()
+  		 given()
   		.contentType("application/json")
   		.header("Authorization", accessToken)
-/*		.body(new HashMap<String, Object>() 
-  		{{
-  			put("Select", new HashMap<String, Object>()
-  			
-  			{{
-  					put("field", new HashMap<String, Object>()
-  						{{
-				  		     put("pui", "/nhanes/Demo/laboratory/laboratory/pcbs/");
-					         put("dataType", "STRING");
-				         }});
-  					put("alias", "pcb153");
-  				}});
-  			
-  		}}).
-*/  			
-  		.body(jsonBody).
-  when().
-  		post(APIUrl).
-  then().statusCode(200).log().all();
+  		.body(jsonBody)
+  		.when()
+  		.post(APIUrl)
+  		.then()
+  		.statusCode(200)
+  		.log()
+  		.all();
   
 
 		//body("ResultId",  notNullValue())
