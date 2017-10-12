@@ -73,30 +73,60 @@ public class NhanesTestQueryService
 	}
    
  @Test  
-public void runQuery() throws IOException{
+public void runQueryStatusCode() throws IOException{
   
   String root=System.getProperty("user.dir");
   String abspathFile=root+"/src/test/resources/queryService.json";
   String jsonBody = generateStringFromResource(abspathFile);
-  //InputStream jsontest=this.getClass().getClassLoader().getResourceAsStream("queryService.json");
-  //System.out.println(abspathFile);
-  //System.out.println(jsonBody);
   //RestAssured.registerParser("text/plain", Parser.TEXT);
-  		 given()
-  		.contentType("application/json")
-  		.header("Authorization", accessToken)
-  		.body(jsonBody)
-  		.when()
-  		.post(APIUrl)
-  		.then()
-  		.statusCode(200)
-  		.log()
-  		.all();
-  
-
-		//body("ResultId",  notNullValue())
-
-}
+			  try{
+			  		given()
+			  		.contentType("application/json")
+			  		.header("Authorization", accessToken)
+			  		.body(jsonBody)
+			  		.when()
+			  		.post(APIUrl)
+			  		.then()
+			  		.statusCode(200)
+			  		.log()
+			  		.all();
+			  	LOGGER.info("The Status code is verified successfully");
+			 	}
+			  catch (AssertionError e) 
+					{
+			 	LOGGER.error("The Status code is not as expected -----Test Failed", e);
+					}
+			
+			 }
+ 
+ @Test  
+ public void runQueryResponseCheck() throws IOException{
+   
+   String root=System.getProperty("user.dir");
+   String abspathFile=root+"/src/test/resources/queryService.json";
+   String jsonBody = generateStringFromResource(abspathFile);
+  				   try{
+					   
+  					 Response response=	(Response) RestAssured.given()
+ 					   		.contentType("application/json")
+ 					   		.header("Authorization", accessToken)
+ 					   		.body(jsonBody)
+ 					   		.when()
+ 					   		.post(APIUrl)
+ 					   		.then().
+ 					   		body("resultId",is(notNullValue())).extract().response();
+  					   
+					
+					   LOGGER.info("The response of queryService is verified successfully"       +response.asString());
+					   		 }
+					   
+					   catch (AssertionError e) 
+			       		{
+						   
+						   LOGGER.error("The Response is not as expected -----Test Failed", e);
+			       		}
+   
+ 		}
  
 }
 
