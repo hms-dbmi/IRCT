@@ -1,6 +1,7 @@
 
 package edu.harvard.hms.dbmi.bd2k.irct;
 
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -20,6 +21,7 @@ import static org.hamcrest.Matchers.*;
 
 import org.apache.bcel.classfile.Constant;
 import org.apache.log4j.Logger;
+import org.apache.log4j.net.SyslogAppender;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -45,15 +47,13 @@ import io.restassured.parsing.Parser;
  * @Version 1.0	 */
 
 
-public class NhanesTestResultService
+public class NhanesTestResultService extends NhanesTestQueryService
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
 	private static final Logger LOGGER = Logger.getLogger( NhanesTestResultService.class.getName() );
-    String APIUrl;
+    String APIUrlResult;
     String accessToken;
-     String resultId="23232";
-    //RestAssured.defaultParser = Parser.JSON;
-    
+    String APIUrl;
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
      */
@@ -61,27 +61,48 @@ public class NhanesTestResultService
    @BeforeMethod
     public void setup()
     {
-	   APIUrl=RestUtils.BaseURIPath()+"/resultService/"+resultId+"/CSV";;
+	   
+	   APIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
 	   System.out.println(APIUrl);
+	   
 	   accessToken=RestUtils.AccessToken();
 	   RestUtils.setContentType(ContentType.JSON);
+	   System.out.println(accessToken);
     }
    
-  
     
- @Test  
+ //@Test  
 public void getresultId() throws IOException{
-  
+	 
+	   String root=System.getProperty("user.dir");
+	   String abspathFile=root+"/src/test/resources/queryService.json";
+	   String jsonBody = generateStringFromResource(abspathFile);
+	   System.out.println(accessToken);
+	   
+	   System.out.println(APIUrl);
+	   Response response=	(Response) RestAssured.given()
+		   		.contentType("application/json")
+		   		.header("Authorization", accessToken)
+		   		.body(jsonBody)
+		   		.when()
+		   		.post(APIUrl)
+		   		.then().
+		   		body("resultId",is(notNullValue())).extract().response();
+		 System.out.println(response.asString());
+		 
+		 
+		 String resultId=null;
+		APIUrlResult=RestUtils.BaseURIPath()+"/resultService/"+resultId+"/CSV";;
 }
  
- @Test  
+ /*//@Test  
  public void getAvailalbleFormats() throws IOException{
    
  }
   
  
- @Test  
+ //@Test  
  public void getResultStatus() throws IOException{
    
- }
+ }*/
 }
