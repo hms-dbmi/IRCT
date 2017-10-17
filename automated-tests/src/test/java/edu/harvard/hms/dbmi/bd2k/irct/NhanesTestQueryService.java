@@ -60,7 +60,7 @@ public class NhanesTestQueryService
    @BeforeMethod
     public void setup()
     {
-	   APIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";;
+	   APIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
 	   accessToken=RestUtils.AccessToken();
 	   RestUtils.setContentType(ContentType.JSON);
     }
@@ -116,7 +116,8 @@ public void runQueryStatusCode() throws IOException{
  					   		.then().
  					   		body("resultId",is(notNullValue())).extract().response();
   					   
-					
+  					
+  					 
 					   LOGGER.info("The response of queryService is verified successfully"       +response.asString());
 					   		 }
 					   
@@ -129,6 +130,10 @@ public void runQueryStatusCode() throws IOException{
  		}
  
 }
+
+
+
+
 
 /*
 	
@@ -171,6 +176,6 @@ public void runQueryStatusCode() throws IOException{
 }			
 
 }
-
+}
 
 */
