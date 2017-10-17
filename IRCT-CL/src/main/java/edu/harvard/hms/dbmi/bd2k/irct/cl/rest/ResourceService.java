@@ -22,8 +22,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -45,10 +43,7 @@ public class ResourceService {
 
 	@Inject
 	private PathController pc;
-
-	@Inject
-	Logger logger;
-
+	
 	//@Context
 	//private HttpServletRequest request;
 
@@ -68,14 +63,10 @@ public class ResourceService {
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
-		
-		logger.info("/resources");
 
+		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Resource> returnResources = null;
 		if (type == null || type.isEmpty()) {
-			logger.info("/resources get all types of resources");
-
 			returnResources = rc.getResources();
 		} else {
 			switch (type.toLowerCase()) {
@@ -104,7 +95,6 @@ public class ResourceService {
 		for (Resource resource : returnResources) {
 			response.add(resource.toJson());
 		}
-
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -144,12 +134,9 @@ public class ResourceService {
 	public Response search(@Context UriInfo info) {
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
-				
-		logger.debug("/search queryString:"+info.getQueryParameters().keySet().toString());
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
 			List<String> values = info.getQueryParameters().get(categoryName);
-			logger.debug("/search is ["+categoryName+"] valid?");
 			if (!rc.isValidCategory(categoryName)) {
 				JsonObjectBuilder build = Json.createObjectBuilder();
 				build.add("status", "Invalid resource category");
@@ -226,7 +213,6 @@ public class ResourceService {
 		try {
 			entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
 		} catch (ResourceInterfaceException e) {
-			logger.error("/find Exception:" + e.getMessage());
 			return invalidRequest(e.getMessage());
 		}
 
@@ -262,34 +248,18 @@ public class ResourceService {
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
-			logger.debug("/path path:"+path.toString());
-			
-			logger.debug("/path call getResource("+path.split("/")[1]+")");
 			resource = rc.getResource(path.split("/")[1]);
-			
-			logger.debug("/path create Entity("+path+")");
 			resourcePath = new Entity(path);		
 		}
-		
-		logger.debug("/path resource {\"name\":\""+(resource==null?"NULL":resource.getName()+"\", "+
-				"\"ontologyType\":\""+resource.getOntologyType().toString()+"\"}"));
-		//logger.debug("/path resource "+resource.toJson().toString());
-		
-		logger.debug("/path resourcePath:"+(resourcePath==null?"NULL":resourcePath.getName()));
-
 		if (resource != null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
 			try {
-				logger.debug("/path traversing resource:"+resource.getName()+" resourcePath:"+resourcePath.getName());
 				entities = pc.traversePath(resource, resourcePath,
 						resource.getRelationshipByName(relationshipString),
 						(User) session.getAttribute("user"));
 			} catch (ResourceInterfaceException e) {
-				logger.error("/path Error in /resourceService/path/" + path
-								+ "?relationship=" + relationshipString + " : "
-								, e);
 				return invalidRequest(e.toString()+"/"+e.getMessage()+" path:"+path);
 			}
 		} else if (path == null || path.isEmpty()) {

@@ -8,6 +8,8 @@ import java.util.Map;
 
 import javax.naming.NamingException;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
@@ -23,8 +25,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 
 /**
  * Implements the Action interface to run a query on a specific instance
- * 
- * @author Jeremy R. Easton-Marks
  *
  */
 public class QueryAction implements Action {
@@ -35,6 +35,8 @@ public class QueryAction implements Action {
 	private Result result;
 
 	private IRCTEventListener irctEventListener;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Sets up the action to run a given query on a resource
@@ -83,8 +85,14 @@ public class QueryAction implements Action {
 			// Update the result in the database
 			ActionUtilities.mergeResult(this.result);
 		} catch (Exception e) {
-			this.result.setResultStatus(ResultStatus.ERROR);
-			this.result.setMessage(e.getMessage());
+			logger.error("run() Exception:"+e.getMessage());
+			
+			if (this.result == null) {
+				logger.error("run() `this.result` is null");
+			} else {
+				this.result.setMessage(e.getMessage());
+				this.result.setResultStatus(ResultStatus.ERROR);
+			}
 			this.status = ActionStatus.ERROR;
 		}
 		irctEventListener.afterQuery(user, resource, query);

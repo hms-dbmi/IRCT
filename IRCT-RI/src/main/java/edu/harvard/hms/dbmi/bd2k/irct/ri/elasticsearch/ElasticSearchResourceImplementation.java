@@ -203,8 +203,12 @@ public class ElasticSearchResourceImplementation implements
 				indices.add(getIndexNameFrom(wc.getField().getPui()));
 				types.add(getTypeNameFrom(wc.getField().getPui()));
 
+				/*
+				TODO: Replace LogicalOperator which no longer exists, with something 
+				inside the resource
+				
 				QueryBuilder predicate = createPredicateFromClause(wc);
-
+				
 				if (wc.getLogicalOperator().name().equalsIgnoreCase("MUST")) {
 					qb.must(predicate);
 				} else if (wc.getLogicalOperator().name()
@@ -214,6 +218,7 @@ public class ElasticSearchResourceImplementation implements
 						.equalsIgnoreCase("SHOULD")) {
 					qb.should(predicate);
 				}
+				*/
 			}
 
 		}
