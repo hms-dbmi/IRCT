@@ -1,5 +1,13 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.elasticsearch;
 
+import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.commonTermsQuery;
+import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
+import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
+import static org.elasticsearch.index.query.QueryBuilders.simpleQueryStringQuery;
+import static org.elasticsearch.index.query.QueryBuilders.termQuery;
+
 import java.io.StringReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -26,8 +34,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 
-import static org.elasticsearch.index.query.QueryBuilders.*;
-
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -43,11 +49,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResource
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
-public class ElasticSearchResourceImplementation implements
-		QueryResourceImplementationInterface,
-		PathResourceImplementationInterface {
+public class ElasticSearchResourceImplementation
+		implements QueryResourceImplementationInterface, PathResourceImplementationInterface {
+
 	private String resourceName;
 	private String resourceURL;
 	private ResourceState resourceState;
@@ -56,8 +62,7 @@ public class ElasticSearchResourceImplementation implements
 	private Client client;
 
 	@Override
-	public void setup(Map<String, String> parameters)
-			throws ResourceInterfaceException {
+	public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
 		String[] strArray = { "resourceName", "resourceURL" };
 		if (!parameters.keySet().containsAll(Arrays.asList(strArray))) {
 			throw new ResourceInterfaceException("Missing parameters");
@@ -70,12 +75,8 @@ public class ElasticSearchResourceImplementation implements
 		String port = resourceURL.split(":")[1];
 
 		try {
-			client = TransportClient
-					.builder()
-					.build()
-					.addTransportAddress(
-							new InetSocketTransportAddress(InetAddress
-									.getByName(url), Integer.parseInt(port)));
+			client = TransportClient.builder().build().addTransportAddress(
+					new InetSocketTransportAddress(InetAddress.getByName(url), Integer.parseInt(port)));
 		} catch (UnknownHostException e) {
 			throw new ResourceInterfaceException("Unknown host");
 		}
@@ -84,8 +85,7 @@ public class ElasticSearchResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
@@ -98,8 +98,7 @@ public class ElasticSearchResourceImplementation implements
 
 		// Get a list of all the indexes if the index is not set
 		if ((this.index == null) && (pathComponents.length == 2)) {
-			String[] response = client.admin().cluster().prepareState()
-					.execute().actionGet().getState().getMetaData()
+			String[] response = client.admin().cluster().prepareState().execute().actionGet().getState().getMetaData()
 					.concreteAllIndices();
 			for (String index : response) {
 				Entity entity = new Entity();
@@ -117,13 +116,10 @@ public class ElasticSearchResourceImplementation implements
 			} else {
 				searchIndex = this.index;
 			}
-			ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> f = client
-					.admin().indices()
-					.getMappings(new GetMappingsRequest().indices(searchIndex))
-					.actionGet().getMappings();
+			ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> f = client.admin().indices()
+					.getMappings(new GetMappingsRequest().indices(searchIndex)).actionGet().getMappings();
 
-			ImmutableOpenMap<String, MappingMetaData> mapping = f
-					.get(searchIndex);
+			ImmutableOpenMap<String, MappingMetaData> mapping = f.get(searchIndex);
 			for (ObjectObjectCursor<String, MappingMetaData> c : mapping) {
 				Entity entity = new Entity();
 				entity.setName(c.key);
@@ -145,15 +141,11 @@ public class ElasticSearchResourceImplementation implements
 			}
 
 			GetMappingsResponse res = client.admin().indices()
-					.getMappings(new GetMappingsRequest().indices(searchIndex))
-					.actionGet();
-			MappingMetaData rawMap = res.mappings().get(searchIndex)
-					.get(searchObject);
+					.getMappings(new GetMappingsRequest().indices(searchIndex)).actionGet();
+			MappingMetaData rawMap = res.mappings().get(searchIndex).get(searchObject);
 
-			JsonObject jsonObject = Json
-					.createReader(new StringReader(rawMap.source().toString()))
-					.readObject().getJsonObject(searchObject)
-					.getJsonObject("properties");
+			JsonObject jsonObject = Json.createReader(new StringReader(rawMap.source().toString())).readObject()
+					.getJsonObject(searchObject).getJsonObject("properties");
 
 			for (String key : jsonObject.keySet()) {
 				Entity entity = new Entity();
@@ -169,10 +161,8 @@ public class ElasticSearchResourceImplementation implements
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query qep, Result result)
-			throws ResourceInterfaceException {
-		SearchRequestBuilder sb = new SearchRequestBuilder(client,
-				SearchAction.INSTANCE);
+	public Result runQuery(User user, Query qep, Result result) throws ResourceInterfaceException {
+		SearchRequestBuilder sb = new SearchRequestBuilder(client, SearchAction.INSTANCE);
 		BoolQueryBuilder qb = boolQuery();
 
 		ArrayList<String> indices = new ArrayList<String>();
@@ -185,8 +175,7 @@ public class ElasticSearchResourceImplementation implements
 				types.add(getTypeNameFrom(sc.getParameter().getPui()));
 
 				if (sc.getParameter().getDataType() == ElasticSearchDataType.FILE) {
-					sb.addHighlightedField(getFieldNameFrom(sc.getParameter()
-							.getPui()) + ".content");
+					sb.addHighlightedField(getFieldNameFrom(sc.getParameter().getPui()) + ".content");
 				} else {
 					sb.addField(getFieldNameFrom(sc.getParameter().getPui()));
 				}
@@ -201,11 +190,9 @@ public class ElasticSearchResourceImplementation implements
 
 				if (wc.getLogicalOperator().name().equalsIgnoreCase("MUST")) {
 					qb.must(predicate);
-				} else if (wc.getLogicalOperator().name()
-						.equalsIgnoreCase("MUSTNOT")) {
+				} else if (wc.getLogicalOperator().name().equalsIgnoreCase("MUSTNOT")) {
 					qb.mustNot(predicate);
-				} else if (wc.getLogicalOperator().name()
-						.equalsIgnoreCase("SHOULD")) {
+				} else if (wc.getLogicalOperator().name().equalsIgnoreCase("SHOULD")) {
 					qb.should(predicate);
 				}
 			}
@@ -228,42 +215,29 @@ public class ElasticSearchResourceImplementation implements
 		return result;
 	}
 
-	
-
 	private QueryBuilder createPredicateFromClause(WhereClause wc) {
 		String predicateName = wc.getPredicateType().getName();
 
 		if (predicateName.equals("MATCH")) {
-			return matchQuery(getFieldNameFrom(wc.getStringValues()
-					.get("FIELD")), wc.getStringValues().get("VALUE"));
+			return matchQuery(getFieldNameFrom(wc.getStringValues().get("FIELD")), wc.getStringValues().get("VALUE"));
 		} else if (predicateName.equals("COMMONTERM")) {
-			return commonTermsQuery(
-					getFieldNameFrom(wc.getStringValues().get("FIELD")), wc
-							.getStringValues().get("VALUE"));
+			return commonTermsQuery(getFieldNameFrom(wc.getStringValues().get("FIELD")),
+					wc.getStringValues().get("VALUE"));
 		} else if (predicateName.equals("QUERYSTRING")) {
 			return queryStringQuery(wc.getStringValues().get("QUERYSTRING"));
 		} else if (predicateName.equals("SIMPLEQUERYSTRING")) {
-			return simpleQueryStringQuery(wc.getStringValues().get(
-					"QUERYSTRING"));
+			return simpleQueryStringQuery(wc.getStringValues().get("QUERYSTRING"));
 		} else if (predicateName.equals("TERMQUERY")) {
-			return termQuery(
-					getFieldNameFrom(wc.getStringValues().get("FIELD")), wc
-							.getStringValues().get("VALUE"));
+			return termQuery(getFieldNameFrom(wc.getStringValues().get("FIELD")), wc.getStringValues().get("VALUE"));
 		} else if (predicateName.equals("TERMSQUERY")) {
-			return termQuery(
-					getFieldNameFrom(wc.getStringValues().get("FIELD")), wc
-							.getStringValues().get("VALUE"));
+			return termQuery(getFieldNameFrom(wc.getStringValues().get("FIELD")), wc.getStringValues().get("VALUE"));
 		} else if (predicateName.equals("RANGEQUERY")) {
 
-			boolean includeLower = wc.getStringValues().get("LOWER_INCLUSIVE")
-					.equalsIgnoreCase("TRUE");
-			boolean includeUpper = wc.getStringValues().get("UPPER_INCLUSIVE")
-					.equalsIgnoreCase("TRUE");
+			boolean includeLower = wc.getStringValues().get("LOWER_INCLUSIVE").equalsIgnoreCase("TRUE");
+			boolean includeUpper = wc.getStringValues().get("UPPER_INCLUSIVE").equalsIgnoreCase("TRUE");
 
-			return rangeQuery(
-					getFieldNameFrom(wc.getStringValues().get("FIELD")))
-					.from(wc.getStringValues().get("FROM"))
-					.to(wc.getStringValues().get("TO"))
+			return rangeQuery(getFieldNameFrom(wc.getStringValues().get("FIELD")))
+					.from(wc.getStringValues().get("FROM")).to(wc.getStringValues().get("TO"))
 					.includeLower(includeLower).includeUpper(includeUpper);
 		}
 
@@ -271,7 +245,7 @@ public class ElasticSearchResourceImplementation implements
 
 		return null;
 	}
-	
+
 	private String getTypeNameFrom(String pui) {
 		String[] pathComponents = pui.split("/");
 		if ((this.index != null) && (pathComponents.length == 4)) {
@@ -303,15 +277,13 @@ public class ElasticSearchResourceImplementation implements
 	}
 
 	@Override
-	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+	public List<Entity> find(Entity path, FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
-			throws ResourceInterfaceException {
+	public Result getResults(User user, Result result) throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;
 	}

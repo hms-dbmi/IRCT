@@ -51,7 +51,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableExceptio
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
 
@@ -93,7 +93,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = super.getPathRelationship(path, relationship,
 				session);
@@ -101,7 +101,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ");
 		// Get the counts from the tranSMART server
 		try {
-			HttpClient client = createClient(session);
+			HttpClient client = createClient(user);
 			String basePath = path.getPui();
 			String[] pathComponents = basePath.split("/");
 
@@ -157,9 +157,9 @@ public class I2B2TranSMARTResourceImplementation extends
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query query, Result result)
+	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
-		result = super.runQuery(session, query, result);
+		result = super.runQuery(user, query, result);
 
 		if (result.getResultStatus() != ResultStatus.ERROR) {
 			String resultInstanceId = result.getResourceActionId();
@@ -170,7 +170,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				while ((result.getResultStatus() != ResultStatus.ERROR)
 						&& (result.getResultStatus() != ResultStatus.COMPLETE)) {
 					Thread.sleep(3000);
-					result = checkForResult(session, result);
+					result = checkForResult(user, result);
 				}
 				if (result.getResultStatus() == ResultStatus.ERROR) {
 					return result;
@@ -225,7 +225,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		return result;
 	}
 
-	private Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, SecureSession session) throws ResourceInterfaceException {
+	private Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, User user) throws ResourceInterfaceException {
 		Map<String, String> returns = new HashMap<String, String>();
 
 		Entity baseEntity = new Entity(basePUI);
@@ -258,7 +258,7 @@ public class I2B2TranSMARTResourceImplementation extends
 		return returns;
 	}
 
-	private Result runClinicalDataQuery(SecureSession session, Result result,
+	private Result runClinicalDataQuery(User user, Result result,
 			Map<String, String> aliasMap, String resultId)
 			throws ResultSetException, ClientProtocolException, IOException,
 			PersistableException, JsonException {
@@ -313,7 +313,7 @@ public class I2B2TranSMARTResourceImplementation extends
 					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
 							"UTF-8");
 
-			HttpClient client = createClient(session);
+			HttpClient client = createClient(user);
 			HttpGet get = new HttpGet(url);
 			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
@@ -435,7 +435,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		// This method only exists so the results for i2b2XML do not get called
 		return result;
@@ -458,7 +458,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
@@ -467,11 +467,11 @@ public class I2B2TranSMARTResourceImplementation extends
 			if (findInformation.getValues().containsKey("tmObservationOnly")) {
 				returns = searchObservationOnly(findPath.getValues()
 						.get("term"), findPath.getValues().get("strategy"),
-						session, findPath.getValues().get("tmObservationOnly"));
+						user, findPath.getValues().get("tmObservationOnly"));
 			} else {
 				returns = searchObservationOnly(findPath.getValues()
 						.get("term"), findPath.getValues().get("strategy"),
-						session, "FALSE");
+						user, "FALSE");
 			}
 		} else {
 			returns = super.find(path, findInformation, session);
@@ -480,7 +480,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	}
 
 	public List<Entity> searchObservationOnly(String searchTerm,
-			String strategy, SecureSession session, String onlObs) {
+			String strategy, User user, String onlObs) {
 		List<Entity> entities = new ArrayList<Entity>();
 
 		try {
@@ -490,7 +490,7 @@ public class I2B2TranSMARTResourceImplementation extends
 							+ "/textSearch/findPaths", "oblyObs=" + onlObs
 							+ "&term=" + searchTerm, null);
 
-			HttpClient client = createClient(session);
+			HttpClient client = createClient(user);
 			HttpGet get = new HttpGet(uri);
 			HttpResponse response = client.execute(get);
 			JsonReader reader = Json.createReader(response.getEntity()

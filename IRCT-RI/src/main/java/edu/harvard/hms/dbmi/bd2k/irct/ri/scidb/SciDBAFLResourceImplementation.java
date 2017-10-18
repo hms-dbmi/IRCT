@@ -63,7 +63,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableExceptio
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.scidb.SciDB;
 import edu.harvard.hms.dbmi.scidb.SciDBAggregateFactory;
 import edu.harvard.hms.dbmi.scidb.SciDBArray;
@@ -75,10 +75,7 @@ import edu.harvard.hms.dbmi.scidb.SciDBFunction;
 import edu.harvard.hms.dbmi.scidb.SciDBListElement;
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 
-/**
- * @author Jeremy R. Easton-Marks
- *
- */
+
 public class SciDBAFLResourceImplementation implements
 		PathResourceImplementationInterface,
 		QueryResourceImplementationInterface,
@@ -144,14 +141,14 @@ public class SciDBAFLResourceImplementation implements
 	 */
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		
 		logger.debug( "getPathRelationship() Starting...");
 		
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		String basePath = path.getPui();
 		String[] pathComponents = basePath.split("/");
 		CSVParser parser = null;
@@ -252,12 +249,12 @@ public class SciDBAFLResourceImplementation implements
 	 * edu.harvard.hms.dbmi.bd2k.irct.model.result.Result)
 	 */
 	@Override
-	public Result runQuery(SecureSession session, Query query, Result result)
+	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
 		logger.log(Level.INFO, "runQuery() Starting");
 		
 		// Setup SciDB connection
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		SciDB sciDB = new SciDB();
 		logger.debug("runQuery() connecting to resource "+this.resourceURL);
 		sciDB.connect(client, this.resourceURL);
@@ -528,7 +525,7 @@ public class SciDBAFLResourceImplementation implements
 	 * edu.harvard.hms.dbmi.bd2k.irct.model.result.Result)
 	 */
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		logger.debug( "getResults() Starting ...");
 		
@@ -540,7 +537,7 @@ public class SciDBAFLResourceImplementation implements
 		
 		logger.debug( "getResults() `ResultStatus` is :"+result.getResultStatus());
 		
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
 		logger.debug( "getResults() connecting to "+this.resourceURL);
@@ -625,11 +622,11 @@ public class SciDBAFLResourceImplementation implements
 	 * edu.harvard.hms.dbmi.bd2k.irct.model.result.Result)
 	 */
 	@Override
-	public Result runProcess(SecureSession session, IRCTProcess process,
+	public Result runProcess(User user, IRCTProcess process,
 			Result result) throws ResourceInterfaceException {
 		logger.debug( "runProcess() Starting...");
 		
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		SciDB sciDB = new SciDB();
 		sciDB.connect(client, this.resourceURL);
 		sciDB.close();
@@ -688,7 +685,7 @@ public class SciDBAFLResourceImplementation implements
 	 * @param token
 	 * @return
 	 */
-	protected HttpClient createClient(SecureSession session) {
+	protected HttpClient createClient(User user) {
 		logger.debug( "createClient() Starting...");
 		
 		// SSL WRAPAROUND
@@ -833,7 +830,7 @@ public class SciDBAFLResourceImplementation implements
 	 */
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
