@@ -13,6 +13,7 @@ import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.LogConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import java.io.InputStreamReader;
 
@@ -48,7 +49,6 @@ import io.restassured.path.json.JsonPath;
  * @author Atul 
  * @Version 1.0	 */
 
-
 public class NhanesTestResultService 
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
@@ -56,21 +56,25 @@ public class NhanesTestResultService
     String APIUrlResult;
     String accessToken;
     String APIUrl;
+    String APIResultStatus;
+    String jsonBody;
     int resultId;
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
+     * @throws IOException 
      */
     
    @BeforeMethod
-    public void setup()
+    public void setup() throws IOException
     {
 	   
 	   APIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
-	   
-	   System.out.println(APIUrl);
 	   accessToken=RestUtils.AccessToken();
 	   RestUtils.setContentType(ContentType.JSON);
-	   System.out.println(accessToken);
+	   String root=System.getProperty("user.dir");
+	   String abspathFile=root+"/src/test/resources/queryService.json";
+	   jsonBody = generateStringFromResource(abspathFile);
+
     }
    
    public String generateStringFromResource(String path) throws IOException {
@@ -78,47 +82,13 @@ public class NhanesTestResultService
 	    return new String(Files.readAllBytes(Paths.get(path)));
    }
    
+      
    
-   
-   public void VerifyResultAvailableJsonResponse() throws IOException
-   {
-	   String root=System.getProperty("user.dir");
-	   String abspathFile=root+"/src/test/resources/queryService.json";
-	   String jsonBody = generateStringFromResource(abspathFile);
-	   RestAssured.baseURI = "http://restapi.demoqa.com/utilities/weather/city";
-   	   RequestSpecification httpRequest = RestAssured.given();
-   	   Response response = httpRequest.get("/");
-    
-   	// First get the JsonPath object instance from the Response interface
-   	JsonPath jsonPathEvaluator = response.jsonPath();
-    
-   	// Then simply query the JsonPath object to get a String value of the node
-   	// specified by JsonPath: City (Note: You should not put $. in the Java code)
-   	String Status = jsonPathEvaluator.get("Status");
-    
-   	// Let us print the city variable to see what we got
-   	System.out.println("Report Status " + Status);
-    
-   	// Validate the response
-   	Assert.assertEquals(Status, "Available", "Reports are Available");
-    
-   }
-   
-   
-   
-   
-   
-   
-   
-   
-//@Test  
-public void getResultStatusCode() throws IOException{
+@Test (priority=1) 
+public void verifyGetResultStatusCode() throws IOException{
 	 
 	try{
-	   String root=System.getProperty("user.dir");
-	   String abspathFile=root+"/src/test/resources/queryService.json";
-	   String jsonBody = generateStringFromResource(abspathFile);
-	   System.out.println(APIUrl);
+	   
 	   Response response=	(Response) RestAssured.given()
 		   		.contentType("application/json")
 		   		.header("Authorization", accessToken)
@@ -127,11 +97,9 @@ public void getResultStatusCode() throws IOException{
 		   		.post(APIUrl)
 		   		.then()
 		   		.extract().response();
-	   System.out.println(response.asString());
+	   
 	   resultId=response.getBody().jsonPath().get("resultId");
-	   System.out.println(resultId);
 	   APIUrlResult=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
-	   System.out.println(APIUrlResult);
 	   	
 				   try{
 				   		given()
@@ -158,14 +126,11 @@ public void getResultStatusCode() throws IOException{
 }
 
 
-//@Test  
-	public void getResultResponse() throws IOException{
+@Test (priority=2)
+	public void verifyGetResultJsonResponse() throws IOException{
 		 
 		try{
-		   String root=System.getProperty("user.dir");
-		   String abspathFile=root+"/src/test/resources/queryService.json";
-		   String jsonBody = generateStringFromResource(abspathFile);
-		   System.out.println(APIUrl);
+		   
 		   Response response=	(Response) RestAssured.given()
 			   		.contentType("application/json")
 			   		.header("Authorization", accessToken)
@@ -200,13 +165,133 @@ public void getResultStatusCode() throws IOException{
 		{
 		LOGGER.error("The response is invalid -----Test Failed", e);
 		}
+		
+}
 	
+	
+	@Test (priority=3)
+	   public void VerifyResultStatusAvailableJsonResponse() throws IOException
+	   {	   
 		
+		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		//System.out.println(APIResultStatus);
+			try{
+		   ValidatableResponse httpRequest = RestAssured.
+				   given()
+						.header("Authorization", accessToken)
+				   .when()
+					    .get(APIResultStatus)            
+				   .then().
+					    body("status", equalTo("RUNNING"));
+			}
+			
+			catch(Exception e) {
+
+				  LOGGER.info("***************** /resultService/resultStatus/ returns expected response as : Available*******************");
+				   	
+  			}    
+
+	}
+	
+	
+	@Test (priority=4)
+	   public void VerifyResultStatusStatusCode() 
+	   {	   
 		
+		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
 		
+			try{
+		   ValidatableResponse httpRequest = RestAssured.
+				   given()
+						.header("Authorization", accessToken)
+				   .when()
+					    .get(APIResultStatus)            
+				   .then().
+					    statusCode(200);
+			  LOGGER.info("***************** /resultService/resultStatus/ returns expected status code as : 200*******************");
+			}
+			
+			catch(Exception e) {
+
+				  LOGGER.info("***************** /resultService/resultStatus/ throws excepion!*******************");
+				   	
+			}    
+
+	}
+
+	
+	@Test (priority=5)
+	   public void VerifyAvailableStatusCode() 
+	   {	   
 		
+		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		
+			try{
+		   ValidatableResponse httpRequest = RestAssured.
+				   given()
+						.header("Authorization", accessToken)
+				   .when()
+					    .get(APIResultStatus)            
+				   .then().
+					    statusCode(200);
+			  LOGGER.info("***************** /resultService/resultStatus/ returns expected status code as : 200*******************");
+			}
+			
+			catch(Exception e) {
+
+				  LOGGER.info("***************** /resultService/resultStatus/ throws excepion!*******************");
+				   	
+			}    
+
+	}
+
+	
+	@Test (priority=6)
+	   public void VerifyAvailableJsonResponse() 
+	   {	   
+		
+		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		
+			try{
+		   ValidatableResponse httpRequest = RestAssured.
+				   given()
+						.header("Authorization", accessToken)
+				   .when()
+					    .get(APIResultStatus)            
+				   .then().
+					    statusCode(200);
+			  LOGGER.info("***************** /resultService/resultStatus/ returns expected status code as : 200*******************");
+			}
+			
+			catch(Exception e) {
+
+				  LOGGER.info("***************** /resultService/resultStatus/ throws excepion!*******************");
+				   	
+			}    
+
+	}
+
+	
+	
+	//extract().response().;
+		
+
+	   	
+	   	// First get the JsonPath object instance from the Response interface
+	   	//JsonPath jsonPathEvaluator = response.jsonPath();
+	    
+	   	// Then simply query the JsonPath object to get a String value of the node
+	   	
+	   	//String status = jsonPathEvaluator.get("status");
+	    
+	   	// Let us print the city variable to see what we got
+	   	//System.out.println("Result satus value" + status);
+	    
+	   	// Validate the response
+	   	//Assert.assertEquals(status, "Available", "Reports are Available");
 }
-}
+
+
 /*
 	try {
 	   	
@@ -235,8 +320,5 @@ public void getResultStatusCode() throws IOException{
  }
   
  
- //@Test  
- public void getResultStatus() throws IOException{
-   
- }*/
+*/
 
