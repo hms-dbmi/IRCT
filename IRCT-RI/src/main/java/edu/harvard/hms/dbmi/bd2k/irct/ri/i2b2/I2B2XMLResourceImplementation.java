@@ -446,12 +446,12 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
-			
+
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
 		} catch (Exception e) {
 			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
-			
+
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
@@ -460,20 +460,20 @@ public class I2B2XMLResourceImplementation
 
 	@Override
 	public Result getResults(User user, Result result) throws ResourceInterfaceException {
-		logger.debug("getResults() Starting..."); 
+		logger.debug("getResults() Starting...");
 		try {
 			result = checkForResult(user, result);
 
 			if (result.getResultStatus() != ResultStatus.COMPLETE) {
-				logger.debug("getResults() Result is not yet complete. Returning."); 
+				logger.debug("getResults() Result is not yet complete. Returning.");
 				return result;
 			} else {
 				logger.debug("getResults() Current `ResultStatus` is "+
-						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString())); 
+						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString()));
 			}
-			
+
 			result.setResultStatus(ResultStatus.RUNNING);
-			logger.debug("getResults() Changed `ResultStatus` back to running."); 
+			logger.debug("getResults() Changed `ResultStatus` back to running.");
 
 			HttpClient client = createClient(user);
 			String resultInstanceId = result.getResourceActionId();
@@ -488,19 +488,19 @@ public class I2B2XMLResourceImplementation
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
 			result = convertPatientSetToResultSet(pdrt, result);
-			
+
 			logger.debug("getResults() Setting ```ResultStatus``` to COMPLETE.");
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (JAXBException | I2B2InterfaceException | IOException | ResultSetException | PersistableException e) {
 			logger.error("getResults() OtherException");
 			e.printStackTrace();
-			
+
 			result.setMessage("getResults() OtherException:"+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		} catch (Exception e) {
 			logger.debug("getResults() Exception");
 			e.printStackTrace();
-			
+
 			result.setMessage("getResults() Exception:"+e.getMessage()+"/"+e.toString());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
@@ -518,9 +518,9 @@ public class I2B2XMLResourceImplementation
 	 */
 	protected Result checkForResult(User user, Result result) {
 		logger.debug("checkForResult() Starting...");
-		
+
 		HttpClient client = createClient(user);
-		
+
 		// If resourceActionId is null, we cannot move forward. This means (as of now 2017-08-25)
 		// that perhaps HTTP could not communicate? Note sure, but without transaction tracking,
 		// we don't have much of way to track the source of the error. Only that it is not set :(
@@ -531,10 +531,10 @@ public class I2B2XMLResourceImplementation
 			return result;
 		}
 		logger.debug("checkForResult() resultInstanceId:"+(resultInstanceId!=null?resultInstanceId:"NULL"));
-		
+
 		String projectId = resultInstanceId.split("\\|")[0];
 		logger.debug("checkForResult() projectId:"+(projectId!=null?projectId:"NULL"));
-		
+
 		String queryId = resultInstanceId.split("\\|")[1];
 		logger.debug("checkForResult() queryId:"+(queryId!=null?queryId:"NULL"));
 
@@ -545,10 +545,10 @@ public class I2B2XMLResourceImplementation
 			// Is Query Master List Complete?
 			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
 			logger.debug("checkForResult() received ```InstanceResponseType```");
-			
+
 			String instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
 			logger.debug("checkForResult() instanceResultStatusType:"+instanceResultStatusType!=null?instanceResultStatusType:"NULL");
-			
+
 			switch (instanceResultStatusType) {
 			case "RUNNING":
 				result.setResultStatus(ResultStatus.RUNNING);
@@ -579,17 +579,17 @@ public class I2B2XMLResourceImplementation
 			}
 			result.setResultStatus(ResultStatus.COMPLETE);
 			result.setMessage("i2b2 query has finished.");
-			
+
 		} catch (JAXBException | I2B2InterfaceException | IOException e) {
 			logger.error("checkForResult() OtherException:"+e.getMessage());
 			e.printStackTrace();
-			
+
 			result.setMessage("checkForResult() OtherException: "+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		} catch (Exception e) {
 			logger.error("checkForResult() Exception:"+e.getMessage());
 			e.printStackTrace();
-			
+
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage("checkForResult() Exception:"+e.getMessage());
 			throw e;
@@ -696,18 +696,18 @@ public class I2B2XMLResourceImplementation
 	private Result convertPatientSetToResultSet(PatientDataResponseType patientDataResponse, Result result)
 			throws ResultSetException, PersistableException {
 		logger.debug("convertPatientSetToResultSet() Starting...");
-		
+
 		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
 		logger.debug("convertPatientSetToResultSet() getting data from ```result```.");
 		FileResultSet mrs = (FileResultSet) result.getData();
-		
+
 		if (patientSet.getPatient().size() == 0) {
 			logger.debug("convertPatientSetToResultSet() patient set size is 0.");
 			return result;
 		} else {
 			logger.debug("convertPatientSetToResultSet() patient set size is "+patientSet.getPatient().size());
 		}
-		
+
 		PatientType columnPT = patientSet.getPatient().get(0);
 		Column idColumn = new Column();
 		idColumn.setName("Patient Id");
@@ -728,7 +728,7 @@ public class I2B2XMLResourceImplementation
 			}
 		}
 		result.setData(mrs);
-		
+
 		return result;
 	}
 
@@ -975,9 +975,9 @@ public class I2B2XMLResourceImplementation
 
 		// TODO This should be enhanced, so that the user's Resource specific token gets retrieved!!!
 		String token = user.getToken();
-		defaultHeaders.add(new BasicHeader("Authorization", token));
-		
-		logger.debug("createClient() Header ```Content-Type: application/x-www-form-urlencoded``` will be added to the builder.");
+		defaultHeaders.add(new BasicHeader("Authorization", "Bearer "+token));
+
+		logger.debug("createClient() Header `Content-Type: application/x-www-form-urlencoded` will be added to the builder.");
 		defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
 		logger.debug("createClient() Finished");
