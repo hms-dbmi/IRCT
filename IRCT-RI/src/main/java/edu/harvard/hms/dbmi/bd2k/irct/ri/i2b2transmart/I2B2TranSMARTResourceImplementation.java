@@ -157,6 +157,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	@Override
 	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
+		
 		result = super.runQuery(user, query, result);
 
 		if (result.getResultStatus() != ResultStatus.ERROR) {

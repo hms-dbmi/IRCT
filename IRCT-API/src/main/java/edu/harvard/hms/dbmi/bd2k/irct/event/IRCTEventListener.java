@@ -323,10 +323,10 @@ public class IRCTEventListener {
 	public void beforeSaveResult(Result result) {
 		logger.debug("beforeSaveResult() result:"+(result==null?"null":result.getId()));
 		
-		logger.debug("beforeSaveResult() selecting all ```BeforeSaveResult``` from "+(events==null?"null":events.size())+" events.");
+		logger.debug("beforeSaveResult() selecting all `BeforeSaveResult` from "+(events==null?"null":events.size())+" events.");
 		List<IRCTEvent> irctEvents = events.get("BeforeSaveResult");
 		if (irctEvents == null) {
-			logger.debug("beforeSaveResult() there are no ```BeforeSaveResult``` events.");
+			logger.debug("beforeSaveResult() there are no `BeforeSaveResult` events.");
 		} else {
 			for (IRCTEvent irctEvent : irctEvents) {
 				((BeforeSaveResult) irctEvent).fire(result);

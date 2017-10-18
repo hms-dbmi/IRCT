@@ -445,11 +445,15 @@ public class I2B2XMLResourceImplementation
 			result.setResourceActionId(projectId + "|" + queryId + "|" + resultId);
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
+			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
+			
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("runQuery() OtherException: "+e.getMessage());
+			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
 		} catch (Exception e) {
+			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
+			
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("runQuery() Exception: "+e.getMessage());
+			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
 		return result;
 	}
@@ -464,12 +468,12 @@ public class I2B2XMLResourceImplementation
 				logger.debug("getResults() Result is not yet complete. Returning."); 
 				return result;
 			} else {
-				logger.debug("getResults() Current ```ResultStatus``` is "+
+				logger.debug("getResults() Current `ResultStatus` is "+
 						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString())); 
 			}
 			
 			result.setResultStatus(ResultStatus.RUNNING);
-			logger.debug("getResults() Changed ```ResultStatus``` back to running."); 
+			logger.debug("getResults() Changed `ResultStatus` back to running."); 
 
 			HttpClient client = createClient(user);
 			String resultInstanceId = result.getResourceActionId();

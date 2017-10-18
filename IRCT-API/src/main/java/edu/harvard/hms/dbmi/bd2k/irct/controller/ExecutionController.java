@@ -95,7 +95,7 @@ public class ExecutionController {
 	 * @throws PersistableException
 	 *             An error occurred
 	 */
-	public Long runQuery(Query query, User user)
+	public Result runQuery(Query query, User user)
 			throws PersistableException {
 
 		Result newResult = new Result();
@@ -122,7 +122,7 @@ public class ExecutionController {
 
 		runExecutionPlan(exp, newResult);
 
-		return newResult.getId();
+		return newResult;
 	}
 
 	/**

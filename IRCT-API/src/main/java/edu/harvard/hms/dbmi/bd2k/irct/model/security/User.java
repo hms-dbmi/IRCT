@@ -12,6 +12,7 @@ import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.Transient;
 
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
@@ -26,12 +27,13 @@ public class User implements Principal, Serializable {
 	private static final long serialVersionUID = 225027371671010450L;
 
 	@Id
-	@GeneratedValue(generator = "userSequencer")
-	@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
+	//@GeneratedValue(generator = "userSequencer")
+	//@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
 	private Long id;
 
 	private String userId;
 	
+	@Transient
 	private String token;
 	
 	/**

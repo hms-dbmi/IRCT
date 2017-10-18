@@ -43,6 +43,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
@@ -140,7 +141,9 @@ public class QueryService implements Serializable {
 		}
 
 		try {
-			response.add("resultId", ec.runQuery(query, (User) session.getAttribute("user")));
+			Result r = ec.runQuery(query, (User) session.getAttribute("user"));
+			response.add("resultId", r.getId());
+			response.add("resultStatus", r.getResultStatus().toString());
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
@@ -162,7 +165,8 @@ public class QueryService implements Serializable {
 	public Response runQuery() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		try {
-			response.add("resultId", ec.runQuery(qc.getQuery(),(User) session.getAttribute("user")));
+			Result r = ec.runQuery(qc.getQuery(),(User) session.getAttribute("user"));
+			response.add("resultId", r.getId());
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");

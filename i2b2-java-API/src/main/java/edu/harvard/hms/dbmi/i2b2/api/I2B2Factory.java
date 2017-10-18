@@ -25,9 +25,6 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 /**
  * The i2b2 Factory provides a connection to an i2b2 instance. It manages all
  * the projects and individual cell connections.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class I2B2Factory {
 
