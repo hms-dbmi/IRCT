@@ -23,9 +23,6 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 /**
  * A collection of static methods that provide shared functionality throughout
  * the IRCT-UI
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class Utilities {
 	

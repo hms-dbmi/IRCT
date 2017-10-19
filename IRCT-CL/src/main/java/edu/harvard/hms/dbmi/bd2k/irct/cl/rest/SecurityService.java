@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.logging.Logger;
 
 import javax.enterprise.context.SessionScoped;
@@ -23,6 +24,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the security service
@@ -41,7 +44,10 @@ public class SecurityService implements Serializable {
 
 	@Context
 	UriInfo uriInfo;
-
+	
+	@Inject
+	private SecurityController sc;
+	
 	@Inject
 	private HttpSession session;
 
@@ -67,10 +73,32 @@ public class SecurityService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createKey(@Context HttpServletRequest req) {
 
-		JsonObjectBuilder build = Json.createObjectBuilder();		
-		build.add("key", "DEPRECATED");
-		build.add("token", Utilities.extractHeaderValue(req, "Authorization"));
-		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
+		JsonObjectBuilder build = Json.createObjectBuilder();
+		try {
+			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
+			
+			String key = sc.createKey(userObject, (String) session.getAttribute("token"));
+			// IF USER IS LOGGED IN
+			if (key != null) {
+				build.add("key", key);
+			} else {
+				build.add("status", "fail");
+				build.add("message", "Unable to generate key for user:"+userObject.getName()+" and token:"+session.getAttribute("token"));
+				return Response.status(Response.Status.FORBIDDEN)
+						.entity(build.build()).build();
+			}	
+		} catch (IllegalArgumentException e) {
+			build.add("status", "fail");
+			build.add("message", "JWT token is not a token."+e.getMessage());
+			return Response.status(Response.Status.FORBIDDEN)
+					.entity(build.build()).build();
+			
+		} catch (UnsupportedEncodingException e) {
+			build.add("status", "fail");
+			build.add("message", "Invalid encoding for JWT token handling");
+			return Response.status(Response.Status.FORBIDDEN)
+					.entity(build.build()).build();
+		}return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 	
 	/**
