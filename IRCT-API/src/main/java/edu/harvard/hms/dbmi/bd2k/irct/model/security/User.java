@@ -17,18 +17,15 @@ import javax.persistence.Transient;
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
  * userId, and name are the same in this implementation.
- * 
- * @author Jeremy R. Easton-Marks
- *
- */
+  */
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public class User implements Principal, Serializable {
 	private static final long serialVersionUID = 225027371671010450L;
 
 	@Id
-	//@GeneratedValue(generator = "userSequencer")
-	//@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
+	@GeneratedValue(generator = "userSequencer")
+	@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
 	private Long id;
 
 	private String userId;
