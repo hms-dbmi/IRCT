@@ -75,15 +75,14 @@ public class Utilities {
 		String tokenString = extractToken(req);
 		String userEmail = null;
 		
+		DecodedJWT jwt = null;
 		boolean isValidated = false;
 		try {
 			logger.debug("validateAuthorizationHeader() validating with un-decoded secret.");
 			Algorithm algo = Algorithm.HMAC256(clientSecret.getBytes("UTF-8"));
 			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-			DecodedJWT jwt = verifier.verify(tokenString);
+			jwt = verifier.verify(tokenString);
 			isValidated = true;
-			userEmail = jwt.getClaim("email").asString();
-
 		} catch (Exception e) {
 			logger.warn("extractEmailFromJWT() First validation with undecoded secret has failed. "+e.getMessage());
 		}
@@ -95,10 +94,8 @@ public class Utilities {
 				logger.debug("extractEmailFromJWT() validating secret while de-coding it first.");
 				Algorithm algo = Algorithm.HMAC256(Base64.decodeBase64(clientSecret.getBytes("UTF-8")));
 				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-				DecodedJWT jwt = verifier.verify(tokenString);
+				jwt = verifier.verify(tokenString);
 				isValidated = true;
-				
-				userEmail = jwt.getClaim("email").asString();
 			} catch (Exception e) {
 				logger.debug("extractEmailFromJWT() Second validation has failed as well."+e.getMessage());
 				
@@ -112,6 +109,23 @@ public class Utilities {
 			throw new NotAuthorizedException(Response.status(401)
 					.entity("Could not validate the JWT token passed in."));
 		}
+		
+		if (jwt != null) {
+			userEmail = jwt.getClaim("email").asString();
+			
+			// TODO: tranSmart might not have `email` claim in its JWT. Use the `sub` claim instead.
+			if (userEmail == null) {
+				if (jwt.getClaim("sub") == null) {
+					logger.error("extractEmailFromJWT() No email claim, nor the backup `sub` claim is present in the provided JWT.");
+				} else {
+					logger.debug("extractEmailFromJWT() using the `sub` claim, because `email` does not exists");
+					userEmail = jwt.getClaim("sub").toString();
+				}
+			}
+		}
+		
+
+		
 		logger.debug("extractEmailFromJWT() Finished. Returning userEmail:"+userEmail);
 		return userEmail;
 
