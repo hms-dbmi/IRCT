@@ -18,6 +18,7 @@ import org.apache.log4j.Logger;
 
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 /**
@@ -91,14 +92,14 @@ public class Utilities {
 		// try to use a different algorithm, where the clientSecret does not get decoded
 		if (!isValidated) {
 			try {
-				logger.debug("extractEmailFromJWT() validating secret while de-coding it first.");
+				logger.debug("extractEmailFromJWT() validating with de-coded secret.");
 				Algorithm algo = Algorithm.HMAC256(Base64.decodeBase64(clientSecret.getBytes("UTF-8")));
 				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 				jwt = verifier.verify(tokenString);
 				isValidated = true;
+				logger.debug("extractEmailFromJWT() validation is successful.");
 			} catch (Exception e) {
 				logger.debug("extractEmailFromJWT() Second validation has failed as well."+e.getMessage());
-				
 				throw new NotAuthorizedException(Response.status(401)
 						.entity("Could not validate with a plain, not-encoded client secret. "+e.getMessage()));
 			}
@@ -111,6 +112,14 @@ public class Utilities {
 		}
 		
 		if (jwt != null) {
+			// Just in case someone cares, this will list all the claims that are 
+			// attached to the incoming JWT.
+			Map<String, Claim> claims = jwt.getClaims();
+			for (String s: claims.keySet()) {
+				Claim myClaim = claims.get(s);
+				logger.debug("extractEmailFromJWT() claim: "+s+"="+myClaim.asString());
+			}
+			
 			userEmail = jwt.getClaim("email").asString();
 			
 			// TODO: tranSmart might not have `email` claim in its JWT. Use the `sub` claim instead.
@@ -123,8 +132,6 @@ public class Utilities {
 				}
 			}
 		}
-		
-
 		
 		logger.debug("extractEmailFromJWT() Finished. Returning userEmail:"+userEmail);
 		return userEmail;
@@ -141,7 +148,6 @@ public class Utilities {
 		String token = null;
 		
 		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
-
 		if (authorizationHeader != null) {
 			logger.debug("extractToken() header:" + authorizationHeader);
 			try {
@@ -151,7 +157,6 @@ public class Utilities {
 				if (parts.length != 2) {
 					return null;
 				}
-				logger.debug("extractToken() "+parts[0] + "/" + parts[1]);
 
 				String scheme = parts[0];
 				String credentials = parts[1];
@@ -163,14 +168,12 @@ public class Utilities {
 				logger.debug("extractToken() token:" + token);
 
 			} catch (Exception e) {
-				// e.printStackTrace();
 				logger.error("extractToken() token validation failed: " + e + "/" + e.getMessage());
 			}
 		} else {
-			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found and no current SecureSession exists for the user."));
+			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found in request."));
 		}
-		logger.error("extractToken() Finished (null returned)");
-		
+		logger.debug("extractToken() Finished.");
 		return token;
 	}
 }

@@ -5,7 +5,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.util.logging.Logger;
+import java.util.Enumeration;
 
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
@@ -23,22 +23,21 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the security service
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Path("/securityService")
 @SessionScoped
 @ManagedBean
 public class SecurityService implements Serializable {
 
-	Logger logger = Logger.getLogger(this.getClass().getName());
+	Logger logger = Logger.getLogger(this.getClass());
 
 	private static final long serialVersionUID = 8769258362839602228L;
 
@@ -72,33 +71,58 @@ public class SecurityService implements Serializable {
 	@Path("/createKey")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createKey(@Context HttpServletRequest req) {
+		logger.debug("/createKey Starting");
 
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
 			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
+			logger.debug("/createKey user exists");
 			
-			String key = sc.createKey(userObject, (String) session.getAttribute("token"));
+			/*
+			Enumeration<String> keys = req.getAttributeNames();
+			while(keys.hasMoreElements()) {
+				String element = keys.nextElement();
+				logger.debug("Element:"+element);
+			}
+			*/
+			
+			logger.debug("Token in user in session:"+ ((User) req.getAttribute("user")).getName());
+			String key = sc.createKey(userObject);
 			// IF USER IS LOGGED IN
 			if (key != null) {
+				build.add("status", "ok");
 				build.add("key", key);
 			} else {
-				build.add("status", "fail");
+				build.add("status", "error");
 				build.add("message", "Unable to generate key for user:"+userObject.getName()+" and token:"+session.getAttribute("token"));
-				return Response.status(Response.Status.FORBIDDEN)
+				return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
 						.entity(build.build()).build();
 			}	
 		} catch (IllegalArgumentException e) {
-			build.add("status", "fail");
+			logger.error("/createKey IllegalArgumentException");
+			
+			build.add("status", "error");
 			build.add("message", "JWT token is not a token."+e.getMessage());
 			return Response.status(Response.Status.FORBIDDEN)
 					.entity(build.build()).build();
 			
 		} catch (UnsupportedEncodingException e) {
-			build.add("status", "fail");
+			logger.error("/createKey UnsupportedEncodingException");
+			
+			build.add("status", "error");
 			build.add("message", "Invalid encoding for JWT token handling");
 			return Response.status(Response.Status.FORBIDDEN)
 					.entity(build.build()).build();
-		}return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
+		} catch (Exception e) {
+			logger.error("/createKey Exception:"+e.getMessage());
+			
+			build.add("status", "error");
+			build.add("message", "Unknown exception, while creating key:"+e.getMessage());
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+					.entity(build.build()).build();
+		}
+		logger.error("/createKey Success. Finished");
+		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 	
 	/**
@@ -114,25 +138,17 @@ public class SecurityService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startSession(@QueryParam(value = "key") String key) {
 		JsonObjectBuilder build = Json.createObjectBuilder();
-
-		// Validate the key
-		//SecureSession ss = sc.validateKey(key);
-		//if (ss == null) {
-		//	build.add("status", "failed");
-		//	build.add("message", "Unable to start session");
-
-		//	return Response.status(Response.Status.FORBIDDEN)
-		//			.entity(build.build()).build();
-		//}
-
-		//this.user = ss.getUser();
-		//this.token = ss.getToken();
-
-		// Associate the session with that user
-		//session.setAttribute("user", this.user);
-		//session.setAttribute("token", this.token);
-		//session.setAttribute("secureSession", ss);
-		build.add("status", "deprecated");
+		try {
+			session.setAttribute("user", sc.validateKey(key));
+			build.add("status", "ok");	
+			build.add("user",  ((User) session.getAttribute("user")).getName());
+			build.add("warning", "deprecated");
+		} catch (Exception e) {
+			logger.error("/startSession "+e.getMessage());
+			build.add("status", "error");
+			build.add("message", e.getMessage());
+			build.add("warning", "deprecated");
+		}
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 

@@ -29,8 +29,7 @@ public class User implements Principal, Serializable {
 	private Long id;
 
 	private String userId;
-	
-	@Transient
+
 	private String token;
 	
 	/**

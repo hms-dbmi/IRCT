@@ -41,6 +41,8 @@ public class SecurityController {
 	 * @return User
 	 */
 	public User ensureUserExists(String userId) {
+		logger.info("ensureUserExists() Starting " + userId);
+		
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<User> cq = cb.createQuery(User.class);
 		Root<User> userRoot = cq.from(User.class);
@@ -49,37 +51,75 @@ public class SecurityController {
 		User user;
 		try{
 			user = entityManager.createQuery(cq).getSingleResult();
-		}catch(NoResultException e){
+			logger.debug("ensureUserExists() User found. Already existed.");
+			
+		} catch(NoResultException e){
+			logger.error("ensureUserExists() UserId could not be found by `entityManager`");
+			
 			user = new User(userId);
+			logger.debug("ensureUserExists() Created new `user` object.");
+			
+			logger.debug("ensureUserExists() Call persist() on `entityManager`");
 			entityManager.persist(user);
-		}catch(NonUniqueResultException e){
+			logger.debug("ensureUserExists() New `user` object persisted.");
+			
+		} catch(NonUniqueResultException e){
+			logger.error("ensureUserExists() Exception:" + e.getMessage());
 			throw new RuntimeException("Duplicate User Found : " + userId, e);
 		}
+		
+		logger.debug("ensureUserExists() Finished");
 		return user;
 	}
 	
-	public String createKey(User user, String token) {
+	public String createKey(User user) {
 		logger.info("createKey() Starting " + user.getName());
-		
-		if ((user == null) || (token == null)) {
-			return null;
-		}
 		
 		SecureRandom random = new SecureRandom();
 		String key = new BigInteger(130, random).toString(32);
 		
-		// TODO, for now, just use the TOKEN column
-		user.setToken(key);
-		if (user.getId() == null) {
-			entityManager.persist(user);
-		} else {
-			entityManager.merge(user);
+		try {
+			// TODO, for now, just use the TOKEN column
+			user.setToken(key);
+			if (user.getId() == null) {
+				entityManager.persist(user);
+			} else {
+				entityManager.merge(user);
+			}
+			entityManager.flush();
+		} catch (Exception e) {
+			logger.error("createKey() Exception"+e.getMessage());
 		}
-		entityManager.flush();
 
 		logger.info("createKey() Created key for " + user.getName());
-
 		return key;
+	}
+	
+	
+	// TODO: This is a temporary solution. While we store the "key" information 
+	// in the token field of a user object, which is persisted.
+	public User validateKey(String key) {
+		logger.info("validateKey() Starting");
+		
+		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		CriteriaQuery<User> cq = cb.createQuery(User.class);
+		Root<User> userRoot = cq.from(User.class);
+		cq.where(cb.equal(userRoot.get("token"), key));
+		cq.select(userRoot);
+		User user = null;
+		try{
+			user = entityManager.createQuery(cq).getSingleResult();
+			logger.debug("validateKey() User found.");
+			
+		} catch(NoResultException e){
+			logger.error("validateKey() The key is not in the database. Cannot authenticate the user.");
+		} catch(Exception e){
+			logger.error("validateKey() Exception:" + e.getMessage());
+			throw new RuntimeException("User cannot be validated based on the key", e);
+		}
+		logger.debug("validateKey() Finished");
+		return user;
+
 	}
 
 }

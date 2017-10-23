@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -28,9 +29,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a session filter for ensuring secure access
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @WebFilter(filterName = "session-filter", urlPatterns = { "/rest/*" })
 public class SessionFilter implements Filter {
@@ -66,24 +64,36 @@ public class SessionFilter implements Filter {
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
+			
+			Enumeration<String> keys = session.getAttributeNames();
+			while(keys.hasMoreElements()) {
+				String element = keys.nextElement();
+				logger.debug("doFilter() Element:"+element);
+			}
+			
 			try {
 				User user = session.getAttribute("user") == null ?
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-						: (User)session.getAttribute("user");
+						: (User) session.getAttribute("user");
 				logger.debug("doFilter() got user object.");
 				
 				// TODO DI-896 change. Since the user above gets created without an actual token, we need 
 				// to re-extract the token, from the header and parse it and place it inside the user object, 
 				// for future playtime.
 				if (user.getToken() == null) {
+					logger.debug("doFilter() No token in user object, so let's add one.");
 					String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
 					if (headerValue == null || headerValue.isEmpty()) {
+						logger.debug("doFilter() No token in user object, so let's add one.");
 						throw new RuntimeException("No `Authorization` header was provided");
 					} else {
+						logger.debug("doFilter() Found a token in the HTTP header.");
 						// TODO Check if this split produces two element list, actually.
-						user.setToken(headerValue.split(" ")[1]);
+						String tokenString = headerValue.split(" ")[1];
+						user.setToken(tokenString);
 					}
 				}
+				logger.debug("doFilter() Token in `user` object is "+user.getToken());
 				
 				session.setAttribute("user", user);
 				req.setAttribute("user", user);
