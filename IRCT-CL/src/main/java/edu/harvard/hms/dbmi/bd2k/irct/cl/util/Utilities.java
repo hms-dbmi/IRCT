@@ -143,7 +143,7 @@ public class Utilities {
 		return Utilities.extractToken(req);		
 	}
 
-	private static String extractToken(HttpServletRequest req) {
+	public static String extractToken(HttpServletRequest req) {
 		logger.debug("extractToken() Starting");
 		String token = null;
 		

@@ -5,7 +5,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.util.Enumeration;
 
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
@@ -77,6 +76,7 @@ public class SecurityService implements Serializable {
 		try {
 			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
 			logger.debug("/createKey user exists");
+			userObject.setToken(Utilities.extractToken(req));
 			
 			/*
 			Enumeration<String> keys = req.getAttributeNames();
@@ -86,10 +86,11 @@ public class SecurityService implements Serializable {
 			}
 			*/
 			
-			logger.debug("Token in user in session:"+ ((User) req.getAttribute("user")).getName());
 			String key = sc.createKey(userObject);
 			// IF USER IS LOGGED IN
 			if (key != null) {
+				userObject.setAccessKey(key);
+				sc.updateUserRecord(userObject);
 				build.add("status", "ok");
 				build.add("key", key);
 			} else {

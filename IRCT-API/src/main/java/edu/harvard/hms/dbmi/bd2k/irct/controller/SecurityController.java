@@ -58,7 +58,7 @@ public class SecurityController {
 			
 			user = new User(userId);
 			logger.debug("ensureUserExists() Created new `user` object.");
-			
+						
 			logger.debug("ensureUserExists() Call persist() on `entityManager`");
 			entityManager.persist(user);
 			logger.debug("ensureUserExists() New `user` object persisted.");
@@ -80,7 +80,7 @@ public class SecurityController {
 		
 		try {
 			// TODO, for now, just use the TOKEN column
-			user.setToken(key);
+			user.setAccessKey(key);
 			if (user.getId() == null) {
 				entityManager.persist(user);
 			} else {
@@ -95,6 +95,18 @@ public class SecurityController {
 		return key;
 	}
 	
+	public String updateUserRecord(User user) {
+		logger.debug("updateUserRecord() Starting");
+		try {
+			entityManager.merge(user);
+			entityManager.flush();
+		} catch (Exception e) {
+			logger.error("updateUserRecord() Exception"+e.getMessage());
+			return "error "+e.getMessage();
+		}
+		logger.debug("updateUserRecord() User has been updated.");
+		return "ok";
+	}
 	
 	// TODO: This is a temporary solution. While we store the "key" information 
 	// in the token field of a user object, which is persisted.
@@ -104,7 +116,7 @@ public class SecurityController {
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<User> cq = cb.createQuery(User.class);
 		Root<User> userRoot = cq.from(User.class);
-		cq.where(cb.equal(userRoot.get("token"), key));
+		cq.where(cb.equal(userRoot.get("accessKey"), key));
 		cq.select(userRoot);
 		User user = null;
 		try{

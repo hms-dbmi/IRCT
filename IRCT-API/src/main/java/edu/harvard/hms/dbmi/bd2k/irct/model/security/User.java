@@ -12,7 +12,6 @@ import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.SequenceGenerator;
-import javax.persistence.Transient;
 
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
@@ -31,6 +30,8 @@ public class User implements Principal, Serializable {
 	private String userId;
 
 	private String token;
+	
+	private String accessKey;
 	
 	/**
 	 * Creates a new user
@@ -101,5 +102,19 @@ public class User implements Principal, Serializable {
 	 */
 	public void setToken(String token) {
 		this.token = token;
+	}
+
+	/**
+	 * @return the accessKey
+	 */
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	/**
+	 * @param accessKey the accessKey to set
+	 */
+	public void setAccessKey(String accessKey) {
+		this.accessKey = accessKey;
 	}
 }
