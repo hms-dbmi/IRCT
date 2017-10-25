@@ -85,7 +85,7 @@ public class NhanesTestResultService
    
       
    
-//@Test (priority=1) 
+@Test (priority=1) 
 public void verifyGetResultStatusCode() throws IOException{
 	 
 	try{
@@ -127,7 +127,7 @@ public void verifyGetResultStatusCode() throws IOException{
 }
 
 
-//@Test (priority=2)
+@Test (priority=2)
 	public void verifyGetResultJsonResponse() throws IOException{
 		 
 		try{
@@ -170,7 +170,7 @@ public void verifyGetResultStatusCode() throws IOException{
 }
 	
 	
-	//@Test (priority=3)
+@Test (priority=3)
 	   public void VerifyResultStatusAvailableJsonResponse() throws IOException
 	   {	   
 		
@@ -195,7 +195,7 @@ public void verifyGetResultStatusCode() throws IOException{
 	}
 	
 	
-	//@Test (priority=4)
+@Test (priority=4)
 	   public void VerifyResultStatusStatusCode() 
 	   {	   
 		
@@ -221,7 +221,7 @@ public void verifyGetResultStatusCode() throws IOException{
 	}
 
 	
-	//@Test (priority=5)
+@Test (priority=5)
 	   public void VerifyAvailableStatusCode() 
 	   {	   
 		
