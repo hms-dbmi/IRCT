@@ -11,13 +11,10 @@ import org.apache.commons.logging.LogFactory;
 import edu.harvard.hms.dbmi.bd2k.irct.event.action.BeforeQuery;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Before a query write the Query information to the Action Monitoring log
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class MonitoringBeforeQuery implements BeforeQuery {
 	
@@ -28,8 +25,8 @@ public class MonitoringBeforeQuery implements BeforeQuery {
 		log = LogFactory.getLog("Action Monitoring");
 	}
 
-	public void fire(SecureSession session, Resource resource, Query query) {
-		log.info(("QUERY: " + session.getUser().getName() + " : " + resource.getName() + " : " + query.toString()));
+	public void fire(User user, Resource resource, Query query) {
+		log.info(("QUERY: " + user.getName() + " : " + resource.getName() + " : " + query.toString()));
 	}
 	
 	

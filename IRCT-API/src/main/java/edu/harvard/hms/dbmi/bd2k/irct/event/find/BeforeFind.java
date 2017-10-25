@@ -9,17 +9,14 @@ import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run before a find is executed
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface BeforeFind extends IRCTEvent {
 
 	void fire(Resource resource, Entity resourcePath,
-			List<FindInformationInterface> findInformation, SecureSession session);
+			List<FindInformationInterface> findInformation, User user);
 
 }

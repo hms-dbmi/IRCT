@@ -29,9 +29,6 @@
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.User</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.Token</class>
-      <class>edu.harvard.hms.dbmi.bd2k.irct.model.security.JWT</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.result.Result</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.Query</class>
       <class>edu.harvard.hms.dbmi.bd2k.irct.model.query.SubQuery</class>

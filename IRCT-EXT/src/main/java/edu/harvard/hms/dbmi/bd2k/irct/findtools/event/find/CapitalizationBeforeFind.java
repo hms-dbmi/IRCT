@@ -16,7 +16,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * The Capitilization Before Find Event Listener creates a set of find terms that conform to different capitalization strategies.
@@ -49,7 +49,7 @@ public class CapitalizationBeforeFind implements BeforeFind {
 	@Override
 	public void fire(Resource resource, Entity resourcePath,
 			List<FindInformationInterface> findInformation,
-			SecureSession session) {
+			User user) {
 		List<FindInformationInterface> newFindInformation = new ArrayList<FindInformationInterface>();
 
 		for (FindInformationInterface findInfo : findInformation) {

@@ -30,7 +30,6 @@ import javax.persistence.Transient;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
@@ -57,9 +56,6 @@ public class Resource implements Serializable {
 	@GeneratedValue
 	private long id;
 	private String name;
-
-	@Enumerated(EnumType.STRING)
-	private OntologyType ontologyType;
 
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;
@@ -150,7 +146,6 @@ public class Resource implements Serializable {
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
 		jsonBuilder.add("id", this.id);
 		jsonBuilder.add("name", this.name);
-		jsonBuilder.add("ontologyType", this.ontologyType.toString());
 
 		if (this.implementingInterface != null) {
 			jsonBuilder.add("implementation", implementingInterface.getType());
@@ -413,25 +408,6 @@ public class Resource implements Serializable {
 	 */
 	public void setName(String name) {
 		this.name = name;
-	}
-
-	/**
-	 * Returns the ontology type of the resource
-	 * 
-	 * @return the ontologyType
-	 */
-	public OntologyType getOntologyType() {
-		return ontologyType;
-	}
-
-	/**
-	 * Sets the ontology type of the resource
-	 * 
-	 * @param ontologyType
-	 *            the ontologyType to set
-	 */
-	public void setOntologyType(OntologyType ontologyType) {
-		this.ontologyType = ontologyType;
 	}
 
 	/**

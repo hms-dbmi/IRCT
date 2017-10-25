@@ -16,14 +16,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Performs a right outer join between two result sets
- * 
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class UnionJoin implements JoinImplementation {
 	@Override
@@ -32,7 +28,7 @@ public class UnionJoin implements JoinImplementation {
 	}
 
 	@Override
-	public Result run(SecureSession session, Join join, Result result)
+	public Result run(User user, Join join, Result result)
 			throws ResultSetException, PersistableException {
 
 		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get(

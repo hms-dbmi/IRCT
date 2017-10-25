@@ -16,6 +16,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.scidb.exception.NotConnectedException;
 import edu.harvard.hms.dbmi.scidb.exception.SciDBOperationException;
@@ -23,17 +24,32 @@ import edu.harvard.hms.dbmi.scidb.exception.SciDBOperationException;
 /**
  * An implementation that uses the SciDB Shim interface to communicate with a
  * SciDB server. It is partially modeled after the SciDB-Python interface.
- * 
- * @author Jeremy R. Easton-Marks
- *
- */
+  */
 public class SciDB {
 	private boolean connected;
 	private String url;
 	private String sessionId;
 	private HttpClient client;
 	
-
+	private Logger logger = Logger.getLogger(this.getClass());
+	
+	private String username;
+	private String password;
+	
+	public SciDB(String username, String password) {
+		logger.debug("SciDB() Secure mode is turned");
+		
+		this.username = username;
+		this.password = password;
+	}
+	
+	public SciDB() {
+		logger.debug("SciDB() UnSecure mode is turned");
+		
+		this.username = "test";
+		this.password = "test";
+	}
+	
 	/**
 	 * Connect to a local SciDB instance running on port 8080. This command is
 	 * the same as connect("http://localhost:8080");
@@ -2137,7 +2153,9 @@ public class SciDB {
 		this.url = url;
 		
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			
 			URI uri = uriBuilder.build();
 			System.out.println(uri.toASCIIString());
@@ -2161,7 +2179,9 @@ public class SciDB {
 		
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/version");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/version")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			
 			URI uri = uriBuilder.build();
 			System.out.println(uri.toASCIIString());
@@ -2181,7 +2201,9 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/new_session")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			
 			URI uri = uriBuilder.build();
 			System.out.println(uri.toASCIIString());
@@ -2204,7 +2226,9 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/release_session");
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/release_session")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password);
 			uriBuilder.addParameter("id", sessionId);
 			URI uri = uriBuilder.build();
 			System.out.println(uri.toASCIIString());
@@ -2230,15 +2254,16 @@ public class SciDB {
 		}
 
 		try {
-			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query");
-			uriBuilder.addParameter("id", this.sessionId);
-			uriBuilder.addParameter("query", operation.toAFLQueryString());
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password)
+					.addParameter("id", this.sessionId)
+					.addParameter("query", operation.toAFLQueryString());
 			if (save != null) {
 				uriBuilder.addParameter("save", save);
 			}
 
 			URI uri = uriBuilder.build();
-			System.out.println(uri.toASCIIString());
 			HttpGet runQuery = new HttpGet(uri);
 			HttpResponse response = client.execute(runQuery);
 			return inputStreamToString(response.getEntity().getContent());
@@ -2246,6 +2271,39 @@ public class SciDB {
 			e.printStackTrace();
 		}
 
+		return null;
+	}
+	
+	public String executeAflQuery(String aflqueryString)
+			throws NotConnectedException {
+		logger.debug("executeAflQuery() Starting...");
+		
+		if (!this.connected) {
+			logger.error("executeAflQuery() not connected.");
+			throw new NotConnectedException();
+		}
+
+		try {
+			URIBuilder uriBuilder = new URIBuilder(this.url + "/execute_query")
+					.addParameter("user", this.username)
+					.addParameter("password", this.password)
+					.addParameter("id", this.sessionId)
+					.addParameter("query", aflqueryString)
+					.addParameter("save", "dcsv");
+			
+			URI uri = uriBuilder.build();
+			logger.debug("executeAflQuery() URI:"+uri.toASCIIString());
+			
+			HttpGet runQuery = new HttpGet(uri);
+			HttpResponse response = client.execute(runQuery);
+			
+			logger.debug("executeAflQuery() Returning response");
+			return inputStreamToString(response.getEntity().getContent());
+			
+		} catch (Exception e) {
+			logger.error("executeAflQuery() ");
+		}
+		logger.debug("executeAflQuery() Returning null");
 		return null;
 	}
 

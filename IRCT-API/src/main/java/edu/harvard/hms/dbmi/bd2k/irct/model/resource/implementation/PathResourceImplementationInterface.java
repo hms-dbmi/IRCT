@@ -5,18 +5,15 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation;
 
 import java.util.List;
 
-import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Provides an implemntation that descripes tha API for any resource that has
  * paths that can be traversed.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface PathResourceImplementationInterface extends
 		ResourceImplementationInterface {
@@ -33,7 +30,7 @@ public interface PathResourceImplementationInterface extends
 	 * @throws ResourceInterfaceException
 	 *             A resource exception occurred
 	 */
-	List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, SecureSession session)
+	List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException;
 
 	/**
@@ -45,6 +42,6 @@ public interface PathResourceImplementationInterface extends
 	 * @return Paths
 	 * @throws ResourceInterfaceException A resource exception occurred
 	 */
-	List<Entity> find(Entity path, FindInformationInterface findInformation, SecureSession session) throws ResourceInterfaceException;
+	List<Entity> find(Entity path, FindInformationInterface findInformation, User user) throws ResourceInterfaceException;
 
 }

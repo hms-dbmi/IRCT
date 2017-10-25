@@ -16,14 +16,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 
 /**
  * Implements the Action interface to run a process on a specific instance
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class ProcessAction implements Action {
 	
@@ -54,35 +51,33 @@ public class ProcessAction implements Action {
 	}
 	
 	@Override
-	public void run(SecureSession session) {
-		irctEventListener.beforeProcess(session, process);
+	public void run(User user) {
+		irctEventListener.beforeProcess(user, process);
 		this.status = ActionStatus.RUNNING;
 		try {
 			ProcessResourceImplementationInterface processInterface = (ProcessResourceImplementationInterface) resource.getImplementingInterface();
 			
 			result = ActionUtilities.createResult(processInterface.getProcessDataType(process));
-			if(session != null) {
-				result.setUser(session.getUser());
-			}
+			result.setUser(user);
 			
-			process.setObjectValues(ActionUtilities.convertResultSetFieldToObject(session.getUser(), process.getProcessType().getFields(), process.getStringValues()));
-			result = processInterface.runProcess(session, process, result);
+			process.setObjectValues(ActionUtilities.convertResultSetFieldToObject(user, process.getProcessType().getFields(), process.getStringValues()));
+			result = processInterface.runProcess(user, process, result);
 			
 			ActionUtilities.mergeResult(result);
 		} catch (Exception e) {
 			result.setMessage(e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-		irctEventListener.afterProcess(session, process);
+		irctEventListener.afterProcess(user, process);
 	}
 
 	@Override
-	public Result getResults(SecureSession session) throws ResourceInterfaceException {
-		this.result = ((ProcessResourceImplementationInterface)resource.getImplementingInterface()).getResults(session, result);
+	public Result getResults(User user) throws ResourceInterfaceException {
+		this.result = ((ProcessResourceImplementationInterface)resource.getImplementingInterface()).getResults(user, result);
 		try {
 			while((this.result.getResultStatus() != ResultStatus.ERROR) && (this.result.getResultStatus() != ResultStatus.COMPLETE)) {
 				Thread.sleep(5000);
-				this.result = ((ProcessResourceImplementationInterface)resource.getImplementingInterface()).getResults(session, result);
+				this.result = ((ProcessResourceImplementationInterface)resource.getImplementingInterface()).getResults(user, result);
 			}
 			
 			result.getData().close();

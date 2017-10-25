@@ -3,7 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 
@@ -21,7 +25,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class InnerHashJoinTest {
 
@@ -48,7 +52,7 @@ public class InnerHashJoinTest {
 	@Test
 	public void testRunPositive() {
 		InnerHashJoin ij = new InnerHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -62,7 +66,7 @@ public class InnerHashJoinTest {
 			join.getObjectValues().put("RightResultSet", createRightResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			ResultSetImpl returnedData = (ResultSetImpl) ij.run(session, join,
+			ResultSetImpl returnedData = (ResultSetImpl) ij.run(user, join,
 					result).getData();
 			
 			
@@ -81,7 +85,7 @@ public class InnerHashJoinTest {
 	@Test
 	public void testRunNegative() {
 		InnerHashJoin ij = new InnerHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -95,7 +99,7 @@ public class InnerHashJoinTest {
 			join.getObjectValues().put("RightResultSet", createLeftResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			result = ij.run(session, join, result);
+			result = ij.run(user, join, result);
 			assertEquals("ResultStatus is not ERROR", ResultStatus.ERROR,
 					result.getResultStatus());
 		} catch (ResultSetException | PersistableException | JoinActionSetupException e) {
@@ -111,7 +115,7 @@ public class InnerHashJoinTest {
 	@Test
 	public void testRunNull() {
 		InnerHashJoin ij = new InnerHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -125,7 +129,7 @@ public class InnerHashJoinTest {
 			join.getObjectValues().put("RightResultSet", null);
 			join.getStringValues().put("RightColumn", "user_id");
 
-			result = ij.run(session, join, result);
+			result = ij.run(user, join, result);
 			assertEquals("ResultStatus is not ERROR", ResultStatus.ERROR,
 					result.getResultStatus());
 		} catch (ResultSetException | PersistableException | JoinActionSetupException e) {
@@ -142,7 +146,7 @@ public class InnerHashJoinTest {
 	@Test
 	public void testGetResults() {
 		InnerHashJoin ij = new InnerHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -156,7 +160,7 @@ public class InnerHashJoinTest {
 			join.getObjectValues().put("RightResultSet", createRightResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			ij.run(session, join, result);
+			ij.run(user, join, result);
 
 			ResultSetImpl returnedData = (ResultSetImpl) ij.getResults(result)
 					.getData();

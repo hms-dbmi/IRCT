@@ -5,16 +5,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run after a process is run
- * 
- * @author Jeremy R. Easton-Marks
- *
- */
+s */
 public interface AfterProcess extends IRCTEvent {
 
-	void fire(SecureSession session, IRCTProcess process);
+	void fire(User user, IRCTProcess process);
 
 }

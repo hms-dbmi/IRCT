@@ -5,8 +5,8 @@
 
 	<parent>
 		<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
-		<artifactId>IRCT</artifactId>
-		<version>1.4.1</version>
+  		<artifactId>IRCT</artifactId>
+  		<version>1.4.2</version>
 	</parent>
 	<artifactId>IRCT-CL</artifactId>
 	<packaging>war</packaging>
@@ -49,16 +49,19 @@
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-RI</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-API</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 			<artifactId>IRCT-EXT</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
@@ -111,10 +114,10 @@
 			<version>1.0</version>
 		</dependency>
 
-		<!-- First declare the APIs we depend on and need for compilation. All 
+		<!-- First declare the APIs we depend on and need for compilation. All
 			of them are provided by JBoss WildFly -->
 
-		<!-- Import the CDI API, we use provided scope as the API is included in 
+		<!-- Import the CDI API, we use provided scope as the API is included in
 			JBoss WildFly -->
 		<dependency>
 			<groupId>javax.enterprise</groupId>
@@ -122,7 +125,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Import the Common Annotations API (JSR-250), we use provided scope 
+		<!-- Import the Common Annotations API (JSR-250), we use provided scope
 			as the API is included in JBoss WildFly -->
 		<dependency>
 			<groupId>org.jboss.spec.javax.annotation</groupId>
@@ -130,7 +133,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Import the JAX-RS API, we use provided scope as the API is included 
+		<!-- Import the JAX-RS API, we use provided scope as the API is included
 			in JBoss WildFly -->
 		<dependency>
 			<groupId>org.jboss.resteasy</groupId>
@@ -138,7 +141,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Import the JPA API, we use provided scope as the API is included in 
+		<!-- Import the JPA API, we use provided scope as the API is included in
 			JBoss WildFly -->
 		<dependency>
 			<groupId>org.hibernate.javax.persistence</groupId>
@@ -146,7 +149,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Import the EJB API, we use provided scope as the API is included in 
+		<!-- Import the EJB API, we use provided scope as the API is included in
 			JBoss WildFly -->
 		<dependency>
 			<groupId>org.jboss.spec.javax.ejb</groupId>
@@ -169,7 +172,7 @@
 			</exclusions>
 		</dependency>
 
-		<!-- Import the JSF API, we use provided scope as the API is included in 
+		<!-- Import the JSF API, we use provided scope as the API is included in
 			JBoss WildFly -->
 		<dependency>
 			<groupId>org.jboss.spec.javax.faces</groupId>
@@ -179,7 +182,7 @@
 
 		<!-- Now we declare any tools needed -->
 
-		<!-- Annotation processor to generate the JPA 2.0 metamodel classes for 
+		<!-- Annotation processor to generate the JPA 2.0 metamodel classes for
 			typesafe criteria queries -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
@@ -187,7 +190,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Annotation processor that raising compilation `s whenever constraint 
+		<!-- Annotation processor that raising compilation `s whenever constraint
 			annotations are incorrectly used. -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
@@ -203,7 +206,7 @@
 		</dependency>
 
 		<!-- Optional, but highly recommended -->
-		<!-- Arquillian allows you to test enterprise code such as EJBs and Transactional(JTA) 
+		<!-- Arquillian allows you to test enterprise code such as EJBs and Transactional(JTA)
 			JPA from JUnit/TestNG -->
 		<dependency>
 			<groupId>org.jboss.arquillian.junit</groupId>
@@ -220,7 +223,7 @@
 	</dependencies>
 
 	<build>
-		<!-- Maven will append the version to the finalName (which is the name 
+		<!-- Maven will append the version to the finalName (which is the name
 			given to the generated war, and hence the context root) -->
 		<finalName>${project.artifactId}</finalName>
 		<plugins>
@@ -237,9 +240,9 @@
 
 	<profiles>
 		<profile>
-			<!-- The default profile skips all tests, though you can tune it to run 
+			<!-- The default profile skips all tests, though you can tune it to run
 				just unit tests based on a custom pattern -->
-			<!-- Seperate profiles are provided for running all tests, including Arquillian 
+			<!-- Seperate profiles are provided for running all tests, including Arquillian
 				tests that execute in the specified container -->
 			<id>default</id>
 			<activation>
@@ -397,9 +400,9 @@
 
 		<profile>
 
-			<!-- An optional Arquillian testing profile that executes tests in your 
+			<!-- An optional Arquillian testing profile that executes tests in your
 				WildFly instance -->
-			<!-- This profile will start a new WildFly instance, and execute the test, 
+			<!-- This profile will start a new WildFly instance, and execute the test,
 				shutting it down when done -->
 			<!-- Run with: mvn clean test -Parq-wildfly-managed -->
 			<id>arq-wildfly-managed</id>
@@ -413,7 +416,7 @@
 		</profile>
 
 		<profile>
-			<!-- An optional Arquillian testing profile that executes tests in a remote 
+			<!-- An optional Arquillian testing profile that executes tests in a remote
 				WildFly instance -->
 			<!-- Run with: mvn clean test -Parq-wildfly-remote -->
 			<id>arq-wildfly-remote</id>
@@ -427,11 +430,11 @@
 		</profile>
 
 		<profile>
-			<!-- When built in OpenShift the 'openshift' profile will be used when 
+			<!-- When built in OpenShift the 'openshift' profile will be used when
 				invoking mvn. -->
-			<!-- Use this profile for any OpenShift specific customization your app 
+			<!-- Use this profile for any OpenShift specific customization your app
 				will need. -->
-			<!-- By default that is to put the resulting archive into the 'deployments' 
+			<!-- By default that is to put the resulting archive into the 'deployments'
 				folder. -->
 			<!-- http://maven.apache.org/guides/mini/guide-building-for-different-environments.html -->
 			<id>openshift</id>

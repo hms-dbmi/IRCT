@@ -14,7 +14,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResource
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class GeoServerResourceInterface implements
 		QueryResourceImplementationInterface, PathResourceImplementationInterface {
@@ -39,7 +39,7 @@ public class GeoServerResourceInterface implements
 	
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		
@@ -51,7 +51,7 @@ public class GeoServerResourceInterface implements
 
 
 	@Override
-	public Result runQuery(SecureSession session,
+	public Result runQuery(User user,
 			edu.harvard.hms.dbmi.bd2k.irct.model.query.Query qep, Result result)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
@@ -59,7 +59,7 @@ public class GeoServerResourceInterface implements
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;
@@ -67,7 +67,7 @@ public class GeoServerResourceInterface implements
 	
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}

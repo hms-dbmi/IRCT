@@ -21,15 +21,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.ExecutableStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Copies the results of an execution plan to an AWS S3 bucket. The bucket is
  * name is set by the Bucket Name parameter. The Executable Status must be set
  * to COMPLETED in order for the result to be saved remotely.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class S3AfterSaveResult implements AfterExecutionPlan {
 	private AmazonS3 s3client;
@@ -47,7 +44,7 @@ public class S3AfterSaveResult implements AfterExecutionPlan {
 	}
 
 	@Override
-	public void fire(SecureSession session, Executable executable) {
+	public void fire(User user, Executable executable) {
 
 		try {
 			if (executable.getStatus() != ExecutableStatus.COMPLETED) {

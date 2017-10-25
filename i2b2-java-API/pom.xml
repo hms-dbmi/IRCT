@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
   		<artifactId>IRCT</artifactId>
-  		<version>1.4.1</version>
+  		<version>1.4.2</version>
 	</parent>
 	<groupId>edu.harvard.hms.dbmi.i2b2</groupId>
 	<artifactId>i2b2-Java-API</artifactId>
@@ -15,21 +15,25 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-
+	
 	<dependencies>
-		<!-- APACHE HTTP CLIENT -->
+			<!-- APACHE HTTP CLIENT -->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.5</version>
+		</dependency>
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
 		</dependency>
 		<!-- APACHE COMMONS -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.4</version>
 		</dependency>
 	</dependencies>
+
 	<build>
 		<finalName>i2b2-Java-API</finalName>
 		<plugins>

@@ -15,15 +15,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Performs a full outer join between two result sets using the hybrid hash
  * join implementation
- * 
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class FullOuterHashJoin implements JoinImplementation {
 	private long blockSize;
@@ -35,7 +31,7 @@ public class FullOuterHashJoin implements JoinImplementation {
 	}
 
 	@Override
-	public Result run(SecureSession session, Join join, Result result)
+	public Result run(User user, Join join, Result result)
 			throws ResultSetException, PersistableException {
 
 		ResultSet leftResultSet = (ResultSet) join.getObjectValues().get(

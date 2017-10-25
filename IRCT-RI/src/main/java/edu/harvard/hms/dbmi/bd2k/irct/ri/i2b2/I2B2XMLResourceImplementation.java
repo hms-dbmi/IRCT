@@ -59,8 +59,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableExceptio
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.security.SecurityUtility;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
@@ -92,10 +91,6 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 /**
  * A resource implementation of a resource that communicates with the i2b2
  * servers via XML
- *
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 public class I2B2XMLResourceImplementation
 		implements QueryResourceImplementationInterface, PathResourceImplementationInterface {
@@ -189,7 +184,7 @@ public class I2B2XMLResourceImplementation
 	}
 
 	@Override
-	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, SecureSession session)
+	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		logger.debug("getPathRelationship() Starting");
 		logger.debug("getPathRelationship() path:" + (path==null?"NULL":path.getName() + path.getDisplayName() + path.getDescription()));
@@ -197,7 +192,7 @@ public class I2B2XMLResourceImplementation
 
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		String basePath = path.getPui();
 		String[] pathComponents = basePath.split("/");
 
@@ -292,27 +287,27 @@ public class I2B2XMLResourceImplementation
 	}
 
 	@Override
-	public List<Entity> find(Entity path, FindInformationInterface findInformation, SecureSession session)
+	public List<Entity> find(Entity path, FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
 		if (findInformation instanceof FindByPath) {
 			returns = searchPaths(path, ((FindByPath) findInformation).getValues().get("term"),
-					((FindByPath) findInformation).getValues().get("strategy"), session);
+					((FindByPath) findInformation).getValues().get("strategy"), user);
 		} else if (findInformation instanceof FindByOntology) {
 			String ontologyTerm = ((FindByOntology) findInformation).getValues().get("ontologyTerm");
 			String ontologyType = ((FindByOntology) findInformation).getValues().get("ontologyType");
-			returns = searchOntology(path, ontologyType, ontologyTerm, session);
+			returns = searchOntology(path, ontologyType, ontologyTerm, user);
 		}
 
 		return returns;
 	}
 
-	public List<Entity> searchPaths(Entity path, String searchTerm, String strategy, SecureSession session)
+	public List<Entity> searchPaths(Entity path, String searchTerm, String strategy, User user)
 			throws ResourceInterfaceException {
 
 		List<Entity> entities = new ArrayList<Entity>();
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		try {
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
@@ -348,10 +343,10 @@ public class I2B2XMLResourceImplementation
 		return entities;
 	}
 
-	public List<Entity> searchOntology(Entity path, String ontologyType, String ontologyTerm, SecureSession session)
+	public List<Entity> searchOntology(Entity path, String ontologyType, String ontologyTerm, User user)
 			throws ResourceInterfaceException {
 		List<Entity> entities = new ArrayList<Entity>();
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		try {
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
@@ -381,9 +376,9 @@ public class I2B2XMLResourceImplementation
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query query, Result result) throws ResourceInterfaceException {
+	public Result runQuery(User user, Query query, Result result) throws ResourceInterfaceException {
 		// Initial setup
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		result.setResultStatus(ResultStatus.CREATED);
 		String projectId = "";
 
@@ -441,7 +436,7 @@ public class I2B2XMLResourceImplementation
 		roolt.getResultOutput().add(root);
 
 		try {
-			crcCell = createCRCCell(projectId, session.getUser().getName());
+			crcCell = createCRCCell(projectId, user.getName());
 			MasterInstanceResultResponseType mirrt = crcCell.runQueryInstanceFromQueryDefinition(client, null, null,
 					"IRCT", null, "ANY", 0, roolt, panels.toArray(new PanelType[panels.size()]));
 
@@ -450,33 +445,37 @@ public class I2B2XMLResourceImplementation
 			result.setResourceActionId(projectId + "|" + queryId + "|" + resultId);
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
+			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
+
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("runQuery() OtherException: "+e.getMessage());
+			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
 		} catch (Exception e) {
+			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
+
 			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("runQuery() Exception: "+e.getMessage());
+			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
 		return result;
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result) throws ResourceInterfaceException {
-		logger.debug("getResults() Starting..."); 
+	public Result getResults(User user, Result result) throws ResourceInterfaceException {
+		logger.debug("getResults() Starting...");
 		try {
-			result = checkForResult(session, result);
+			result = checkForResult(user, result);
 
 			if (result.getResultStatus() != ResultStatus.COMPLETE) {
-				logger.debug("getResults() Result is not yet complete. Returning."); 
+				logger.debug("getResults() Result is not yet complete. Returning.");
 				return result;
 			} else {
-				logger.debug("getResults() Current ```ResultStatus``` is "+
-						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString())); 
+				logger.debug("getResults() Current `ResultStatus` is "+
+						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString()));
 			}
-			
-			result.setResultStatus(ResultStatus.RUNNING);
-			logger.debug("getResults() Changed ```ResultStatus``` back to running."); 
 
-			HttpClient client = createClient(session);
+			result.setResultStatus(ResultStatus.RUNNING);
+			logger.debug("getResults() Changed `ResultStatus` back to running.");
+
+			HttpClient client = createClient(user);
 			String resultInstanceId = result.getResourceActionId();
 			String resultId = resultInstanceId.split("\\|")[2];
 
@@ -489,19 +488,19 @@ public class I2B2XMLResourceImplementation
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
 			result = convertPatientSetToResultSet(pdrt, result);
-			
+
 			logger.debug("getResults() Setting ```ResultStatus``` to COMPLETE.");
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (JAXBException | I2B2InterfaceException | IOException | ResultSetException | PersistableException e) {
 			logger.error("getResults() OtherException");
 			e.printStackTrace();
-			
+
 			result.setMessage("getResults() OtherException:"+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		} catch (Exception e) {
 			logger.debug("getResults() Exception");
 			e.printStackTrace();
-			
+
 			result.setMessage("getResults() Exception:"+e.getMessage()+"/"+e.toString());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
@@ -517,11 +516,11 @@ public class I2B2XMLResourceImplementation
 	 *            Result
 	 * @return Result
 	 */
-	protected Result checkForResult(SecureSession session, Result result) {
+	protected Result checkForResult(User user, Result result) {
 		logger.debug("checkForResult() Starting...");
-		
-		HttpClient client = createClient(session);
-		
+
+		HttpClient client = createClient(user);
+
 		// If resourceActionId is null, we cannot move forward. This means (as of now 2017-08-25)
 		// that perhaps HTTP could not communicate? Note sure, but without transaction tracking,
 		// we don't have much of way to track the source of the error. Only that it is not set :(
@@ -532,24 +531,24 @@ public class I2B2XMLResourceImplementation
 			return result;
 		}
 		logger.debug("checkForResult() resultInstanceId:"+(resultInstanceId!=null?resultInstanceId:"NULL"));
-		
+
 		String projectId = resultInstanceId.split("\\|")[0];
 		logger.debug("checkForResult() projectId:"+(projectId!=null?projectId:"NULL"));
-		
+
 		String queryId = resultInstanceId.split("\\|")[1];
 		logger.debug("checkForResult() queryId:"+(queryId!=null?queryId:"NULL"));
 
 		try {
-			logger.debug("checkForResult() creating ```CRCCell```");
-			CRCCell crcCell = createCRCCell(projectId, session.getUser().getName());
+			logger.debug("checkForResult() creating `CRCCell`");
+			CRCCell crcCell = createCRCCell(projectId, user.getName());
 
 			// Is Query Master List Complete?
 			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
-			logger.debug("checkForResult() received ```InstanceResponseType```");
-			
+			logger.debug("checkForResult() received `InstanceResponseType`");
+
 			String instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
 			logger.debug("checkForResult() instanceResultStatusType:"+instanceResultStatusType!=null?instanceResultStatusType:"NULL");
-			
+
 			switch (instanceResultStatusType) {
 			case "RUNNING":
 				result.setResultStatus(ResultStatus.RUNNING);
@@ -580,17 +579,17 @@ public class I2B2XMLResourceImplementation
 			}
 			result.setResultStatus(ResultStatus.COMPLETE);
 			result.setMessage("i2b2 query has finished.");
-			
+
 		} catch (JAXBException | I2B2InterfaceException | IOException e) {
 			logger.error("checkForResult() OtherException:"+e.getMessage());
 			e.printStackTrace();
-			
+
 			result.setMessage("checkForResult() OtherException: "+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
 		} catch (Exception e) {
 			logger.error("checkForResult() Exception:"+e.getMessage());
 			e.printStackTrace();
-			
+
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage("checkForResult() Exception:"+e.getMessage());
 			throw e;
@@ -697,18 +696,18 @@ public class I2B2XMLResourceImplementation
 	private Result convertPatientSetToResultSet(PatientDataResponseType patientDataResponse, Result result)
 			throws ResultSetException, PersistableException {
 		logger.debug("convertPatientSetToResultSet() Starting...");
-		
+
 		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
 		logger.debug("convertPatientSetToResultSet() getting data from ```result```.");
 		FileResultSet mrs = (FileResultSet) result.getData();
-		
+
 		if (patientSet.getPatient().size() == 0) {
 			logger.debug("convertPatientSetToResultSet() patient set size is 0.");
 			return result;
 		} else {
 			logger.debug("convertPatientSetToResultSet() patient set size is "+patientSet.getPatient().size());
 		}
-		
+
 		PatientType columnPT = patientSet.getPatient().get(0);
 		Column idColumn = new Column();
 		idColumn.setName("Patient Id");
@@ -729,7 +728,7 @@ public class I2B2XMLResourceImplementation
 			}
 		}
 		result.setData(mrs);
-		
+
 		return result;
 	}
 
@@ -955,9 +954,9 @@ public class I2B2XMLResourceImplementation
 	 * @param token
 	 * @return
 	 */
-	protected HttpClient createClient(SecureSession session) {
+	protected HttpClient createClient(User user) {
 		// SSL WRAPAROUND
-		logger.debug("createClient() session:" + session.toString());
+		logger.debug("createClient() user:" + user.getName());
 		HttpClientBuilder returns = null;
 
 		if (ignoreCertificate) {
@@ -974,22 +973,17 @@ public class I2B2XMLResourceImplementation
 
 		List<Header> defaultHeaders = new ArrayList<Header>();
 
-		String token = session.getToken().toString();
-		logger.debug("createClient() token:"+token);
-		if (this.clientId != null) {
-			logger.debug("createClient() about to get a delegated token for "+this.namespace+" for client_id:"+this.clientId);
-			token = SecurityUtility.delegateToken(this.namespace, this.clientId, session);
-		}
+		this.addAuthenticationHeader(user, defaultHeaders);
 
-		if (session != null) {
-			logger.debug("createClient() Header ```Authorization: "+token+"``` will be added to the builder.");
-			defaultHeaders.add(new BasicHeader("Authorization", token));
-		}
-		logger.debug("createClient() Header ```Content-Type: application/x-www-form-urlencoded``` will be added to the builder.");
+		logger.debug("createClient() Header `Content-Type: application/x-www-form-urlencoded` will be added to the builder.");
 		defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
 		logger.debug("createClient() Finished");
 		return returns.build();
+	}
+
+	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
+		// Do nothing.
 	}
 
 	private HttpClientBuilder ignoreCertificate() throws NoSuchAlgorithmException, KeyManagementException {

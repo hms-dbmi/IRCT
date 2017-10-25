@@ -27,8 +27,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
@@ -46,7 +46,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class EXACResourceImplementation implements
 		QueryResourceImplementationInterface,
@@ -89,7 +89,7 @@ public class EXACResourceImplementation implements
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 		String resourcePath = getResourcePathFromPUI(path.getPui());
@@ -152,10 +152,10 @@ public class EXACResourceImplementation implements
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query qep, Result result)
+	public Result runQuery(User user, Query qep, Result result)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		result.setResultStatus(ResultStatus.CREATED);
 
 		// Check Clause
@@ -245,9 +245,9 @@ public class EXACResourceImplementation implements
 	}
 
 	@Override
-	public Result runProcess(SecureSession session, IRCTProcess process,
+	public Result runProcess(User user, IRCTProcess process,
 			Result result) throws ResourceInterfaceException {
-		HttpClient client = createClient(session);
+		HttpClient client = createClient(user);
 		try {
 			ResultSet resultSetField = (ResultSet) process.getObjectValues()
 					.get("RESULTSET");
@@ -359,7 +359,7 @@ public class EXACResourceImplementation implements
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		if (result.getResultStatus() != ResultStatus.COMPLETE) {
 			result.setResultStatus(ResultStatus.ERROR);
@@ -369,7 +369,7 @@ public class EXACResourceImplementation implements
 
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
@@ -512,7 +512,7 @@ public class EXACResourceImplementation implements
 		return myPath;
 	}
 
-	private HttpClient createClient(SecureSession session) {
+	private HttpClient createClient(User user) {
 		HttpClientBuilder returns = HttpClientBuilder.create();
 		return returns.build();
 	};

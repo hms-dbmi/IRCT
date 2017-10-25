@@ -5,12 +5,12 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.ejb.Stateful;
-import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
@@ -31,9 +31,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 
 /**
  * A stateful controller for creating a query
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Stateful
 public class QueryController {
@@ -41,8 +38,7 @@ public class QueryController {
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 
-	@Inject
-	Logger log;
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	private Query query;
 	private Long lastId;
@@ -84,6 +80,7 @@ public class QueryController {
 	public Long addWhereClause(Long clauseId, Resource resource, Entity field,
 			PredicateType predicate, LogicalOperator logicalOperator,
 			Map<String, String> fields, Map<String, Object> objectFields) throws QueryException {
+		logger.debug("addWhereClause() Starting"); 
 
 		return addWhereClause(null, clauseId, resource, field, predicate, logicalOperator, fields, objectFields);
 	}
@@ -450,8 +447,6 @@ public class QueryController {
 		} else {
 			entityManager.merge(this.query);
 		}
-		log.info("Query " + this.query.getId() + " saved");
-
 	}
 
 	/**
@@ -471,7 +466,6 @@ public class QueryController {
 		if (this.query == null) {
 			throw new QueryException("No query to load.");
 		}
-		log.info("Query " + this.query.getId() + " loaded");
 	}
 
 	/**

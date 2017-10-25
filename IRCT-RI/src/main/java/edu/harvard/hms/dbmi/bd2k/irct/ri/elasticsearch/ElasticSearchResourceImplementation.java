@@ -1,5 +1,13 @@
 package edu.harvard.hms.dbmi.bd2k.irct.ri.elasticsearch;
 
+import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.commonTermsQuery;
+import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
+import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
+import static org.elasticsearch.index.query.QueryBuilders.simpleQueryStringQuery;
+import static org.elasticsearch.index.query.QueryBuilders.termQuery;
+
 import java.io.StringReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -15,7 +23,6 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
@@ -25,8 +32,6 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
-
-import static org.elasticsearch.index.query.QueryBuilders.*;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
@@ -43,11 +48,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResource
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class ElasticSearchResourceImplementation implements
 		QueryResourceImplementationInterface,
 		PathResourceImplementationInterface {
+	
 	private String resourceName;
 	private String resourceURL;
 	private ResourceState resourceState;
@@ -85,7 +91,7 @@ public class ElasticSearchResourceImplementation implements
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
@@ -169,7 +175,7 @@ public class ElasticSearchResourceImplementation implements
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query qep, Result result)
+	public Result runQuery(User user, Query qep, Result result)
 			throws ResourceInterfaceException {
 		SearchRequestBuilder sb = new SearchRequestBuilder(client,
 				SearchAction.INSTANCE);
@@ -197,8 +203,12 @@ public class ElasticSearchResourceImplementation implements
 				indices.add(getIndexNameFrom(wc.getField().getPui()));
 				types.add(getTypeNameFrom(wc.getField().getPui()));
 
+				/*
+				TODO: Replace LogicalOperator which no longer exists, with something 
+				inside the resource
+				
 				QueryBuilder predicate = createPredicateFromClause(wc);
-
+				
 				if (wc.getLogicalOperator().name().equalsIgnoreCase("MUST")) {
 					qb.must(predicate);
 				} else if (wc.getLogicalOperator().name()
@@ -208,6 +218,7 @@ public class ElasticSearchResourceImplementation implements
 						.equalsIgnoreCase("SHOULD")) {
 					qb.should(predicate);
 				}
+				*/
 			}
 
 		}
@@ -218,11 +229,10 @@ public class ElasticSearchResourceImplementation implements
 		sb.setQuery(qb);
 		sb.setScroll(new TimeValue(60000));
 		sb.setSearchType(SearchType.DEFAULT);
-		SearchResponse response = sb.execute().actionGet();
 
+		//SearchResponse response = sb.execute().actionGet();
 		// GET FIELDS
 		// GET HIGHLIGHTED FIELDS
-
 		// TODO Auto-generated method stub
 
 		return result;
@@ -304,13 +314,13 @@ public class ElasticSearchResourceImplementation implements
 
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		// TODO Auto-generated method stub
 		return null;

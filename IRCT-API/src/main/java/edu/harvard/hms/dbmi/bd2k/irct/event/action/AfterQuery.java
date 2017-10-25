@@ -6,16 +6,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run after a query is run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface AfterQuery extends IRCTEvent {
 
-	void fire(SecureSession session, Resource resource, Query query);
+	void fire(User user, Resource resource, Query query);
 
 }

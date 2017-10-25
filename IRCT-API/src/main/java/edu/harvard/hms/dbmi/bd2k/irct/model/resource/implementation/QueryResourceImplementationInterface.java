@@ -4,19 +4,16 @@
 package edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation;
 
 
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Provides an implementation that describes the API for any resource that has
  * the ability to handle a query
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface QueryResourceImplementationInterface extends
 		ResourceImplementationInterface {
@@ -29,7 +26,7 @@ public interface QueryResourceImplementationInterface extends
 	 * @return The id of the query that is running
 	 * @throws ResourceInterfaceException A resource exception occurred
 	 */
-	Result runQuery(SecureSession session, Query qep, Result result) throws ResourceInterfaceException;
+	Result runQuery(User user, Query qep, Result result) throws ResourceInterfaceException;
 
 	/**
 	 * Returns the results of the query if they are available
@@ -39,7 +36,7 @@ public interface QueryResourceImplementationInterface extends
 	 * @return Results
 	 * @throws ResourceInterfaceException A resource exception occurred
 	 */
-	Result getResults(SecureSession session, Result result) throws ResourceInterfaceException;
+	Result getResults(User user, Result result) throws ResourceInterfaceException;
 
 	/**
 	 * Returns the state of the resource

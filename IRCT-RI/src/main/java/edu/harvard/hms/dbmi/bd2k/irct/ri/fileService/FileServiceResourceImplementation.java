@@ -30,7 +30,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class FileServiceResourceImplementation implements
 		QueryResourceImplementationInterface,
@@ -57,7 +57,7 @@ public class FileServiceResourceImplementation implements
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path,
-			OntologyRelationship relationship, SecureSession session)
+			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
 		List<Entity> returns = new ArrayList<Entity>();
 
@@ -85,7 +85,7 @@ public class FileServiceResourceImplementation implements
 	}
 
 	@Override
-	public Result runQuery(SecureSession session, Query qep, Result result)
+	public Result runQuery(User user, Query qep, Result result)
 			throws ResourceInterfaceException {
 		WhereClause wc = (WhereClause) qep.getClauses().get(0L);
 
@@ -138,7 +138,7 @@ public class FileServiceResourceImplementation implements
 	}
 
 	@Override
-	public Result getResults(SecureSession session, Result result)
+	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
 		return result;
 	}
@@ -146,7 +146,7 @@ public class FileServiceResourceImplementation implements
 	
 	@Override
 	public List<Entity> find(Entity path,
-			FindInformationInterface findInformation, SecureSession session)
+			FindInformationInterface findInformation, User user)
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}

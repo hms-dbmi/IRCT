@@ -5,16 +5,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run after a join is run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface AfterJoin extends IRCTEvent {
 
-	void fire(SecureSession session, Join join);
+	void fire(User user, Join join);
 
 }

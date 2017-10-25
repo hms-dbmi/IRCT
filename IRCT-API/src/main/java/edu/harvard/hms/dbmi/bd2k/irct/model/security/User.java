@@ -16,10 +16,7 @@ import javax.persistence.SequenceGenerator;
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
  * userId, and name are the same in this implementation.
- * 
- * @author Jeremy R. Easton-Marks
- *
- */
+  */
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public class User implements Principal, Serializable {
@@ -31,6 +28,10 @@ public class User implements Principal, Serializable {
 	private Long id;
 
 	private String userId;
+
+	private String token;
+	
+	private String accessKey;
 	
 	/**
 	 * Creates a new user
@@ -87,5 +88,33 @@ public class User implements Principal, Serializable {
 	@Override
 	public String getName() {
 		return this.userId;
+	}
+
+	/**
+	 * @return the token
+	 */
+	public String getToken() {
+		return token;
+	}
+
+	/**
+	 * @param token the token to set
+	 */
+	public void setToken(String token) {
+		this.token = token;
+	}
+
+	/**
+	 * @return the accessKey
+	 */
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	/**
+	 * @param accessKey the accessKey to set
+	 */
+	public void setAccessKey(String accessKey) {
+		this.accessKey = accessKey;
 	}
 }

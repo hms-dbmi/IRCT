@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
@@ -22,18 +23,12 @@ import javax.servlet.http.HttpSession;
 
 import org.apache.log4j.Logger;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.rest.SecurityService;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.Token;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a session filter for ensuring secure access
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @WebFilter(filterName = "session-filter", urlPatterns = { "/rest/*" })
 public class SessionFilter implements Filter {
@@ -53,9 +48,6 @@ public class SessionFilter implements Filter {
 	@Inject
 	private SecurityController sc;
 
-	@Inject
-	private SecurityService ss;
-
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
 	}
@@ -72,22 +64,39 @@ public class SessionFilter implements Filter {
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
+			
+			Enumeration<String> keys = session.getAttributeNames();
+			while(keys.hasMoreElements()) {
+				String element = keys.nextElement();
+				logger.debug("doFilter() Element:"+element);
+			}
+			
 			try {
 				User user = session.getAttribute("user") == null ?
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-						: (User)session.getAttribute("user");
+						: (User) session.getAttribute("user");
 				logger.debug("doFilter() got user object.");
-
-				Token token = session.getAttribute("token") == null ?
-						ss.createTokenObject(req)
-						: (Token)session.getAttribute("token");
-				logger.debug("doFilter() got token object.");
-
-				SecureSession secureSession = session.getAttribute("secureSession") == null ?
-						sc.validateKey(sc.createKey(user, token))
-						: (SecureSession)session.getAttribute("secureSession");
-				logger.debug("doFilter() got securesession object.");
-				setSessionAndRequestAttributes(req, session, user, token, secureSession);
+				
+				// TODO DI-896 change. Since the user above gets created without an actual token, we need 
+				// to re-extract the token, from the header and parse it and place it inside the user object, 
+				// for future playtime.
+				if (user.getToken() == null) {
+					logger.debug("doFilter() No token in user object, so let's add one.");
+					String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
+					if (headerValue == null || headerValue.isEmpty()) {
+						logger.debug("doFilter() No token in user object, so let's add one.");
+						throw new RuntimeException("No `Authorization` header was provided");
+					} else {
+						logger.debug("doFilter() Found a token in the HTTP header.");
+						// TODO Check if this split produces two element list, actually.
+						String tokenString = headerValue.split(" ")[1];
+						user.setToken(tokenString);
+					}
+				}
+				logger.debug("doFilter() Token in `user` object is "+user.getToken());
+				
+				session.setAttribute("user", user);
+				req.setAttribute("user", user);
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {
@@ -103,25 +112,10 @@ public class SessionFilter implements Filter {
 				return;
 			}
 		}
-
 		logger.debug("doFilter() Finished.");
-		
 		fc.doFilter(req, res);
 	}
-
-	/*
-	 *  TODO : This is a temporary hackaround, we should move to only storing attributes on the request
-	 *  if they may change across a session.
-	 */
-	private void setSessionAndRequestAttributes(ServletRequest req, HttpSession session, User user, Token token, SecureSession secureSession) {
-		session.setAttribute("user", user);
-		session.setAttribute("token", token);
-		session.setAttribute("secureSession", secureSession);
-		req.setAttribute("user", user);
-		req.setAttribute("token", token);
-		req.setAttribute("secureSession", secureSession);
-	}
-
+	
 	@Override
 	public void destroy() {
 

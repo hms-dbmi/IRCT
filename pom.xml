@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 	<artifactId>IRCT</artifactId>
-	<version>1.4.1</version>
+	<version>1.4.2</version>
 	<packaging>pom</packaging>
 	<name>IRCT</name>
 	<modules>
@@ -16,15 +16,11 @@
 	</modules>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
 		<version.wildfly.maven.plugin>1.0.2.Final</version.wildfly.maven.plugin>
-
 		<version.jboss.bom>8.2.1.Final</version.jboss.bom>
-
 		<version.compiler.plugin>3.1</version.compiler.plugin>
 		<version.surefire.plugin>2.16</version.surefire.plugin>
 		<version.war.plugin>2.5</version.war.plugin>
-
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
 	</properties>
@@ -86,24 +82,20 @@
 			<dependency>
 				<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 				<artifactId>IRCT-API</artifactId>
-				<version>1.4.1</version>
 			</dependency>
 			<dependency>
 				<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 				<artifactId>IRCT-RI</artifactId>
-				<version>1.4.1</version>
 			</dependency>
 
 			<dependency>
 				<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 				<artifactId>IRCT-API</artifactId>
-				<version>1.4.1</version>
 			</dependency>
 
 			<dependency>
 				<groupId>edu.harvard.hms.dbmi.bd2k.irct</groupId>
 				<artifactId>IRCT-EXT</artifactId>
-				<version>1.4.1</version>
 			</dependency>
 
 			<dependency>

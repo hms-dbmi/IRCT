@@ -3,7 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.join.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 
@@ -21,7 +25,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSetImpl;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 public class LeftOuterHashJoinTest {
 
@@ -49,7 +53,7 @@ public class LeftOuterHashJoinTest {
 	public void testRunPositive() {
 		LeftOuterHashJoin loj = new LeftOuterHashJoin();
 		
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -63,7 +67,7 @@ public class LeftOuterHashJoinTest {
 			join.getObjectValues().put("RightResultSet", createRightResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			ResultSetImpl returnedData = (ResultSetImpl) loj.run(session, join,
+			ResultSetImpl returnedData = (ResultSetImpl) loj.run(user, join,
 					result).getData();
 			
 			assertTrue("Results are not equal",
@@ -81,7 +85,7 @@ public class LeftOuterHashJoinTest {
 	@Test
 	public void testRunNegative() {
 		LeftOuterHashJoin loj = new LeftOuterHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -95,7 +99,7 @@ public class LeftOuterHashJoinTest {
 			join.getObjectValues().put("RightResultSet", createLeftResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			result = loj.run(session, join, result);
+			result = loj.run(user, join, result);
 			assertEquals("ResultStatus is not ERROR", ResultStatus.ERROR,
 					result.getResultStatus());
 		} catch (ResultSetException | PersistableException | JoinActionSetupException e) {
@@ -111,7 +115,7 @@ public class LeftOuterHashJoinTest {
 	@Test
 	public void testRunNull() {
 		LeftOuterHashJoin loj = new LeftOuterHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -125,7 +129,7 @@ public class LeftOuterHashJoinTest {
 			join.getObjectValues().put("RightResultSet", null);
 			join.getStringValues().put("RightColumn", "user_id");
 
-			result = loj.run(session, join, result);
+			result = loj.run(user, join, result);
 			assertEquals("ResultStatus is not ERROR", ResultStatus.ERROR,
 					result.getResultStatus());
 		} catch (ResultSetException | PersistableException | JoinActionSetupException e) {
@@ -142,7 +146,7 @@ public class LeftOuterHashJoinTest {
 	@Test
 	public void testGetResults() {
 		LeftOuterHashJoin loj = new LeftOuterHashJoin();
-		SecureSession session = new SecureSession();
+		User user = new User();
 		Result result = new Result();
 		MemoryResultSet rsi = new MemoryResultSet();
 		Join join = new Join();
@@ -156,7 +160,7 @@ public class LeftOuterHashJoinTest {
 			join.getObjectValues().put("RightResultSet", createRightResult());
 			join.getStringValues().put("RightColumn", "user_id");
 
-			loj.run(session, join, result);
+			loj.run(user, join, result);
 
 			ResultSetImpl returnedData = (ResultSetImpl) loj.getResults(result)
 					.getData();

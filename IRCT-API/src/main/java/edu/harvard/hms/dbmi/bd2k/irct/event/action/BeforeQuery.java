@@ -6,16 +6,13 @@ package edu.harvard.hms.dbmi.bd2k.irct.event.action;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEvent;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.SecureSession;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An event listener that is run before a query is run
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public interface BeforeQuery extends IRCTEvent {
 	
-	public void fire(SecureSession session, Resource resource, Query query);
+	public void fire(User user, Resource resource, Query query);
 
 }
