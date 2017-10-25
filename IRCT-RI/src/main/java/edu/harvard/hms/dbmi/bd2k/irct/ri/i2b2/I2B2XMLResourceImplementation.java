@@ -539,12 +539,12 @@ public class I2B2XMLResourceImplementation
 		logger.debug("checkForResult() queryId:"+(queryId!=null?queryId:"NULL"));
 
 		try {
-			logger.debug("checkForResult() creating ```CRCCell```");
+			logger.debug("checkForResult() creating `CRCCell`");
 			CRCCell crcCell = createCRCCell(projectId, user.getName());
 
 			// Is Query Master List Complete?
 			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
-			logger.debug("checkForResult() received ```InstanceResponseType```");
+			logger.debug("checkForResult() received `InstanceResponseType`");
 
 			String instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
 			logger.debug("checkForResult() instanceResultStatusType:"+instanceResultStatusType!=null?instanceResultStatusType:"NULL");
@@ -973,15 +973,17 @@ public class I2B2XMLResourceImplementation
 
 		List<Header> defaultHeaders = new ArrayList<Header>();
 
-		// TODO This should be enhanced, so that the user's Resource specific token gets retrieved!!!
-		String token = user.getToken();
-		defaultHeaders.add(new BasicHeader("Authorization", "Bearer "+token));
+		this.addAuthenticationHeader(user, defaultHeaders);
 
 		logger.debug("createClient() Header `Content-Type: application/x-www-form-urlencoded` will be added to the builder.");
 		defaultHeaders.add(new BasicHeader("Content-Type", "application/x-www-form-urlencoded"));
 		returns.setDefaultHeaders(defaultHeaders);
 		logger.debug("createClient() Finished");
 		return returns.build();
+	}
+
+	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
+		// Do nothing.
 	}
 
 	private HttpClientBuilder ignoreCertificate() throws NoSuchAlgorithmException, KeyManagementException {

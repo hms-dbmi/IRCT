@@ -122,7 +122,7 @@ public class SecurityService implements Serializable {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
 					.entity(build.build()).build();
 		}
-		logger.error("/createKey Success. Finished");
+		logger.debug("/createKey Success. Finished");
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 	

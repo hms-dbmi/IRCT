@@ -26,6 +26,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonParser;
 import javax.json.stream.JsonParser.Event;
 
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
@@ -33,6 +34,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -530,4 +532,11 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		return singleReturnMyPath;
 	}
+	
+	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
+		// TODO This should be enhanced, so that the user's Resource specific token gets retrieved!!!
+		String token = user.getToken();
+		defaultHeaders.add(new BasicHeader("Authorization", "Bearer "+token));
+	}
+
 }
