@@ -23,6 +23,7 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<!-- License Terms : http://www.oracle.com/technetwork/licenses/distribution-license-152002.html -->
 			<groupId>oracle</groupId>
 			<artifactId>ojdbc6</artifactId>
 			<version>11.2.0.3</version>
