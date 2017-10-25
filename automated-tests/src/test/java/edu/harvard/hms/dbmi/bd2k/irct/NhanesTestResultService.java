@@ -57,6 +57,7 @@ public class NhanesTestResultService
     String accessToken;
     String APIUrl;
     String APIResultStatus;
+    String APIResultFormat;
     String jsonBody;
     int resultId;
     /**
@@ -84,7 +85,7 @@ public class NhanesTestResultService
    
       
    
-@Test (priority=1) 
+//@Test (priority=1) 
 public void verifyGetResultStatusCode() throws IOException{
 	 
 	try{
@@ -126,7 +127,7 @@ public void verifyGetResultStatusCode() throws IOException{
 }
 
 
-@Test (priority=2)
+//@Test (priority=2)
 	public void verifyGetResultJsonResponse() throws IOException{
 		 
 		try{
@@ -139,8 +140,8 @@ public void verifyGetResultStatusCode() throws IOException{
 			   		.post(APIUrl)
 			   		.then()
 			   		.extract().response();
-		   resultId=response.getBody().jsonPath().get("resultId");
-		   APIUrlResult=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
+//		   resultId=response.getBody().jsonPath().get("resultId");
+	//	   APIUrlResult=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
 		   	
 					   try{
 					   		  given()
@@ -169,7 +170,7 @@ public void verifyGetResultStatusCode() throws IOException{
 }
 	
 	
-	@Test (priority=3)
+	//@Test (priority=3)
 	   public void VerifyResultStatusAvailableJsonResponse() throws IOException
 	   {	   
 		
@@ -182,7 +183,7 @@ public void verifyGetResultStatusCode() throws IOException{
 				   .when()
 					    .get(APIResultStatus)            
 				   .then().
-					    body("status", equalTo("RUNNING"));
+					    body("status", equalTo("AVAILABLE"));
 			}
 			
 			catch(Exception e) {
@@ -194,7 +195,7 @@ public void verifyGetResultStatusCode() throws IOException{
 	}
 	
 	
-	@Test (priority=4)
+	//@Test (priority=4)
 	   public void VerifyResultStatusStatusCode() 
 	   {	   
 		
@@ -220,26 +221,26 @@ public void verifyGetResultStatusCode() throws IOException{
 	}
 
 	
-	@Test (priority=5)
+	//@Test (priority=5)
 	   public void VerifyAvailableStatusCode() 
 	   {	   
 		
-		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		APIResultFormat=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
 		
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
 						.header("Authorization", accessToken)
 				   .when()
-					    .get(APIResultStatus)            
+					    .get(APIResultFormat)            
 				   .then().
 					    statusCode(200);
-			  LOGGER.info("***************** /resultService/resultStatus/ returns expected status code as : 200*******************");
+			  LOGGER.info("***************** /resultService/availableFormats/ returns expected status code as : 200*******************");
 			}
 			
 			catch(Exception e) {
 
-				  LOGGER.info("***************** /resultService/resultStatus/ throws excepion!*******************");
+				  LOGGER.info("***************** /resultService/availableFormats/ throws excepion!*******************");
 				   	
 			}    
 
@@ -250,28 +251,28 @@ public void verifyGetResultStatusCode() throws IOException{
 	   public void VerifyAvailableJsonResponse() 
 	   {	   
 		
-		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
-		
+		APIResultFormat=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
+		System.out.println(APIResultFormat);
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
 						.header("Authorization", accessToken)
 				   .when()
-					    .get(APIResultStatus)            
-				   .then().
-					    statusCode(200);
-			  LOGGER.info("***************** /resultService/resultStatus/ returns expected status code as : 200*******************");
+					    .get("https://nhanes.hms.harvard.edu/rest/v1/resultService/availableFormats/218045").then().assertThat().body(containsString("JSON"));            
+				   
+				    //body("status", equalTo("AVAILABLE"));
+					  LOGGER.info("***************** /resultService/availableFormats/ response matches as expected*******************");
 			}
 			
 			catch(Exception e) {
 
-				  LOGGER.info("***************** /resultService/resultStatus/ throws excepion!*******************");
+				LOGGER.info("***************** /resultService/availableFormats/ throws excepion!*******************");
 				   	
 			}    
 
 	}
 
-	
+}
 	
 	//extract().response().;
 		
@@ -289,7 +290,7 @@ public void verifyGetResultStatusCode() throws IOException{
 	    
 	   	// Validate the response
 	   	//Assert.assertEquals(status, "Available", "Reports are Available");
-}
+
 
 
 /*
