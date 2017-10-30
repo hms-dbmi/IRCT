@@ -166,4 +166,10 @@ public class FileServiceResourceImplementation implements
 		return ResultDataType.TABULAR;
 	}
 
+	@Override
+	public Result runRawQuery(String queryString) throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

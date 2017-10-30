@@ -1018,4 +1018,17 @@ public class I2B2XMLResourceImplementation
 
 		return HttpClients.custom().setConnectionManager(cm);
 	}
+
+	@Override
+	public Result runRawQuery(String queryString) throws ResourceInterfaceException {
+		logger.debug("runRawQuery() Starting");
+		
+		Result result = new Result();
+		result.setResultStatus(ResultStatus.CREATED);
+		result.setResultStatus(ResultStatus.ERROR);
+		result.setMessage("Cannot run as a raw string, yet.");
+		
+		logger.debug("runRawQuery() Finished");
+		return result;
+	}
 }

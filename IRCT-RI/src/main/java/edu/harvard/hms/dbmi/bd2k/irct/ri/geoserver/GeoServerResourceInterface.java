@@ -87,4 +87,10 @@ public class GeoServerResourceInterface implements
 	public ResourceState getState() {
 		return this.resourceState;
 	}
+
+	@Override
+	public Result runRawQuery(String queryString) throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

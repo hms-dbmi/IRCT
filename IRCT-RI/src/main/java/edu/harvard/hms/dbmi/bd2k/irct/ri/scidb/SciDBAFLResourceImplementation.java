@@ -825,4 +825,10 @@ public class SciDBAFLResourceImplementation implements
 			throws ResourceInterfaceException {
 		return new ArrayList<Entity>();
 	}
+
+	@Override
+	public Result runRawQuery(String queryString) throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

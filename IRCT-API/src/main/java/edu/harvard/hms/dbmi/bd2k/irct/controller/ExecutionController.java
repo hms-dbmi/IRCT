@@ -5,7 +5,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
-import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
@@ -17,6 +16,8 @@ import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.UserTransaction;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.action.JoinAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.ProcessAction;
@@ -40,9 +41,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 @Stateless
 public class ExecutionController {
 
-	@Inject
-	Logger log;
-
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 
@@ -51,6 +49,8 @@ public class ExecutionController {
 
 	@Inject
 	private ResourceController rc;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Runs the process
@@ -202,13 +202,11 @@ public class ExecutionController {
 					userTransaction.begin();
 					entityManager.merge(result);
 					userTransaction.commit();
-				} catch (PersistableException e) {
+
+				} catch (Exception e) {
+					logger.error("call() Exception:"+e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
 					result.setMessage(e.getMessage());
-				} catch (Exception e) {
-					e.printStackTrace();
-					log.info(e.getMessage());
-					result.setResultStatus(ResultStatus.ERROR);
 				} finally {
 
 				}

@@ -78,6 +78,7 @@ public class ResultService {
 	@Path("/resultStatus/{resultId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resultStatus(@PathParam("resultId") Long resultId) {
+		
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		try {
 			User user = (User) session.getAttribute("user");

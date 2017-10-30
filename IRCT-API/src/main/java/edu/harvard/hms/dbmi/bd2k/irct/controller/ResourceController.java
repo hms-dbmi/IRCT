@@ -23,9 +23,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.Visualizatio
 /**
  * A stateless controller that provides access to all resources in the IRCT
  * Application
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Stateless
 public class ResourceController {

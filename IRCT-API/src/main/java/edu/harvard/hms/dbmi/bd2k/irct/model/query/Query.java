@@ -29,9 +29,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
  * The query class represents any query against any individual or group of
  * resources. A Query can have many subQueries, and clauses (Joins, Selects,
  * Wheres).
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)

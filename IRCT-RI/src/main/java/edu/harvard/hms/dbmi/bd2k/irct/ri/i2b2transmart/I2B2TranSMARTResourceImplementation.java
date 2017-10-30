@@ -66,6 +66,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	private String transmartURL;
 
 	final static Logger logger = Logger.getGlobal();
+	
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {

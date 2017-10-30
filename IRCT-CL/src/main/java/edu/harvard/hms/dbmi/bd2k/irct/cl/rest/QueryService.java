@@ -77,46 +77,7 @@ public class QueryService implements Serializable {
 	// qc.loadQuery(queryId);
 
 	/**
-	 * Saves a query
-	 * 
-	 * @param payload
-	 *            JSON
-	 * @return Query Id
-	 */
-	@POST
-	@Path("/saveQuery")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response saveQuery(String payload) {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-
-		JsonReader jsonReader = Json.createReader(new StringReader(payload));
-		JsonObject jsonQuery = jsonReader.readObject();
-		jsonReader.close();
-
-		// Create the query
-		try {
-			convertJsonToQuery(jsonQuery);
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		try {
-			qc.saveQuery();
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		response.add("queryId", qc.getQuery().getId());
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
-
-	/**
-	 * Runs a query using a JSON representation of the Query
+	 * Runs a query using a JSON representation of the QueryEndpoint
 	 * 
 	 * @param payload
 	 *            JSON
@@ -186,7 +147,7 @@ public class QueryService implements Serializable {
 	private Query convertJsonToQuery(SubQuery subQuery, JsonObject jsonQuery)
 			throws QueryException {
 
-		// Convert JSON Selects to Query
+		// Convert JSON Selects to QueryEndpoint
 		if (jsonQuery.containsKey("select")) {
 			JsonArray selectClauses = jsonQuery.getJsonArray("select");
 			Iterator<JsonValue> selectIterator = selectClauses.iterator();
@@ -196,7 +157,7 @@ public class QueryService implements Serializable {
 			}
 
 		}
-		// Convert JSON Where to Query
+		// Convert JSON Where to QueryEndpoint
 		if (jsonQuery.containsKey("where")) {
 			JsonArray whereClauses = jsonQuery.getJsonArray("where");
 			Iterator<JsonValue> whereIterator = whereClauses.iterator();
@@ -205,7 +166,7 @@ public class QueryService implements Serializable {
 						(JsonObject) whereIterator.next());
 			}
 		}
-		// Convert JSON Join to Query
+		// Convert JSON Join to QueryEndpoint
 		if (jsonQuery.containsKey("join")) {
 			JsonArray joinClauses = jsonQuery.getJsonArray("join");
 			Iterator<JsonValue> joinIterator = joinClauses.iterator();
@@ -214,7 +175,7 @@ public class QueryService implements Serializable {
 						(JsonObject) joinIterator.next());
 			}
 		}
-		// Convert JSON Sort to Query
+		// Convert JSON Sort to QueryEndpoint
 		if (jsonQuery.containsKey("sort")) {
 			JsonArray sortClauses = jsonQuery.getJsonArray("sort");
 			Iterator<JsonValue> sortIterator = sortClauses.iterator();
@@ -223,7 +184,7 @@ public class QueryService implements Serializable {
 						(JsonObject) sortIterator.next());
 			}
 		}
-		// Convert JSON SubQueries to Query
+		// Convert JSON SubQueries to QueryEndpoint
 		if (jsonQuery.containsKey("subquery")) {
 			JsonObject subQueryObject = jsonQuery.getJsonObject("subquery");
 			for (String key : subQueryObject.keySet()) {

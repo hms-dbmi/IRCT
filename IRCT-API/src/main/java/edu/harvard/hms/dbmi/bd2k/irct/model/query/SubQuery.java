@@ -11,13 +11,11 @@ import javax.persistence.ManyToOne;
  * A sub query may be part of a query or another sub query. If it is part of a
  * query then it may reference a different resource then sibling sub queries.
  * The sub queries can be combined using the Join clause in a query.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
 public class SubQuery extends Query {
 	private static final long serialVersionUID = -4698577393371222525L;
+	
 	@ManyToOne
 	private Query parent;
 
