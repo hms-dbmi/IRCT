@@ -64,13 +64,7 @@ public class SessionFilter implements Filter {
 		} else {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
-			
-			Enumeration<String> keys = session.getAttributeNames();
-			while(keys.hasMoreElements()) {
-				String element = keys.nextElement();
-				logger.debug("doFilter() Element:"+element);
-			}
-			
+						
 			try {
 				User user = session.getAttribute("user") == null ?
 						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
@@ -100,7 +94,7 @@ public class SessionFilter implements Filter {
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {
-				logger.error("EXCEPTION: "+e.getMessage());
+				logger.error("doFilter() Exception:"+e.getMessage());
 
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
 

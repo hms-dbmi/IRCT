@@ -27,7 +27,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -61,9 +60,6 @@ public class QueryService implements Serializable {
 
 	@Inject
 	private ResourceController rc;
-
-	@Inject
-	private AdminBean admin;
 
 	@Inject
 	private ExecutionController ec;
@@ -132,7 +128,6 @@ public class QueryService implements Serializable {
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}

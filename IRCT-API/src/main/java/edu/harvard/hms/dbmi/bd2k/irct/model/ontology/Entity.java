@@ -22,12 +22,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 /**
  * The Entity class represents a path, and object in a resource. Entities can be linked to other
  * paths through ontology relationships.
- * 
- * @author Jeremy R. Easton-Marks
  */
 @javax.persistence.Entity
 public class Entity {
-	
 	
 	@Id
 	@GeneratedValue
@@ -42,13 +39,15 @@ public class Entity {
 
 	@Convert(converter = DataTypeConverter.class)
 	private DataType dataType;
+	
 	@Transient
 	private List<OntologyRelationship> relationships;
+	
 	@Transient
 	private Map<String, Integer> counts;
+	
 	@Transient
 	private Map<String, String> attributes;
-
 	
 	/**
 	 * Creates an empty Entity with no PUI

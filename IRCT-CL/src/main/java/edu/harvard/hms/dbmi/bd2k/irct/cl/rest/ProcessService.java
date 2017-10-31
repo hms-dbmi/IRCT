@@ -6,15 +6,18 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.enterprise.context.ConversationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -26,7 +29,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ProcessController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -53,13 +57,12 @@ public class ProcessService implements Serializable {
 	private ProcessController pc;
 
 	@Inject
-	private AdminBean admin;
-
-	@Inject
 	private ExecutionController ec;
 
 	@Inject
 	private HttpSession session;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Starts the creation of a process
@@ -71,11 +74,7 @@ public class ProcessService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startProcess() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
-
 		pc.createProcess();
-
-		response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -115,8 +114,7 @@ public class ProcessService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response loadQuery(@QueryParam(value = "processId") Long processId) {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
-
+		
 		if (processId == null) {
 			response.add("status", "Invalid Request");
 			response.add("message", "processId is not set");
@@ -130,8 +128,6 @@ public class ProcessService implements Serializable {
 			response.add("message", e.getMessage());
 			return Response.status(400).entity(response.build()).build();
 		}
-
-		response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -147,26 +143,42 @@ public class ProcessService implements Serializable {
 	@Path("/process")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response process(String payload) {
+		logger.info("POST /process Starting");
 		JsonObjectBuilder response = Json.createObjectBuilder();
 
 		JsonReader jsonReader = Json.createReader(new StringReader(payload));
 		JsonObject object = jsonReader.readObject();
 		jsonReader.close();
 
+		try {
+			pc.createProcess();
+		} catch (Exception e) {
+			response.add("status", "error");
+			response.add("message", "Could not initialize `process`."+e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		}
+		
 		if (!object.containsKey("resource") || !object.containsKey("name")) {
 			response.add("status", "Invalid Request");
 			response.add("message", "No resource or process name is set");
 			return Response.status(400).entity(response.build()).build();
 		}
-
+		logger.info("resource:"+object.getString("resource"));
+		logger.info("name:"+object.getString("name"));
+		for (String key: object.keySet()) {
+			logger.info("\t"+key);
+		}
 		Resource resource = rc.getResource(object.getString("resource"));
 		if (resource == null) {
 			response.add("status", "Invalid Request");
 			response.add("message", "Unknown resource name");
 			return Response.status(400).entity(response.build()).build();
 		}
-		ProcessType pt = resource.getSupportedProcessesByName(object
-				.getString("name"));
+		logger.info("POST /process Resource:"+resource.getName());
+		
+		logger.info("POST /process supportedProcessName:"+object.getString("name"));
+		ProcessType pt = resource.getSupportedProcessesByName(object.getString("name"));
+		
 		if (pt == null) {
 			response.add("status", "Invalid Request");
 			response.add("message", "Unknown process for this resource");
@@ -175,14 +187,18 @@ public class ProcessService implements Serializable {
 
 		Map<String, String> fields = new HashMap<String, String>();
 		if (object.containsKey("fields")) {
-			JsonObject fieldObject = object.getJsonObject("fields");
-			for (String key : fieldObject.keySet()) {
-				fields.put(key, fieldObject.getString(key));
+			JsonArray fieldList = object.getJsonArray("fields");
+			
+			Iterator<JsonValue> fldListIterator = fieldList.iterator();
+			while (fldListIterator.hasNext()) {
+				JsonObject o = (JsonObject) fldListIterator.next();
+				logger.info(" type:"+o.getValueType());
 			}
 		}
 
 		try {
 			pc.updateProcess(resource, pt, fields);
+			
 		} catch (ProcessException e) {
 			response.add("status", "Invalid Request");
 			response.add("message", e.getMessage());
@@ -229,7 +245,6 @@ public class ProcessService implements Serializable {
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}

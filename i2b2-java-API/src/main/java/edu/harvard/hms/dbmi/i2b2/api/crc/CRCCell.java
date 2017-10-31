@@ -1,6 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.crc;
 
 import java.io.IOException;
@@ -13,10 +10,10 @@ import java.util.List;
 import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -81,9 +78,6 @@ import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 /**
  * The CRC Cell communication class makes requests to the i2b2 CRC Cell via XML
  * and returns a corresponding representation of an object.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class CRCCell extends Cell {
 
@@ -1187,6 +1181,32 @@ public class CRCCell extends Cell {
 
 		rmt.setMessageBody(bt);
 		return rmt;
+	}
+
+	/**
+	 * Runs a query given a query definition that may include many panels
+	 * 
+	 * @param client
+	 *            HTTPClient
+	 * @param payload
+	 *            A preformatted (hopefully) XML string
+	 * @return The response of the server
+	 * @throws JAXBException
+	 *             An Exception Occurred
+	 * @throws ClientProtocolException
+	 *             An Exception Occurred
+	 * @throws I2B2InterfaceException
+	 *             An Exception Occurred
+	 * @throws IOException
+	 *             An Exception Occurred
+	 */
+	public MasterInstanceResultResponseType runQueryInstanceFromXMLString(
+			HttpClient client, String payload) throws ClientProtocolException, I2B2InterfaceException, IOException {
+		return (MasterInstanceResultResponseType) this
+				.getPSMResponseType(runRequest(client, new String(Base64.decodeBase64(payload)),
+						"/request"));
+		
+		
 	}
 
 }

@@ -64,10 +64,10 @@ public class ExecutionController {
 	 */
 	public Long runProcess(IRCTProcess process, User user)
 			throws PersistableException {
+		
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
 		newResult.setUser(user);
-
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
 

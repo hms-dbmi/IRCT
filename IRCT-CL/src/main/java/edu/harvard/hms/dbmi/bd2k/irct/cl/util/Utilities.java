@@ -97,19 +97,17 @@ public class Utilities {
 				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
 				jwt = verifier.verify(tokenString);
 				isValidated = true;
-				logger.debug("extractEmailFromJWT() validation is successful.");
 			} catch (Exception e) {
-				logger.debug("extractEmailFromJWT() Second validation has failed as well."+e.getMessage());
-				throw new NotAuthorizedException(Response.status(401)
-						.entity("Could not validate with a plain, not-encoded client secret. "+e.getMessage()));
+				logger.error("extractEmailFromJWT() SecondTokenValidation Exception:"+e.getMessage());
+				throw new RuntimeException("Token validation failed, because "+e.getMessage());
 			}
 		}
 		
 		if (!isValidated) {
 			// If we get here, it means we could not validated the JWT token. Total failure.
-			throw new NotAuthorizedException(Response.status(401)
-					.entity("Could not validate the JWT token passed in."));
+			throw new RuntimeException("Could not validate the JWT token passed in.");
 		}
+		logger.debug("extractEmailFromJWT() validation is successful.");
 		
 		if (jwt != null) {
 			// Just in case someone cares, this will list all the claims that are 
@@ -168,10 +166,10 @@ public class Utilities {
 				logger.debug("extractToken() token:" + token);
 
 			} catch (Exception e) {
-				logger.error("extractToken() token validation failed: " + e + "/" + e.getMessage());
+				throw new RuntimeException("Token validation failed: " + e.getMessage());
 			}
 		} else {
-			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found in request."));
+			throw new RuntimeException("No Authorization header found in request.");
 		}
 		logger.debug("extractToken() Finished.");
 		return token;

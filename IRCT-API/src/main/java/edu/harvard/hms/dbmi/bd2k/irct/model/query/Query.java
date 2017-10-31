@@ -21,6 +21,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
+import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -38,8 +39,12 @@ public class Query implements Serializable {
 	@Id
 	@GeneratedValue
 	private Long id;
+	
 	private String name;
 
+	@Lob
+	private String payload;
+	
 	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
 	private Map<String, SubQuery> subQueries;
 
@@ -327,5 +332,19 @@ public class Query implements Serializable {
 	 */
 	public void setResources(Set<Resource> resources) {
 		this.resources = resources;
+	}
+
+	/**
+	 * @return the payload
+	 */
+	public String getPayload() {
+		return payload;
+	}
+
+	/**
+	 * @param payload the payload to set
+	 */
+	public void setPayload(String payload) {
+		this.payload = payload;
 	}
 }

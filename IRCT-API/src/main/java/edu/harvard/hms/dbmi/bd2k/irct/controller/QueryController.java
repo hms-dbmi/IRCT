@@ -5,7 +5,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.io.StringReader;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -15,7 +14,6 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
-import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -69,34 +67,39 @@ public class QueryController {
 
 	public Query createQuery(String queryString) throws QueryException {
 		logger.info("createQuery(String) Starting");
-		
-		if (queryString.substring(0, 1).equalsIgnoreCase("{")) {
-			JsonReader jsonReader = Json.createReader(new StringReader(queryString));
-			JsonObject jsonQuery = jsonReader.readObject();
-			jsonReader.close();
-			createQuery(jsonQuery);
-		} else if (queryString.substring(0, 1).equalsIgnoreCase("<")) {
-			throw new RuntimeException("I think this might be an XML query, but not sure, yet.");
+
+		JsonReader jsonReader = Json.createReader(new StringReader(queryString));
+		JsonObject jsonQuery = jsonReader.readObject();
+		jsonReader.close();
+
+		this.query = new Query();
+		this.lastId = 0L;
+
+		if (jsonQuery.getString("resource") != null) {
+			logger.info("createQuery(String) resource:" + jsonQuery.getString("resource"));
+			String resourceName = jsonQuery.getString("resource");
+			logger.info("createQuery(String) resourceName:" + resourceName);
+
+			// Add the named resource to the query object.
+			Resource resource = picsure.getResources().get(resourceName);
+			if (resource == null) {
+				throw new RuntimeException("Resource `" + resourceName + "` is not available via PIC-SURE API.");
+			}
+
+			logger.info("createQuery(String) resource:" + resource.getId() + " name:" + resource.getName());
+			this.query.getResources().add(resource);
+			logger.info("createQuery(String) added resource '" + resourceName + "' to query");
+
 		} else {
-			throw new RuntimeException("Unknown format. Not yet implemented.");
+			logger.error("createQuery(String) Missing `resource` field.");
+			throw new RuntimeException("Missing `resource` field. Cannot determine with resource to use!");
 		}
+		this.query.setPayload(queryString);
+		logger.info("createQuery(String) calling `saveQuery()`");
 		saveQuery();
-		
+
 		logger.info("createQuery(String) Finished");
 		return query;
-	}
-	
-	public void createQuery(JsonObject jsonQuery) throws QueryException {
-		logger.info("createQuery(JsonObject) Starting");
-		createQuery();
-		if (jsonQuery.containsKey("select")) {
-			JsonArray selectClauses = jsonQuery.getJsonArray("select");
-			Iterator<JsonValue> selectIterator = selectClauses.iterator();
-			while (selectIterator.hasNext()) {
-				addJsonSelectClauseToQuery((JsonObject) selectIterator.next());
-			}
-		}
-		logger.info("createQuery(JsonObject) Finished.");
 	}
 
 	public SubQuery createSubQuery() {
@@ -465,18 +468,18 @@ public class QueryController {
 	 */
 	public void saveQuery() throws QueryException {
 		logger.debug("saveQuery() Starting.");
-		
+
 		if (this.query == null) {
 			logger.error("saveQuery() No query to save");
-			
+
 			throw new QueryException("No query to save.");
 		}
 		if (this.query.getId() == null) {
 			logger.error("saveQuery() Writing new query with id null");
-			
+
 			entityManager.persist(this.query);
-			
-			logger.error("saveQuery() Wrote new query, now the id is "+this.query.getId());
+
+			logger.error("saveQuery() Wrote new query, now the id is " + this.query.getId());
 		} else {
 			logger.error("saveQuery() Updating existing query.");
 			entityManager.merge(this.query);
@@ -498,7 +501,7 @@ public class QueryController {
 		}
 		this.query = entityManager.find(Query.class, queryId);
 		if (this.query == null) {
-			throw new QueryException("Could not find query with id `"+queryId+"`");
+			throw new QueryException("Could not find query with id `" + queryId + "`");
 		}
 	}
 
@@ -510,7 +513,7 @@ public class QueryController {
 	public Query getQuery() {
 		return query;
 	}
-	
+
 	/**
 	 * Sets the given query
 	 * 
