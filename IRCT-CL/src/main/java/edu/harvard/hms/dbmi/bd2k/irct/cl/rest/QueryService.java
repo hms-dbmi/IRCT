@@ -280,19 +280,29 @@ public class QueryService implements Serializable {
 			clauseId = whereClause.getJsonNumber("clauseId").longValue();
 		}
 
+		logger.debug("addJsonWhereClauseToQuery(SubQuery, JsonObject) processing entities from clause");
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
+			
+			// TODO This is stupid. We should remove this and test it and forgetaboutit!!!
 			path = "/" + path;
 			path = path.substring(1);
-			resource = rc.getResource(path.split("/")[1]);
+			
+			String newResourceName = path.split("/")[1];
+			logger.debug("addJsonWhereClauseToQuery(SubQuery, JsonObject) check `Resource` named '"+newResourceName+"'");
+			try {
+				resource = rc.getResource(newResourceName);
+			} catch (Exception e) {
+				throw new QueryException("Could not initialize `Resource` from '"+newResourceName+"'");
+			}
 			entity = new Entity(path);
 			if (dataType != null) {
 				entity.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
 		if ((resource == null) || (entity == null)) {
-			throw new QueryException("Invalid Path");
+			throw new QueryException("Invalid Path '"+(path!=null?path:"NULL")+"'");
 		}
 		String predicateName = whereClause.getString("predicate");
 		String logicalOperatorName = null;
