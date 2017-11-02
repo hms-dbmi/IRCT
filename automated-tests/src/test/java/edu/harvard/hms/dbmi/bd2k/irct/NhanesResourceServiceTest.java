@@ -37,10 +37,10 @@ import static io.restassured.RestAssured.given;
  */
 
 ;
-public class NhanesResourceServiceTest {
+public class TestResourceService {
 
 
-    private static final Logger LOGGER = Logger.getLogger(NhanesResourceServiceTest.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TestResourceService.class.getName());
     private static final DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
 	private static final Object AccessToken = null;
     private static List<String[]> csvData = null;

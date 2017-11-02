@@ -45,10 +45,10 @@ import io.restassured.parsing.Parser;
  * @Version 1.0	 */
 
 
-public class NhanesTestQueryService
+public class TestQueryService
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
-	private static final Logger LOGGER = Logger.getLogger( NhanesTestQueryService.class.getName() );
+	private static final Logger LOGGER = Logger.getLogger( TestQueryService.class.getName() );
     String APIUrl;
     String accessToken;
     //RestAssured.defaultParser = Parser.JSON;
