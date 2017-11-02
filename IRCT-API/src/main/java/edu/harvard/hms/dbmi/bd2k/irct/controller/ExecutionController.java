@@ -101,6 +101,9 @@ public class ExecutionController {
 
 		Result newResult = new Result();
 		try {
+			newResult.setResultStatus(ResultStatus.CREATED);
+			newResult.setMessage("initialized");
+
 			newResult.setJobType("EXECUTION");
 			logger.debug("runQuery() set jobType to `EXECUTION` on new `Result`");
 
