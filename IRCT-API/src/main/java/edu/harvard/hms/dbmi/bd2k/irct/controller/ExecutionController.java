@@ -134,9 +134,9 @@ public class ExecutionController {
 			runExecutionPlan(exp, newResult);
 			
 		} catch (Exception e) {
-			logger.error("ExecutionController.runQuery() Exception:"+e.getMessage());
+			logger.error("ExecutionController.runQuery() Exception:"+(e.getMessage()==null?e.toString():e.getMessage()));
 			newResult.setResultStatus(ResultStatus.ERROR);
-			newResult.setMessage(e.getMessage());
+			newResult.setMessage((e.getMessage()==null?e.toString():e.getMessage()));
 		}
 		logger.debug("runQuery() Finished");
 		return newResult;
