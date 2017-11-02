@@ -97,31 +97,45 @@ public class ExecutionController {
 	 */
 	public Result runQuery(Query query, User user)
 			throws PersistableException {
+		logger.debug("runQuery() Starting");
 
 		Result newResult = new Result();
-		newResult.setJobType("EXECUTION");
+		try {
+			newResult.setJobType("EXECUTION");
+			logger.debug("runQuery() set jobType to `EXECUTION` on new `Result`");
 
-		// Add the current user to the query.
-		newResult.setUser(user);
+			newResult.setUser(user);
+			logger.debug("runQuery() added current user to new `Result`");
 
-		newResult.setResultStatus(ResultStatus.RUNNING);
-		entityManager.persist(newResult);
+			newResult.setResultStatus(ResultStatus.RUNNING);
+			entityManager.persist(newResult);
+			logger.debug("runQuery() set status to RUNNING on new `Result` and saved to database");
 
-		QueryAction qa = new QueryAction();
-		edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
-		if(!resource.isSetup()) {
-			resource = rc.getResource(resource.getName());
+			QueryAction qa = new QueryAction();
+			edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
+			logger.debug("runQuery() created/initialized `Resource` for `Query`");
+			if(!resource.isSetup()) {
+				resource = rc.getResource(resource.getName());
+			}
+			qa.setup(resource, query);
+			logger.debug("runQuery() call `setup` on `QueryAction`");
+
+			ExecutableLeafNode eln = new ExecutableLeafNode();
+			eln.setAction(qa);
+			logger.debug("runQuery() set `QueryAction` of `ExecutableLeafNode`");
+
+			ExecutionPlan exp = new ExecutionPlan();
+			logger.debug("runQuery() Setting up `ExecutionPlan`");
+			exp.setup(eln, user);
+			logger.debug("runQuery() calling `runExecutionPlan` local method");
+			runExecutionPlan(exp, newResult);
+			
+		} catch (Exception e) {
+			logger.error("ExecutionController.runQuery() Exception:"+e.getMessage());
+			newResult.setResultStatus(ResultStatus.ERROR);
+			newResult.setMessage(e.getMessage());
 		}
-		qa.setup(resource, query);
-
-		ExecutableLeafNode eln = new ExecutableLeafNode();
-		eln.setAction(qa);
-
-		ExecutionPlan exp = new ExecutionPlan();
-		exp.setup(eln, user);
-
-		runExecutionPlan(exp, newResult);
-
+		logger.debug("runQuery() Finished");
 		return newResult;
 	}
 
