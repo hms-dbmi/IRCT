@@ -1,6 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct;
 
 import java.io.InputStream;
@@ -9,8 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
@@ -24,6 +19,8 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
@@ -36,9 +33,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 /**
  * Manages supported resources and join types for this instance of the IRCT
  * application
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Startup
 @Singleton
@@ -48,13 +42,13 @@ public class IRCTApplication {
 	@javax.annotation.Resource(mappedName = "java:global/resultDataFolder")
 	private String resultDataFolder = null;
 
+	@javax.annotation.Resource(mappedName = "java:global/client_secret")
+	private String clientSecret = null;
+
 	private Map<String, Resource> resources;
 	private Map<String, IRCTJoin> supportedJoinTypes;
 	private Map<ResultDataType, List<DataConverterImplementation>> resultDataConverters;
-
-	@Inject
-	Logger log;
-
+	
 	@Inject
 	private EntityManagerFactory objectEntityManager;
 
@@ -62,6 +56,7 @@ public class IRCTApplication {
 	private IRCTEventListener irctEventListener;
 
 	private EntityManager oem;
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Initiates the IRCT Application and loading of the joins, resources, and
@@ -70,27 +65,27 @@ public class IRCTApplication {
 	 */
 	@PostConstruct
 	public void init() {
-		log.info("Starting IRCT Application");
+		logger.info("Starting IRCT Application");
 		this.oem = objectEntityManager.createEntityManager();
 		this.oem.setFlushMode(FlushModeType.COMMIT);
 
-		log.info("Loading Data Converters");
+		logger.info("Loading Data Converters");
 		loadDataConverters();
-		log.info("Finished Data Converters");
+		logger.info("Finished Data Converters");
 
-		log.info("Loading Event Listeners");
+		logger.info("Loading Event Listeners");
 		loadIRCTEventListeners();
-		log.info("Finished Loading Event Listeners");
+		logger.info("Finished Loading Event Listeners");
 
-		log.info("Loading Join Types");
+		logger.info("Loading Join Types");
 		loadJoins();
-		log.info("Finished Loading Join Types");
+		logger.info("Finished Loading Join Types");
 
-		log.info("Loading Resources");
+		logger.info("Loading Resources");
 		loadResources();
-		log.info("Finished Loading Resources");
+		logger.info("Finished Loading Resources");
 
-		log.info("Finished Starting IRCT Application");
+		logger.info("Finished Starting IRCT Application");
 	}
 
 	public String getVersion() {
@@ -109,7 +104,7 @@ public class IRCTApplication {
 				version = p.getProperty("version", "");
 			}
 		} catch (Exception e) {
-			log.log(Level.INFO, "getVersion() ERROR:" + e.getMessage());
+			logger.error("getVersion() Exception:" + e.getMessage());
 		}
 
 		if (version == null) {
@@ -125,6 +120,8 @@ public class IRCTApplication {
 	 *
 	 */
 	private void loadIRCTEventListeners() {
+		logger.info("loadIRCTEventListeners() Starting");
+		
 		this.irctEventListener.init();
 		CriteriaBuilder cb = oem.getCriteriaBuilder();
 		CriteriaQuery<EventConverterImplementation> criteria = cb.createQuery(EventConverterImplementation.class);
@@ -135,8 +132,7 @@ public class IRCTApplication {
 		for (EventConverterImplementation irctEvent : allEventListeners) {
 			irctEventListener.registerListener(irctEvent);
 		}
-
-		log.info("Loaded " + allEventListeners.size() + " IRCT Event listeners");
+		logger.info("loadIRCTEventListeners() Finished");
 	}
 
 	/**
@@ -144,6 +140,8 @@ public class IRCTApplication {
 	 *
 	 */
 	private void loadDataConverters() {
+		logger.info("loadDataConverters() Starting");
+		
 		this.resultDataConverters = new HashMap<ResultDataType, List<DataConverterImplementation>>();
 		CriteriaBuilder cb = oem.getCriteriaBuilder();
 		CriteriaQuery<DataConverterImplementation> criteria = cb.createQuery(DataConverterImplementation.class);
@@ -160,14 +158,14 @@ public class IRCTApplication {
 			}
 
 		}
-
-		log.info("Loaded " + allDCI.size() + " result data converters");
+		logger.info("loadDataConverters() Finished");
 	}
 
 	/**
 	 * Loads all the joins from the persistence manager
 	 */
 	private void loadJoins() {
+		logger.info("loadJoins() Starting");
 
 		setSupportedJoinTypes(new HashMap<String, IRCTJoin>());
 		// Run JPA Query to load the resources
@@ -178,7 +176,8 @@ public class IRCTApplication {
 		for (IRCTJoin jt : oem.createQuery(criteria).getResultList()) {
 			this.supportedJoinTypes.put(jt.getName(), jt);
 		}
-		log.info("Loaded " + this.supportedJoinTypes.size() + " joins");
+		
+		logger.info("loadJoins() Finished");
 	}
 
 	/**
@@ -194,19 +193,21 @@ public class IRCTApplication {
 		CriteriaQuery<Resource> criteria = cb.createQuery(Resource.class);
 		Root<Resource> load = criteria.from(Resource.class);
 		criteria.select(load);
-		log.info("loadResources() "+criteria.toString());
+		logger.info("loadResources() "+criteria.toString());
 		for (Resource resource : oem.createQuery(criteria).getResultList()) {
 			try {
-				log.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());
+				logger.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());
 				resource.setup();
-				log.info("loadResources() resource ```"+resource.getName()+"``` has been loaded");
+				logger.info("loadResources() resource ```"+resource.getName()+"``` has been loaded");
+				
 				this.resources.put(resource.getName(), resource);
 			} catch (ResourceInterfaceException e) {
-				log.warning("loadResources() Exception: "+e.getMessage());
-				e.printStackTrace();
+				logger.error("loadResources() ResourceInterfaceException: "+e.getMessage());
+			} catch (Exception e) {
+				logger.error("loadResources() Exception: "+e.getMessage());
 			}
 		}
-		log.info("loadResources() Loaded " + this.resources.size() + " resources");
+		logger.info("loadResources() Loaded " + this.resources.size() + " resources");
 	}
 
 	/**
@@ -220,7 +221,6 @@ public class IRCTApplication {
 	public void addResource(String name, Resource resource) {
 		// Persist the new resource
 		oem.persist(resource);
-
 		this.resources.put(name, resource);
 	}
 
@@ -379,6 +379,20 @@ public class IRCTApplication {
 	 */
 	public void setResultDataFolder(String resultDataFolder) {
 		this.resultDataFolder = resultDataFolder;
+	}
+
+	/**
+	 * @return the clientSecret
+	 */
+	public String getClientSecret() {
+		return clientSecret;
+	}
+
+	/**
+	 * @param clientSecret the clientSecret to set
+	 */
+	public void setClientSecret(String clientSecret) {
+		this.clientSecret = clientSecret;
 	}
 
 }
