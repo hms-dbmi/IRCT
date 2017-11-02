@@ -420,9 +420,7 @@ public class QueryController {
 			throws QueryException {
 
 		for (Field predicateField : fields) {
-
-			if (predicateField.isRequired()
-					&& ((valueFields != null) && (valueFields.containsKey(predicateField.getPath())))) {
+			if (predicateField.isRequired() && ((valueFields != null) && (valueFields.containsKey(predicateField.getPath())))) {
 				String queryFieldValue = valueFields.get(predicateField.getPath());
 
 				if (queryFieldValue != null) {
@@ -455,7 +453,7 @@ public class QueryController {
 					&& ((objectFields != null) && (objectFields.containsKey(predicateField.getPath())))) {
 
 			} else if (predicateField.isRequired()) {
-				throw new QueryException("Required field " + predicateField.getName() + " is not set");
+				throw new QueryException("Required field " + predicateField.getName() + " is not set in "+valueFields.keySet().toString());
 			}
 		}
 	}

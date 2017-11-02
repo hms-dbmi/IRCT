@@ -136,6 +136,68 @@ public class Utilities {
 
 	}
 	
+	public static void getClaims(String token, String clientSecret)  {
+		logger.debug("getClaims() Starting...");
+		
+		/*DecodedJWT jwt = null;
+		boolean isValidated = false;
+		try {
+			logger.debug("getClaims() validating with un-decoded secret.");
+			Algorithm algo = Algorithm.HMAC256(clientSecret.getBytes("UTF-8"));
+			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
+			jwt = verifier.verify(tokenString);
+			isValidated = true;
+		} catch (Exception e) {
+			logger.warn("getClaims() First validation with undecoded secret has failed. "+e.getMessage());
+		}
+		
+		// If the first try, with decoding the clientSecret fails, due to whatever reason,
+		// try to use a different algorithm, where the clientSecret does not get decoded
+		if (!isValidated) {
+			try {
+				logger.debug("extractEmailFromJWT() validating with de-coded secret.");
+				Algorithm algo = Algorithm.HMAC256(Base64.decodeBase64(clientSecret.getBytes("UTF-8")));
+				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
+				jwt = verifier.verify(tokenString);
+				isValidated = true;
+			} catch (Exception e) {
+				logger.error("getClaims() SecondTokenValidation Exception:"+e.getMessage());
+				throw new RuntimeException("Token validation failed, because "+e.getMessage());
+			}
+		}
+		
+		if (!isValidated) {
+			// If we get here, it means we could not validated the JWT token. Total failure.
+			throw new RuntimeException("Could not validate the JWT token passed in.");
+		}
+		logger.debug("getClaims() validation is successful.");
+		
+		if (jwt != null) {
+			// Just in case someone cares, this will list all the claims that are 
+			// attached to the incoming JWT.
+			Map<String, Claim> claims = jwt.getClaims();
+			for (String s: claims.keySet()) {
+				Claim myClaim = claims.get(s);
+				logger.debug("getClaims() claim: "+s+"="+myClaim.asString());
+			}
+			
+			userEmail = jwt.getClaim("email").asString();
+			
+			// TODO: tranSmart might not have `email` claim in its JWT. Use the `sub` claim instead.
+			if (userEmail == null) {
+				if (jwt.getClaim("sub") == null) {
+					logger.error("extractEmailFromJWT() No email claim, nor the backup `sub` claim is present in the provided JWT.");
+				} else {
+					logger.debug("extractEmailFromJWT() using the `sub` claim, because `email` does not exists");
+					userEmail = jwt.getClaim("sub").toString();
+				}
+			}
+		}
+		*/
+
+	}
+
+	
 	// TODO This is silly, but for backward compatibility
 	public static String extractHeaderValue(HttpServletRequest req, String headerType) {
 		return Utilities.extractToken(req);		

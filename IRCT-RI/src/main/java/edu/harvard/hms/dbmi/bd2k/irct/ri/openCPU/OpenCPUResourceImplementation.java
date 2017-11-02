@@ -1,6 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.openCPU;
 
 import java.util.Arrays;
@@ -16,7 +13,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * An implementation of a resource that communicates with an open CPU instance.
- * 
  * 
  * @author Jeremy R. Easton-Marks
  *

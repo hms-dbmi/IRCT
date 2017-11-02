@@ -1,15 +1,9 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 package edu.harvard.hms.dbmi.bd2k.irct.dataconverter;
 
 import javax.ws.rs.core.StreamingOutput;
 
 /**
  * An object that contains a data stream and information about a result
- * @author Jeremy R. Easton-Marks
- *
  */
 public class ResultDataStream {
 	private String mediaType;
@@ -33,6 +27,9 @@ public class ResultDataStream {
 	 * @return the result
 	 */
 	public StreamingOutput getResult() {
+		if (result == null) {
+			throw new RuntimeException("StreamingOutput `result` is not available.");
+		}
 		return result;
 	}
 	/**

@@ -78,7 +78,7 @@ public class ResultService {
 	@Path("/resultStatus/{resultId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resultStatus(@PathParam("resultId") Long resultId) {
-		
+
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		try {
 			User user = (User) session.getAttribute("user");
@@ -185,34 +185,41 @@ public class ResultService {
 	public Response download(@PathParam("resultId") Long resultId, @PathParam("format") String format,
 			@QueryParam("download") String download) {
 
-		logger.debug("/result resultId:" + resultId + " format:" + format + " download:" + download);
+		logger.debug("GET /result resultId:" + resultId + " format:" + format + " download:" + download);
 		ResultDataStream rds = null;
 		try {
 			User user = (User) session.getAttribute("user");
 			rds = rc.getResultDataStream(user, resultId, format);
 
 			logger.debug("/result `ResultDataStream` mediatype is " + rds.getMediaType());
-
 			if ((rds == null) || (rds.getMediaType() == null)) {
-				logger.debug("/result rds is null");
-
-				JsonObjectBuilder jsonResponse = Json.createObjectBuilder();
-				jsonResponse.add("message", "Unable to retrieve result.");
-				return Response.ok(jsonResponse.build(), MediaType.APPLICATION_JSON).build();
+				logger.error("GET /result rds is null");
+				return Response.ok(Json.createObjectBuilder().add("message", "Unable to retrieve result.").build(),
+						MediaType.APPLICATION_JSON).build();
 			}
 
 			if ((download != null) && (download.equalsIgnoreCase("Yes"))) {
-				logger.debug("/result initiate download with mediaType:" + rds.getMediaType().toString());
+				logger.debug("GET /result initiate download with mediaType:" + rds.getMediaType().toString());
 				return Response.ok(rds.getResult(), rds.getMediaType())
 						.header("Content-Disposition", "attachment; filename=IRCT-" + resultId + rds.getFileExtension())
 						.build();
 			}
 
 		} catch (Exception e) {
+			logger.error("GET /result Exception generating returned data:" + e.getMessage());
 			return Response.ok(Json.createObjectBuilder().add("status", "error").add("message", e.getMessage()),
 					MediaType.APPLICATION_JSON).build();
 		}
-		logger.debug("/result returning data");
-		return Response.ok(rds.getResult(), rds.getMediaType()).build();
+
+		try {
+			logger.debug("GET /result returning data");
+			return Response.ok(rds.getResult(), rds.getMediaType()).build();
+		} catch (Exception e) {
+			// Hopefully we will never get to this section of the code.
+			logger.error("GET /result Exception returning data:" + e.getMessage());
+			return Response.ok(Json.createObjectBuilder().add("status", "error").add("message",
+					"Unable to retrieve result." + e.getMessage()), MediaType.APPLICATION_JSON).build();
+		}
+
 	}
 }
