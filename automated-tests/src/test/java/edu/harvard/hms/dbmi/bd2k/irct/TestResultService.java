@@ -49,9 +49,11 @@ import io.restassured.path.json.JsonPath;
  * @author Atul 
  * @Version 1.0	 */
 
-public class TestResultService 
+public class TestResultService
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
+	
+	
 	private static final Logger LOGGER = Logger.getLogger( TestResultService.class.getName() );
     String resultServiceAPIUrl;
     String accessToken;
