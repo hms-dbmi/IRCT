@@ -37,8 +37,8 @@ public class RestUtils {
       
       public static String AccessToken()
       {
-          String AccessTokenPom = System.getProperty("accessToken");
-    	  return AccessTokenPom;
+          String accessTokenPom = System.getProperty("accessToken");
+    	  return accessTokenPom;
           
       }
 

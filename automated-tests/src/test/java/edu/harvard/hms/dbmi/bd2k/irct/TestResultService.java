@@ -53,11 +53,11 @@ public class TestResultService
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
 	private static final Logger LOGGER = Logger.getLogger( TestResultService.class.getName() );
-    String APIUrlResult;
+    String resultServiceAPIUrl;
     String accessToken;
     String APIUrl;
-    String APIResultStatus;
-    String APIResultFormat;
+    String resultStatusAPIUrl;
+    String resultFormatAPIUrl;
     String jsonBody;
     int resultId;
     /**
@@ -100,14 +100,14 @@ public void verifyGetResultStatusCode() throws IOException{
 		   		.extract().response();
 	   
 	   resultId=response.getBody().jsonPath().get("resultId");
-	   APIUrlResult=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
+	   resultServiceAPIUrl=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
 	   	
 				   try{
 				   		given()
 			              .header("Authorization", accessToken)
 			              .when()
 		//	              .get("https://nhanes.hms.harvard.edu/rest/v1/resultService/result/21442/JSON/")
-			              .get(APIUrlResult)
+			              .get(resultServiceAPIUrl)
 			              .then()
 			              .statusCode(200);
 				   	
@@ -147,7 +147,7 @@ public void verifyGetResultStatusCode() throws IOException{
 					   		  given()
 				              .header("Authorization", accessToken)
 				              .when()
-				              .get(APIUrlResult)            
+				              .get(resultServiceAPIUrl)            
 				              .then()
 				              .extract().response().getBody().jsonPath().get("testing");
 				              
@@ -174,14 +174,14 @@ public void verifyGetResultStatusCode() throws IOException{
 	   public void VerifyResultStatusAvailableJsonResponse() throws IOException
 	   {	   
 		
-		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
 		//System.out.println(APIResultStatus);
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
 						.header("Authorization", accessToken)
 				   .when()
-					    .get(APIResultStatus)            
+					    .get(resultStatusAPIUrl)            
 				   .then().
 					    body("status", equalTo("AVAILABLE"));
 			}
@@ -199,14 +199,14 @@ public void verifyGetResultStatusCode() throws IOException{
 	   public void VerifyResultStatusStatusCode() 
 	   {	   
 		
-		APIResultStatus=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
 		
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
 						.header("Authorization", accessToken)
 				   .when()
-					    .get(APIResultStatus)            
+					    .get(resultStatusAPIUrl)            
 				   .then().
 					    statusCode(200);
 			  LOGGER.info("***************** /resultService/resultStatus/ returns expected status code as : 200*******************");
@@ -225,14 +225,14 @@ public void verifyGetResultStatusCode() throws IOException{
 	   public void VerifyAvailableStatusCode() 
 	   {	   
 		
-		APIResultFormat=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
+		resultFormatAPIUrl=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
 		
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
 						.header("Authorization", accessToken)
 				   .when()
-					    .get(APIResultFormat)            
+					    .get(resultFormatAPIUrl)            
 				   .then().
 					    statusCode(200);
 			  LOGGER.info("***************** /resultService/availableFormats/ returns expected status code as : 200*******************");
@@ -251,8 +251,8 @@ public void verifyGetResultStatusCode() throws IOException{
 	   public void VerifyAvailableJsonResponse() 
 	   {	   
 		
-		APIResultFormat=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
-		System.out.println(APIResultFormat);
+		resultFormatAPIUrl=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
+		System.out.println(resultFormatAPIUrl);
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()

@@ -49,7 +49,7 @@ public class TestQueryService
 {
 	//RestAssured.registerParser("text/plain", Parser.JSON);
 	private static final Logger LOGGER = Logger.getLogger( TestQueryService.class.getName() );
-    String APIUrl;
+    String QueryServiceAPIUrl;
     String accessToken;
     //RestAssured.defaultParser = Parser.JSON;
     
@@ -60,7 +60,7 @@ public class TestQueryService
    @BeforeMethod
     public void setup()
     {
-	   APIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
+	   QueryServiceAPIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
 	   accessToken=RestUtils.AccessToken();
 	   RestUtils.setContentType(ContentType.JSON);
     }
@@ -85,7 +85,7 @@ public void runQueryStatusCode() throws IOException{
 			  		.header("Authorization", accessToken)
 			  		.body(jsonBody)
 			  		.when()
-			  		.post(APIUrl)
+			  		.post(QueryServiceAPIUrl)
 			  		.then()
 			  		.statusCode(200)
 			  		.log()
@@ -112,7 +112,7 @@ public void runQueryStatusCode() throws IOException{
  					   		.header("Authorization", accessToken)
  					   		.body(jsonBody)
  					   		.when()
- 					   		.post(APIUrl)
+ 					   		.post(QueryServiceAPIUrl)
  					   		.then().
  					   		body("resultId",is(notNullValue())).extract().response();
   					   

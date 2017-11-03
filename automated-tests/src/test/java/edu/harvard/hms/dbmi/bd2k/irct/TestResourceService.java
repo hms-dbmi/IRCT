@@ -36,7 +36,7 @@ import static io.restassured.RestAssured.given;
  * @Version 1.0    
  */
 
-;
+
 public class TestResourceService {
 
 
@@ -46,7 +46,7 @@ public class TestResourceService {
     private static List<String[]> csvData = null;
     private int countPui;
     String baseUri;
-    String baseResource;
+    String resourceServiceUrl;
     String accessToken; 
 
     
@@ -58,7 +58,7 @@ public class TestResourceService {
     public void setup()
     {
 	  baseUri=RestUtils.BaseURIPath()+"/resourceService/path";
-	  baseResource=RestUtils.BaseURIPath()+"/resourceService/resources";
+	  resourceServiceUrl=RestUtils.BaseURIPath()+"/resourceService/resources";
 	  accessToken=RestUtils.AccessToken();
 	  RestUtils.setContentType(ContentType.JSON);
 	  
@@ -85,7 +85,7 @@ public class TestResourceService {
     	   	Response res=(Response) given()
                    .header("Authorization", accessToken)
                    .when()
-                   .get(baseResource)
+                   .get(resourceServiceUrl)
                    .then()
                    .statusCode(200);
     	   	
@@ -106,7 +106,7 @@ public class TestResourceService {
         	   			given()
         	   			.header("Authorization", accessToken)
                        .when()
-                       .get(baseResource)
+                       .get(resourceServiceUrl)
                        .then()        
                        .extract()
                        .response()
