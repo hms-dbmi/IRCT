@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -39,9 +40,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
 
 /**
  * An implementation of a Result Set that is persistable to the file system
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class FileResultSet extends ResultSetImpl implements Persistable {
 	private long size;
@@ -62,6 +60,8 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	private Map<Long, Row> pendingData;
 	private int MAXPENDING = 100000;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	public FileResultSet() {
 		this.pendingData = new HashMap<Long, Row>();
@@ -426,7 +426,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	private void setCell(int columnIndex, Object value)
 			throws ResultSetException {
 		if (columnIndex >= getColumnSize()) {
-			throw new ResultSetException("Column not found");
+			throw new ResultSetException("Column not found. Trying to set column #"+columnIndex+" but there are only "+getColumnSize()+" column(s)");
 		}
 		this.currentRow.setColumn(columnIndex, value);
 		this.pendingData.put(this.getRowPosition(), this.currentRow);
@@ -444,7 +444,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	 */
 	private Object getCell(int columnIndex) throws ResultSetException {
 		if (columnIndex >= getColumnSize()) {
-			throw new ResultSetException("Column not found");
+			throw new ResultSetException("Column not found. Trying to set column #"+columnIndex+" but there are only "+getColumnSize()+" column(s)");
 		}
 		return this.currentRow.getColumn(columnIndex);
 	}
