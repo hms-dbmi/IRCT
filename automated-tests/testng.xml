@@ -7,9 +7,18 @@
   <test name="Method Test Cases" >
     <classes>
        <class name="edu.harvard.hms.dbmi.bd2k.irct.TestResultService">
+ 	      <methods>
+ 	      
+ 		<include name="VerifyResultStatusAvailableJsonResponse" />
+ 
+        <include name="VerifyResultStatusAvailableInvalidAccessToken" />
+        
+      </methods>
+ 
        </class>
        
-         <class name="edu.harvard.hms.dbmi.bd2k.irct.TestQueryService"></class>
+       
     </classes>
   </test>
  </suite>
+ 
