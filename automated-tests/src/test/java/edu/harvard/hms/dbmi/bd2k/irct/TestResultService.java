@@ -13,6 +13,7 @@ import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.LogConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.response.ResponseBody;
 import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import java.io.InputStreamReader;
@@ -61,6 +62,7 @@ public class TestResultService
     String resultStatusAPIUrl;
     String resultFormatAPIUrl;
     String jsonBody;
+    
     int resultId;
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
@@ -102,8 +104,9 @@ public void verifyGetResultStatusCode() throws IOException{
 		   		.extract().response();
 	   
 	   resultId=response.getBody().jsonPath().get("resultId");
+	   
 	   resultServiceAPIUrl=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
-	   	
+	   
 				   try{
 				   		given()
 			              .header("Authorization", accessToken)
@@ -173,10 +176,13 @@ public void verifyGetResultStatusCode() throws IOException{
 	
 	
 @Test (priority=3)
-	   public void VerifyResultStatusAvailableJsonResponse() throws IOException
+	   public void verifyResultStatusAvailableJsonResponse() throws IOException, InterruptedException
 	   {	   
-		
+		//System.out.println(resultId);
 		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
+		//System.out.println("beforewait"+resultStatusAPIUrl);
+		Thread.sleep(30000);
+		//System.out.println(resultStatusAPIUrl);
 		//System.out.println(APIResultStatus);
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
@@ -198,7 +204,7 @@ public void verifyGetResultStatusCode() throws IOException{
 	
 	
 @Test (priority=4)
-	   public void VerifyResultStatusStatusCode() 
+	   public void verifyResultStatusStatusCode() 
 	   {	   
 		
 		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
@@ -224,7 +230,7 @@ public void verifyGetResultStatusCode() throws IOException{
 
 	
 @Test (priority=5)
-	   public void VerifyAvailableStatusCode() 
+	   public void verifyAvailableFormatStatusCode() 
 	   {	   
 		
 		resultFormatAPIUrl=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
@@ -248,9 +254,9 @@ public void verifyGetResultStatusCode() throws IOException{
 
 	}
 
-	
+		
 	@Test (priority=6)
-	   public void VerifyAvailableJsonResponse() 
+	   public void verifyAvailableFormatJsonResponse() 
 	   {	   
 		
 		resultFormatAPIUrl=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
@@ -274,6 +280,111 @@ public void verifyGetResultStatusCode() throws IOException{
 
 	}
 
+	
+	@Test (priority=7) 
+	public void verifyGetResultInvalidAccessToken() throws IOException{
+		RequestSpecification httpRequest = RestAssured.given();
+		Response response = httpRequest.get(resultServiceAPIUrl);
+ 
+		// Get the status code from the Response. In case of a successful interaction with the web service, we
+		// should get a status code of 401.
+		int statusCode = response.getStatusCode();
+ 
+		// Assert that correct status code is returned.
+		Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
+		//LOGGER.info("***************** /resultService/result/ returns 401 status code*******************");
+		
+	}
+
+	
+	@Test (priority=8) 
+	public void verifyResultStatusAvailableInvalidAccessToken() throws IOException{
+		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken+"Invalid AccessToken");
+		Response response = httpRequest.get(resultStatusAPIUrl);
+ 
+		// Get the status code from the Response. In case of a successful interaction with the web service, we
+		// should get a status code of 401
+		int statusCode = response.getStatusCode();
+ 
+		// Assert that correct status code is returned.
+		Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
+		//LOGGER.info("***************** /resultService/result/ returns 401 status code*******************");
+		
+	}
+		
+	@Test (priority=9) 
+	public void verifyAvailableFormatInvalidAccessToken() throws IOException{
+		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken+"Invalid AccessToken");
+		Response response = httpRequest.get(resultFormatAPIUrl);
+ 
+		// Get the status code from the Response. In case of a successful interaction with the web service, we
+		// should get a status code of 401
+		int statusCode = response.getStatusCode();
+ 
+		// Assert that correct status code is returned.
+		Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
+		//LOGGER.info("***************** /resultService/result/ returns 401 status code*******************");
+		
+	}
+		
+
+	@Test (priority=10) 
+	public void verifyGetResultStatusInvalidResultId() throws IOException{
+		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
+		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/result/"+resultId+1+"/JSON/");
+ 
+		// Get the error message  from the Response. 
+		//int statusCode = response.
+		ResponseBody message=response.getBody();
+		System.out.println(message.asString());
+		message.jsonPath().get("Unable to retrieve result.");
+		//body("status", equalTo("AVAILABLE"));
+		// Assert that correct status code is returned.
+		//Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
+		//LOGGER.info("***************** /resultService/result/ returns 401 status code*******************");
+		
+	}
+		
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+		
+/*		try{
+		   
+			ValidatableResponse httpRequest = RestAssured.given()
+				              .header("Authorization", "Invalid")
+				              .when()
+				              .get(resultServiceAPIUrl).then().assertThat().statusCode(408);
+				              
+				             
+					   	
+						  LOGGER.info("***************** /resultService/result/ returns 401 OK status code*******************");
+					   	
+				  			}    
+				  			catch (AssertionError r) 
+					       		{
+					           	LOGGER.error("Rest URI has Exception/Error", r);
+					       		}
+
+	}
+
+	*/
+	
 }
 	
 	//extract().response().;
