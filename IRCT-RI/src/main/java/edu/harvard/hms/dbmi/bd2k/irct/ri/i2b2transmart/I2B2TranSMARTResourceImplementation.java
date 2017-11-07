@@ -66,7 +66,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	private String transmartURL;
 
 	final static Logger logger = Logger.getGlobal();
-	
+
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
@@ -160,7 +160,7 @@ public class I2B2TranSMARTResourceImplementation extends
 	@Override
 	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
-		
+
 		result = super.runQuery(user, query, result);
 
 		if (result.getResultStatus() != ResultStatus.ERROR) {
@@ -310,6 +310,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
 					+ resultId
+					+ "&gatherAllEncounterFacts=true"
 					+ "&conceptPaths="
 					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
 							"UTF-8");
@@ -533,7 +534,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		return singleReturnMyPath;
 	}
-	
+
 	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
 		// TODO This should be enhanced, so that the user's Resource specific token gets retrieved!!!
 		String token = user.getToken();
