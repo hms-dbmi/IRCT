@@ -9,9 +9,9 @@
        <class name="edu.harvard.hms.dbmi.bd2k.irct.TestResultService">
  	      <methods>
  	      
- 		<include name="VerifyResultStatusAvailableJsonResponse" />
+ 		<include name="verifyGetResultStatusCode" />
  
-        <include name="VerifyResultStatusAvailableInvalidAccessToken" />
+        <include name="verifyGetResultJsonResponse" />
         
       </methods>
  
