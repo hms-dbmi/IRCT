@@ -6,28 +6,8 @@
           "dataType": "STRING"
         },
         "alias": "pcb153"
-      },
-    {
-        "field": {
-         "pui": "/nhanes/Demo/demographics/demographics/AGE/",
-         "dataType": "STRING"
-        },
-        "alias": "Age"
-    },
-{
-        "field": {
-          "pui": "/nhanes/Demo/demographics/demographics/SEX/female/",
-          "dataType": "STRING"
-        },
-        "alias": "Gender"
-      }, 
-  {
-            "field": {
-              "pui": "/nhanes/Demo/demographics/demographics/SEX/male/",
-              "dataType": "STRING"
-            },
-            "alias": "Gender"
-          } 
+      }
+ 
   ],
   "where": [
       {
