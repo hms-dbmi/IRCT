@@ -12,6 +12,7 @@ import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.LogConfig;
 import io.restassured.http.ContentType;
+import io.restassured.internal.assertion.Assertion;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
 import io.restassured.response.ValidatableResponse;
@@ -21,10 +22,13 @@ import java.io.InputStreamReader;
 import static io.restassured.RestAssured.*;
 import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.Matchers.*;
+import static org.testng.Assert.assertEquals;
 
 import org.apache.bcel.classfile.Constant;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.net.SyslogAppender;
+import org.awaitility.Awaitility;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -39,6 +43,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -62,7 +67,8 @@ public class TestResultService
     String resultStatusAPIUrl;
     String resultFormatAPIUrl;
     String jsonBody;
-    
+    String jsonGetResult;
+    int statusCode;
     int resultId;
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
@@ -133,57 +139,58 @@ public void verifyGetResultStatusCode() throws IOException{
 
 
 @Test (priority=2)
-	public void verifyGetResultJsonResponse() throws IOException{
-		 
-		try{
+	public void verifyGetResultJsonResponse() throws IOException, Exception{
+		
+	try{
+		Awaitility.await().atMost(70, TimeUnit.SECONDS).until(new Runnable()
+		{
+		  public void run()
+		  {
+			  Response responseJson=given()
+				  .header("Authorization", accessToken)
+	              .when()
+	              //.get("https://nhanes.hms.harvard.edu/rest/v1/resultService/result/219687/JSON");
+	              .get(resultServiceAPIUrl);
+		   		jsonGetResult=responseJson.body().prettyPrint();
+		   		responseJson.prettyPrint();
 		   
-		   Response response=	(Response) RestAssured.given()
-			   		.contentType("application/json")
-			   		.header("Authorization", accessToken)
-			   		.body(jsonBody)
-			   		.when()
-			   		.post(APIUrl)
-			   		.then()
-			   		.extract().response();
-//		   resultId=response.getBody().jsonPath().get("resultId");
-	//	   APIUrlResult=RestUtils.BaseURIPath()+"/resultService/result/"+resultId+"/JSON/";
-		   	
-					   try{
-					   		  given()
-				              .header("Authorization", accessToken)
-				              .when()
-				              .get(resultServiceAPIUrl)            
-				              .then()
-				              .extract().response().getBody().jsonPath().get("testing");
-				              
-					   	
-						  LOGGER.info("***************** /resultService/result/ returns valid Message*******************");
-					   	
-				  			}    
-				  			catch (AssertionError r) 
-					       		{
-					           	LOGGER.error("Rest URI has Exception/Error", r);
-					       		}
-						
-
-						}
-		 catch (AssertionError e) 
+		  }
+		 });
+	}
+catch (AssertionError e) 
 		{
 		LOGGER.error("The response is invalid -----Test Failed", e);
 		}
+
+ try 
+ {
+		System.out.println("*******************************");
+		System.out.println("jsonGetResult");
+	 	FileWriter file = new FileWriter("./src/test/resources/resultServiceOutput.json");
+		file.write(jsonGetResult);
+		file.close();
+		final File actual = new File("./src/test/resources/resultServiceOutput.json");
+		final File expected = new File("./src/test/resources/resultServiceOutputExpected.json");
+		assertEquals(FileUtils.readFileToString(actual, "utf-8"),FileUtils.readFileToString(expected, "utf-8"));
+ } 
+ catch (IOException e)
+ {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+ }
+	
+
 		
 }
-	
-	
+
+
 @Test (priority=3)
 	   public void verifyResultStatusAvailableJsonResponse() throws IOException, InterruptedException
 	   {	   
-		//System.out.println(resultId);
+
 		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
-		//System.out.println("beforewait"+resultStatusAPIUrl);
+
 		Thread.sleep(30000);
-		//System.out.println(resultStatusAPIUrl);
-		//System.out.println(APIResultStatus);
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
@@ -331,13 +338,20 @@ public void verifyGetResultStatusCode() throws IOException{
 	@Test (priority=10) 
 	public void verifyGetResultStatusInvalidResultId() throws IOException{
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
-		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/result/"+resultId+1+"/JSON/");
- 
+		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/result/"+resultId+4+"/JSON/");
+ 		String invalidResultId=response.jsonPath().get("message");
+ 		Assert.assertEquals(invalidResultId, "Unable to retrieve result.");
+		
+		
 		// Get the error message  from the Response. 
-		//int statusCode = response.
-		ResponseBody message=response.getBody();
-		System.out.println(message.asString());
-		message.jsonPath().get("Unable to retrieve result.");
+		//int statusCode = responsnse.
+		//ResponseBody message=response.getBody().;
+		//List<Object>  messages=response.body().jsonPath().getList("message");
+		
+		//System.out.println(messages);
+		
+		//System.out.println(message.asString());
+		//message.jsonPath().get("Unable to retrieve result.");
 		//body("status", equalTo("AVAILABLE"));
 		// Assert that correct status code is returned.
 		//Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
