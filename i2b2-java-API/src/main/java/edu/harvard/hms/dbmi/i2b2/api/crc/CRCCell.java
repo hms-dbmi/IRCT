@@ -27,6 +27,7 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.BodyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.EventPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FacilityType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetConceptByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetEventByPrimaryKeyRequestType;
@@ -617,11 +618,11 @@ public class CRCCell extends Cell {
 		
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PDO_FROM_INPUT_LIST, "/pdorequest");
 
-		logger.debug("getPDOfromInputList() created ```RequestMessageType```");
+		logger.debug("getPDOfromInputList() created `RequestMessageType`");
 		
 		GetPDOFromInputListRequestType ilrt = pdoOF
 				.createGetPDOFromInputListRequestType();
-		logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
+		logger.debug("getPDOfromInputList() created `GetPDOFromInputListRequestType`");
 
 		InputOptionListType iolt = pdoOF.createInputOptionListType();
 		PatientListType plt = pdoOF.createPatientListType();
@@ -646,7 +647,10 @@ public class CRCCell extends Cell {
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 
+		FactOutputOptionType foot = pdoOF.createFactOutputOptionType();
 		oolt.setPatientSet(oot);
+		oolt.setObservationSet(foot);
+		
 		logger.debug("getPDOfromInputList() create OutputOptionType");
 		ilrt.setOutputOption(oolt);
 		logger.debug("getPDOfromInputList() set OutputOptionType");
