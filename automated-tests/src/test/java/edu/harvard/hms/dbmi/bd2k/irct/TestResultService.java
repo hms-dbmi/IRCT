@@ -338,28 +338,37 @@ catch (AssertionError e)
 	@Test (priority=10) 
 	public void verifyGetResultStatusInvalidResultId() throws IOException{
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
+		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId+4);
+ 		String invalidResultIdResultStatus=response.jsonPath().get("message");
+ 		Assert.assertEquals(invalidResultIdResultStatus, "Unable to get result for that id");
+			
+	}
+
+
+	@Test (priority=11) 
+	public void verifyGetResultInvalidResultId() throws IOException{
+		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
 		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/result/"+resultId+4+"/JSON/");
- 		String invalidResultId=response.jsonPath().get("message");
- 		Assert.assertEquals(invalidResultId, "Unable to retrieve result.");
+ 		String invalidResultIdMessage=response.jsonPath().get("message");
+ 		Assert.assertEquals(invalidResultIdMessage, "Unable to retrieve result.");
 		
-		
-		// Get the error message  from the Response. 
-		//int statusCode = responsnse.
-		//ResponseBody message=response.getBody().;
-		//List<Object>  messages=response.body().jsonPath().getList("message");
-		
-		//System.out.println(messages);
-		
-		//System.out.println(message.asString());
-		//message.jsonPath().get("Unable to retrieve result.");
-		//body("status", equalTo("AVAILABLE"));
-		// Assert that correct status code is returned.
-		//Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
-		//LOGGER.info("***************** /resultService/result/ returns 401 status code*******************");
-		
+	
+			
 	}
 		
 
+	@Test (priority=12) 
+	public void verifyAvailableFormatInvalidResultId() throws IOException{
+		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
+		System.out.println(resultId);
+		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId+4);
+ 		//System.out.println(response.prettyPrint());
+ 		String invalidResultIdMessageAvailableFormat=response.jsonPath().get("message");
+ 		Assert.assertEquals(invalidResultIdMessageAvailableFormat, "Unable to get available formats for that id");
+		
+		
+	}
+		
 	
 	
 	

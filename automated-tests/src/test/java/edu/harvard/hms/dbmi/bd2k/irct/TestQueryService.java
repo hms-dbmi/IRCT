@@ -1,6 +1,7 @@
 
 package edu.harvard.hms.dbmi.bd2k.irct;
 
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -51,131 +52,132 @@ public class TestQueryService
 	private static final Logger LOGGER = Logger.getLogger( TestQueryService.class.getName() );
     String QueryServiceAPIUrl;
     String accessToken;
+    String root;
+    String abspathFile;
+    String abspathFileInvalid;
+    String jsonBody;
+    String jsonBodyInvalid;
+    
     //RestAssured.defaultParser = Parser.JSON;
     
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
      */
     
-   @BeforeMethod
-    public void setup()
-    {
-	   QueryServiceAPIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
-	   accessToken=RestUtils.AccessToken();
-	   RestUtils.setContentType(ContentType.JSON);
-    }
-   
-  
- public String generateStringFromResource(String path) throws IOException {
-
-	    return new String(Files.readAllBytes(Paths.get(path)));
-
-	}
-   
- @Test  
-public void runQueryStatusCode() throws IOException{
-  
-  String root=System.getProperty("user.dir");
-  String abspathFile=root+"/src/test/resources/queryService.json";
-  String jsonBody = generateStringFromResource(abspathFile);
-  //RestAssured.registerParser("text/plain", Parser.TEXT);
-			  try{
-			  		given()
-			  		.contentType("application/json")
-			  		.header("Authorization", accessToken)
-			  		.body(jsonBody)
-			  		.when()
-			  		.post(QueryServiceAPIUrl)
-			  		.then()
-			  		.statusCode(200)
-			  		.log()
-			  		.all();
-			  	LOGGER.info("The Status code is verified successfully");
-			 	}
-			  catch (AssertionError e) 
-					{
-			 	LOGGER.error("The Status code is not as expected -----Test Failed", e);
-					}
-			
-			 }
- 
- @Test  
- public void runQueryResponseCheck() throws IOException{
-   
-   String root=System.getProperty("user.dir");
-   String abspathFile=root+"/src/test/resources/queryService.json";
-   String jsonBody = generateStringFromResource(abspathFile);
-  				   try{
+					   @BeforeMethod
+					    public void setup()
+					    {
+						   QueryServiceAPIUrl=RestUtils.BaseURIPath()+"/queryService/runQuery/";
+						   accessToken=RestUtils.AccessToken();
+						   RestUtils.setContentType(ContentType.JSON);
+					    }
 					   
-  					 Response response=	(Response) RestAssured.given()
- 					   		.contentType("application/json")
- 					   		.header("Authorization", accessToken)
- 					   		.body(jsonBody)
- 					   		.when()
- 					   		.post(QueryServiceAPIUrl)
- 					   		.then().
- 					   		body("resultId",is(notNullValue())).extract().response();
-  					   
-  					
-  					 
-					   LOGGER.info("The response of queryService is verified successfully"       +response.asString());
-					   		 }
-					   
-					   catch (AssertionError e) 
-			       		{
-						   
-						   LOGGER.error("The Response is not as expected -----Test Failed", e);
-			       		}
-   
- 		}
- 
-}
-
-
-
-
-
-/*
-	
-		public void httpPost() throws InterruptedException {
-			
-			//Initializing Rest API's URL
-			String APIUrl = baseUri+"queryService/runQuery/";
-			System.out.println(APIUrl);
-			
-			//Initializing payload or API body
-			String APIBody = "{API Body}"; 
-						
-					// Building request using requestSpecBuilder
-			RequestSpecBuilder builder = new RequestSpecBuilder();
-			
-			//Setting API's body
-			builder.setBody(APIBody);
-				
-			//Setting content type as application/json or application/xml
-			builder.setContentType("application/json; charset=UTF-8");
-				
-			RequestSpecification requestSpec = builder.build();
-
-			//Making post request with authentication, leave blank in case there are no credentials- basic("","")
-			Response response=given();
+					  
+					 public String generateStringFromResource(String path) throws IOException {
 					
-			Response response = given().authentication().preemptive().basic({username}, {password})
-						.spec(requestSpec).when().post(APIUrl);
-			JSONObject JSONResponseBody = new JSONObject(response.body().asString());
+						    return new String(Files.readAllBytes(Paths.get(path)));
+					
+						}
+					   
+					 @Test (priority=1)
+					 
+					public void verifyRunQueryStatusCode() throws IOException{
+					  
+					  root=System.getProperty("user.dir");
+					  abspathFile=root+"/src/test/resources/queryService.json";
+					  jsonBody = generateStringFromResource(abspathFile);
+					  
+					  
+					  //RestAssured.registerParser("text/plain", Parser.TEXT);
+								  try{
+								  		given()
+								  		.contentType("application/json")
+								  		.header("Authorization", accessToken)
+								  		.body(jsonBody)
+								  		.when()
+								  		.post(QueryServiceAPIUrl)
+								  		.then()
+								  		.statusCode(200)
+								  		.log()
+								  		.all();
+								  	LOGGER.info("The Status code is verified successfully");
+								 	}
+								  catch (AssertionError e) 
+										{
+								 	LOGGER.error("The Status code is not as expected -----Test Failed", e);
+										}
+								
+								 }
+					 @Test (priority=2)  
+					 
+					 public void verifyRunQueryResponseCheck() throws IOException{
+					   
+					   String root=System.getProperty("user.dir");
+					   String abspathFile=root+"/src/test/resources/queryService.json";
+					   String jsonBody = generateStringFromResource(abspathFile);
+					  				   try{
+										   
+					  					 Response response=	(Response) RestAssured.given()
+					 					   		.contentType("application/json")
+					 					   		.header("Authorization", accessToken)
+					 					   		.body(jsonBody)
+					 					   		.when()
+					 					   		.post(QueryServiceAPIUrl)
+					 					   		.then().
+					 					   		body("resultId",is(notNullValue())).extract().response();
+					  					 
+										   LOGGER.info("The response of queryService is verified successfully"       +response.asString());
+										   		 }
+										   
+										   catch (AssertionError e) 
+								       		{
+											   
+											   LOGGER.error("The Response is not as expected -----Test Failed", e);
+								       		}
+					   
+					 		}
+					 
+					
+					@Test (priority=3) 
+					public void verifyRunQueryStatusCodeInvalidAccessToken() throws IOException{
+					
+						RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken+1);
+						Response response = httpRequest.body(jsonBody).post(QueryServiceAPIUrl);
+						int statusCode=response.getStatusCode();
+						Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
+						
+							
+					}
+					
+					@Test (priority=4) 
+					public void verifyRunQueryStatusCodeInvalidJsonBody() throws IOException{
+						
+						  root=System.getProperty("user.dir");
+						  abspathFileInvalid=root+"/src/test/resources/queryService.json";
+						  jsonBodyInvalid = generateStringFromResource(abspathFile);
+					
+						RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken);
+						Response response = httpRequest.body(abspathFileInvalid).post(QueryServiceAPIUrl);
+						int statusCode=response.getStatusCode();
+						Assert.assertEquals(statusCode /*actual value*/, 500 /*expected value*/, "Correct status code returned");
+						
+							
+					}
+					
+					
+					@Test (priority=5) 
+					public void verifyRunQueryResponseInvalidAccessToken() throws IOException{
+					
+						RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken+1);
+						Response response = httpRequest.body(jsonBody).post(QueryServiceAPIUrl);
+						String invalidAccessTokenResponse=response.jsonPath().get("message");
+						Assert.assertEquals(invalidAccessTokenResponse , "Could not establish the user identity from request headers. HTTP 401 Unauthorized");
+						
+							
+					}
+					
 
-			//Fetching the desired value of a parameter
 
-//			String result = JSONResponseBody.getString({key});
-				
-			//Asserting that result 
-	Assert.assertEquals(result, "{expectedValue}");
-
-			}
-
-}			
 
 }
-}
 
-*/
