@@ -98,6 +98,8 @@ public class TestResultService
 @Test (priority=1) 
 public void verifyGetResultStatusCode() throws IOException{
 	 
+	 LOGGER.info("--------------The test case verifyGetResultStatusCode method is running------------");
+	
 	try{
 	   
 	   Response response=	(Response) RestAssured.given()
@@ -139,8 +141,11 @@ public void verifyGetResultStatusCode() throws IOException{
 
 
 @Test (priority=2)
+
 	public void verifyGetResultJsonResponse() throws IOException, Exception{
-		
+
+	 LOGGER.info("--------------The test case verifyGetResultJsonResponse method is running------------");
+	 
 	try{
 		Awaitility.await().atMost(70, TimeUnit.SECONDS).until(new Runnable()
 		{
@@ -185,13 +190,16 @@ catch (AssertionError e)
 
 
 @Test (priority=3)
-	   public void verifyResultStatusAvailableJsonResponse() throws IOException, InterruptedException
+	 
+public void verifyResultStatusAvailableJsonResponse() throws IOException, InterruptedException
 	   {	   
 
 		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
 
 		Thread.sleep(30000);
-			try{
+		
+		 LOGGER.info("--------------The test case verifyResultStatusAvailableJsonResponse method is running------------");
+		try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
 						.header("Authorization", accessToken)
@@ -216,6 +224,7 @@ catch (AssertionError e)
 		
 		resultStatusAPIUrl=RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId;
 		
+		 LOGGER.info("--------------The test case verifyResultStatusStatusCode method is running------------");
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
@@ -242,6 +251,8 @@ catch (AssertionError e)
 		
 		resultFormatAPIUrl=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
 		
+		 LOGGER.info("--------------The test case verifyAvailableFormatStatusCode method is running------------");
+		
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
@@ -267,7 +278,9 @@ catch (AssertionError e)
 	   {	   
 		
 		resultFormatAPIUrl=RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId;
-		System.out.println(resultFormatAPIUrl);
+		//System.out.println(resultFormatAPIUrl);
+		
+		 LOGGER.info("--------------The test case verifyAvailableFormatJsonResponse method is running------------");
 			try{
 		   ValidatableResponse httpRequest = RestAssured.
 				   given()
@@ -290,6 +303,8 @@ catch (AssertionError e)
 	
 	@Test (priority=7) 
 	public void verifyGetResultInvalidAccessToken() throws IOException{
+		 LOGGER.info("--------------The test case verifyGetResultInvalidAccessToken method is running------------");
+		
 		RequestSpecification httpRequest = RestAssured.given();
 		Response response = httpRequest.get(resultServiceAPIUrl);
  
@@ -306,6 +321,9 @@ catch (AssertionError e)
 	
 	@Test (priority=8) 
 	public void verifyResultStatusAvailableInvalidAccessToken() throws IOException{
+		
+		 LOGGER.info("--------------The test case verifyResultStatusAvailableInvalidAccessToken method is running------------");
+		 
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken+"Invalid AccessToken");
 		Response response = httpRequest.get(resultStatusAPIUrl);
  
@@ -321,6 +339,9 @@ catch (AssertionError e)
 		
 	@Test (priority=9) 
 	public void verifyAvailableFormatInvalidAccessToken() throws IOException{
+		
+		 LOGGER.info("--------------The test case verifyAvailableFormatInvalidAccessToken method is running------------");
+		 
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken+"Invalid AccessToken");
 		Response response = httpRequest.get(resultFormatAPIUrl);
  
@@ -337,6 +358,10 @@ catch (AssertionError e)
 
 	@Test (priority=10) 
 	public void verifyGetResultStatusInvalidResultId() throws IOException{
+		
+		 LOGGER.info("--------------The test case verifyGetResultStatusInvalidResultId method is running------------");
+		 
+		 
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
 		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/resultStatus/"+resultId+4);
  		String invalidResultIdResultStatus=response.jsonPath().get("message");
@@ -347,6 +372,9 @@ catch (AssertionError e)
 
 	@Test (priority=11) 
 	public void verifyGetResultInvalidResultId() throws IOException{
+		
+		 LOGGER.info("--------------The test case verifyGetResultInvalidResultId method is running------------");
+		 
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
 		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/result/"+resultId+4+"/JSON/");
  		String invalidResultIdMessage=response.jsonPath().get("message");
@@ -359,6 +387,8 @@ catch (AssertionError e)
 
 	@Test (priority=12) 
 	public void verifyAvailableFormatInvalidResultId() throws IOException{
+		
+		 LOGGER.info("--------------The test case verifyAvailableFormatInvalidResultId method is running------------");
 		RequestSpecification httpRequest = RestAssured.given().header("Authorization", accessToken);		
 		System.out.println(resultId);
 		Response response = httpRequest.get(RestUtils.BaseURIPath()+"/resultService/availableFormats/"+resultId+4);

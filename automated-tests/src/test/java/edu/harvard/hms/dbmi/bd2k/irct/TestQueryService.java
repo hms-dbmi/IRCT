@@ -54,11 +54,13 @@ public class TestQueryService
     String accessToken;
     String root;
     String abspathFile;
-    String abspathFileInvalid;
+    String abspathFileInvalidMT;
+    String abspathFileInvalidET;
     String jsonBody;
-    String jsonBodyInvalid;
+    String jsonBodyInvalidMT;
+    String jsonBodyInvalidET;
     
-    //RestAssured.defaultParser = Parser.JSON;
+    
     
     /**
      * Retrieve the value of endpoint (baseURI) from pom.xml
@@ -79,16 +81,16 @@ public class TestQueryService
 					
 						}
 					   
-					 @Test (priority=1)
+		 @Test (priority=1)
 					 
 					public void verifyRunQueryStatusCode() throws IOException{
+						 
+					LOGGER.info("------------------The tese case verifyRunQueryStatusCode method is running--------------------");
 					  
 					  root=System.getProperty("user.dir");
 					  abspathFile=root+"/src/test/resources/queryService.json";
 					  jsonBody = generateStringFromResource(abspathFile);
 					  
-					  
-					  //RestAssured.registerParser("text/plain", Parser.TEXT);
 								  try{
 								  		given()
 								  		.contentType("application/json")
@@ -108,13 +110,15 @@ public class TestQueryService
 										}
 								
 								 }
-					 @Test (priority=2)  
+		 @Test (priority=2)  
 					 
 					 public void verifyRunQueryResponseCheck() throws IOException{
 					   
 					   String root=System.getProperty("user.dir");
 					   String abspathFile=root+"/src/test/resources/queryService.json";
 					   String jsonBody = generateStringFromResource(abspathFile);
+					   
+					   LOGGER.info("--------------The test case verifyRunQueryResponseCheck method is running------------");
 					  				   try{
 										   
 					  					 Response response=	(Response) RestAssured.given()
@@ -136,43 +140,65 @@ public class TestQueryService
 								       		}
 					   
 					 		}
-					 
 					
-					@Test (priority=3) 
+					
+		@Test (priority=3) 
 					public void verifyRunQueryStatusCodeInvalidAccessToken() throws IOException{
 					
+						LOGGER.info("--------------The test case verifyRunQueryStatusCodeInvalidAccessToken method is running------------");
 						RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken+1);
 						Response response = httpRequest.body(jsonBody).post(QueryServiceAPIUrl);
 						int statusCode=response.getStatusCode();
 						Assert.assertEquals(statusCode /*actual value*/, 401 /*expected value*/, "Correct status code returned");
-						
+						LOGGER.info("--------------Invalid access token returns 401 unauthorized code------------");
 							
 					}
 					
-					@Test (priority=4) 
-					public void verifyRunQueryStatusCodeInvalidJsonBody() throws IOException{
+		
+		@Test (priority=4) 
+					public void verifyRunQueryStatusCodeInvalidJsonBodyMissingTag() throws IOException{
 						
 						  root=System.getProperty("user.dir");
-						  abspathFileInvalid=root+"/src/test/resources/queryService.json";
-						  jsonBodyInvalid = generateStringFromResource(abspathFile);
+					 	  abspathFileInvalidMT=root+"/src/test/resources/queryServiceInvalidMissingTag.json";
+						  jsonBodyInvalidMT = generateStringFromResource(abspathFileInvalidMT);
+						  LOGGER.info("--------------The test case verifyRunQueryStatusCodeInvalidJsonBodyMissingTag method is running------------");
 					
 						RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken);
-						Response response = httpRequest.body(abspathFileInvalid).post(QueryServiceAPIUrl);
-						int statusCode=response.getStatusCode();
-						Assert.assertEquals(statusCode /*actual value*/, 500 /*expected value*/, "Correct status code returned");
+						Response response = httpRequest.body(jsonBodyInvalidMT).post(QueryServiceAPIUrl);
+						int statusCode=response.getStatusCode();	
 						
+						System.out.println(statusCode);
+						Assert.assertEquals(statusCode /*actual value*/, 500 /*expected value*/, "Correct status code returned");
+						LOGGER.info("--------------Invalid JsonBody returns 500 Internal Server Error------------");
 							
 					}
 					
-					
-					@Test (priority=5) 
+	
+		@Test (priority=5) 
+		public void verifyRunQueryResponseInvalidJsonBodyEmptyTag() throws IOException{
+			
+			  root=System.getProperty("user.dir");
+		 	  abspathFileInvalidET=root+"/src/test/resources/queryServiceInvalidEmptyField.json";
+			  jsonBodyInvalidET = generateStringFromResource(abspathFileInvalidET);
+			  LOGGER.info("--------------The test case verifyRunQueryResponseInvalidJsonBodyEmptyTag method is running------------");
+		
+			RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken);
+			Response response = httpRequest.body(jsonBodyInvalidET).post(QueryServiceAPIUrl);
+			String emptyfieldResponse=response.jsonPath().get("status");
+			Assert.assertEquals(emptyfieldResponse , "Invalid Request");
+			LOGGER.info("--------------Invalid JsonBody empty field response says Invalid Request------------");
+				
+		}
+
+		@Test (priority=6) 
 					public void verifyRunQueryResponseInvalidAccessToken() throws IOException{
 					
+						LOGGER.info("--------------The test case verifyRunQueryResponseInvalidAccessToken method is running------------");
 						RequestSpecification httpRequest = (RequestSpecification) RestAssured.given().header("Authorization", accessToken+1);
 						Response response = httpRequest.body(jsonBody).post(QueryServiceAPIUrl);
 						String invalidAccessTokenResponse=response.jsonPath().get("message");
 						Assert.assertEquals(invalidAccessTokenResponse , "Could not establish the user identity from request headers. HTTP 401 Unauthorized");
-						
+						LOGGER.info("--------------Invalid access token returns :  Could not establish the user identity from request headers. HTTP 401 Unauthorized-----------");
 							
 					}
 					
