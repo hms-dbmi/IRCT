@@ -61,6 +61,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObservationSet;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObservationType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
@@ -442,6 +444,7 @@ public class I2B2XMLResourceImplementation
 
 			String resultId = mirrt.getQueryResultInstance().get(0).getResultInstanceId();
 			String queryId = mirrt.getQueryResultInstance().get(0).getQueryInstanceId();
+			
 			result.setResourceActionId(projectId + "|" + queryId + "|" + resultId);
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
@@ -698,7 +701,20 @@ public class I2B2XMLResourceImplementation
 		logger.debug("convertPatientSetToResultSet() Starting...");
 
 		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
-		logger.debug("convertPatientSetToResultSet() getting data from ```result```.");
+		
+		List<ObservationSet> observationSets = patientDataResponse.getPatientData().getObservationSet();
+		if (observationSets.isEmpty()) {
+			logger.warn("convertPatientSetToResultSet() No observation facts have been returned from PDO response");
+		} else {
+			for(ObservationSet os: observationSets) {
+				List<ObservationType> ots = os.getObservation();
+				for (ObservationType ot: ots) {
+					logger.debug("convertPatientSetToResultSet() tValChar"+ot.getTvalChar());
+				}
+			}
+		}
+		
+		logger.debug("convertPatientSetToResultSet() getting data from `result`.");
 		FileResultSet mrs = (FileResultSet) result.getData();
 
 		if (patientSet.getPatient().size() == 0) {

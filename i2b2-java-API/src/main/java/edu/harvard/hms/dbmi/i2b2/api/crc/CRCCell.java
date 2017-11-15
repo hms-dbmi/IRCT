@@ -29,6 +29,7 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.EventPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FacilityType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactPrimaryKeyType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FilterListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetConceptByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetEventByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObservationFactByPrimaryKeyRequestType;
@@ -37,11 +38,14 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPDOFromInputListRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPatientByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.InputOptionListType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ItemType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObserverPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionListType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionNameType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PanelType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PasswordType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientListType;
@@ -154,21 +158,19 @@ public class CRCCell extends Cell {
 			ClientProtocolException, I2B2InterfaceException, IOException {
 		logger.debug("getQueryInstanceListFromQueryId() Starting...");
 		
-		logger.debug("getQueryInstanceListFromQueryId() creating ```.psm.RequestMessageType```");
+		logger.debug("getQueryInstanceListFromQueryId() creating `.psm.RequestMessageType`");
 		edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.RequestMessageType rmt = createMinimumPSMBaseMessage(edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PsmRequestTypeType.CRC_QRY_GET_QUERY_INSTANCE_LIST_FROM_QUERY_MASTER_ID, "/request");
 		
-		logger.debug("getQueryInstanceListFromQueryId() creating ```MasterRequestType```");
+		logger.debug("getQueryInstanceListFromQueryId() creating `MasterRequestType`");
 		MasterRequestType mrt = psmOF.createMasterRequestType();
 		mrt.setQueryMasterId(queryMasterId);
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mrt));
 
 		StringWriter sw = new StringWriter();
 
-
-		logger.debug("getQueryInstanceListFromQueryId() Starting ```psmMarshaller```");
+		logger.debug("getQueryInstanceListFromQueryId() Starting `psmMarshaller`");
 		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
-		logger.debug("getQueryInstanceListFromQueryId() finished ```psmMarshaller```");
-
+		logger.debug("getQueryInstanceListFromQueryId() finished `psmMarshaller`");
 		
 		return (InstanceResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"));
@@ -636,9 +638,27 @@ public class CRCCell extends Cell {
 		ilrt.setInputList(iolt);
 		
 		logger.debug("getPDOfromInputList() set PatientList and InputList");
-		ilrt.setFilterList(pdoOF.createFilterListType());
+	
+		ItemType it = new ItemType();
+		it.setHlevel(3);
+		it.setItemKey("\\\\questionnaire\\questionnaire\\alcohol use\\days drink in year\\");
+		
+		it.setDimTablename("concept_dimension");
+		it.setDimDimcode("\\\\questionnaire\\questionnaire\\alcohol use\\days drink in year\\");
+		//it.setItemIsSynonym(false);
+		
+		PanelType pnl = new PanelType();
+		pnl.setName("ObservationFacts");
+		pnl.setPanelAccuracyScale(0);
+		pnl.setPanelNumber(1);
+		
+		pnl.getItem().add(it);
+		
+		FilterListType fltp = pdoOF.createFilterListType();
+		fltp.getPanel().add(pnl);
+		
+		ilrt.setFilterList(fltp);
 		logger.debug("getPDOfromInputList() set FilterList");
-
 
 		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
 		OutputOptionType oot = pdoOF.createOutputOptionType();
@@ -648,8 +668,12 @@ public class CRCCell extends Cell {
 		oot.setSelect(select);
 
 		FactOutputOptionType foot = pdoOF.createFactOutputOptionType();
+		foot.setOnlykeys(false);
+		foot.setBlob(false);
+		
 		oolt.setPatientSet(oot);
 		oolt.setObservationSet(foot);
+		oolt.setNames(OutputOptionNameType.ASATTRIBUTES);
 		
 		logger.debug("getPDOfromInputList() create OutputOptionType");
 		ilrt.setOutputOption(oolt);
