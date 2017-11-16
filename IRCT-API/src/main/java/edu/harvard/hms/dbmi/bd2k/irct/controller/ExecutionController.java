@@ -95,7 +95,7 @@ public class ExecutionController {
 	 * @throws PersistableException
 	 *             An error occurred
 	 */
-	public Result runQuery(Query query, User user)
+	public Result runQuery(edu.harvard.hms.dbmi.bd2k.irct.model.query.Query query, User user)
 			throws PersistableException {
 		logger.debug("runQuery() Starting");
 
@@ -115,6 +115,7 @@ public class ExecutionController {
 			logger.debug("runQuery() set status to RUNNING on new `Result` and saved to database");
 
 			QueryAction qa = new QueryAction();
+
 			edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
 			logger.debug("runQuery() created/initialized `Resource` for `Query`");
 			if(!resource.isSetup()) {

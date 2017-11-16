@@ -256,6 +256,7 @@ public class Resource implements Serializable {
 	 * @return Ontology Relationship
 	 */
 	public OntologyRelationship getRelationshipByName(String relationshipString) {
+		logger.debug("getRelationshipByName("+relationshipString+") Starting");
 		for(OntologyRelationship relationship : this.relationships) {
 			if(relationship.toString().equalsIgnoreCase(relationshipString)) {
 				return relationship;

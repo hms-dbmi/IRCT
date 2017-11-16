@@ -641,10 +641,9 @@ public class CRCCell extends Cell {
 	
 		ItemType it = new ItemType();
 		it.setHlevel(3);
-		it.setItemKey("\\\\questionnaire\\questionnaire\\alcohol use\\days drink in year\\");
-		
+		it.setItemKey("\\\\1000_DEM\\Demographics_1000\\Population\\CEU\\");
 		it.setDimTablename("concept_dimension");
-		it.setDimDimcode("\\\\questionnaire\\questionnaire\\alcohol use\\days drink in year\\");
+		it.setDimDimcode("\\Demographics_1000\\Population\\CEU\\");
 		//it.setItemIsSynonym(false);
 		
 		PanelType pnl = new PanelType();

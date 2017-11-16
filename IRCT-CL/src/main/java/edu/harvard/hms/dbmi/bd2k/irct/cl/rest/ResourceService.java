@@ -22,6 +22,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -49,6 +51,8 @@ public class ResourceService {
 
 	@Inject
 	private HttpSession session;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Returns a list of all resources. If a type is chosen then only resources
@@ -239,30 +243,40 @@ public class ResourceService {
 	@Path("/path{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response path(@PathParam("path") String path, @QueryParam("relationship") String relationshipString) {
+		logger.debug("/path Starting...");
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Entity> entities = null;
-
 		Resource resource = null;
 		Entity resourcePath = null;
 
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
+			logger.debug("/path concept_path:"+path);
+			
 			resource = rc.getResource(path.split("/")[1]);
-			resourcePath = new Entity(path);		
+			logger.debug("/path resource:"+resource.getName());
+			
+			resourcePath = new Entity(path);
+			logger.debug("/path resourcePath Entity:"+resourcePath.getName());
 		}
+		
 		if (resource != null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
 			try {
-				entities = pc.traversePath(resource, resourcePath,
+				logger.debug("/path start traversing the path.");
+				entities = pc.traversePath(
+						resource, 
+						resourcePath,
 						resource.getRelationshipByName(relationshipString),
 						(User) session.getAttribute("user"));
 			} catch (ResourceInterfaceException e) {
 				return invalidRequest(e.toString()+"/"+e.getMessage()+" path:"+path);
 			}
 		} else if (path == null || path.isEmpty()) {
+			logger.debug("/path getAllResourcePaths()");
 			entities = pc.getAllResourcePaths();
 		} else {
 			return invalidRequest("Resource is null and Path is missing.");

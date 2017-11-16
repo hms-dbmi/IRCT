@@ -188,14 +188,16 @@ public class I2B2XMLResourceImplementation
 	@Override
 	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
+		
 		logger.debug("getPathRelationship() Starting");
-		logger.debug("getPathRelationship() path:" + (path==null?"NULL":path.getName() + path.getDisplayName() + path.getDescription()));
+		logger.debug("getPathRelationship() path:" + (path==null?"NULL":path.getPui() + path.getName() + path.getDescription()));
 		logger.debug("getPathRelationship() relationship:" + (relationship == null?"NULL":relationship.getName()));
 
 		List<Entity> entities = new ArrayList<Entity>();
 		// Build
 		HttpClient client = createClient(user);
 		String basePath = path.getPui();
+		logger.debug("getPathRelationship() basePath:"+basePath);
 		String[] pathComponents = basePath.split("/");
 
 		try {
@@ -549,8 +551,13 @@ public class I2B2XMLResourceImplementation
 			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
 			logger.debug("checkForResult() received `InstanceResponseType`");
 
-			String instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
-			logger.debug("checkForResult() instanceResultStatusType:"+instanceResultStatusType!=null?instanceResultStatusType:"NULL");
+			String instanceResultStatusType = "UNKNOWN";
+			if (instanceResponse.getQueryInstance().size() == 0) {
+				logger.warn("checkForResult() No instance list has been returned. Do something else. Like look up in docs");
+			} else {
+				instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
+				logger.debug("checkForResult() instanceResultStatusType:"+instanceResultStatusType);
+			}
 
 			switch (instanceResultStatusType) {
 			case "RUNNING":
@@ -562,11 +569,10 @@ public class I2B2XMLResourceImplementation
 				result.setMessage(instanceResultStatusType!=null?instanceResultStatusType:"no instResStatTyp");
 				return result;
 			default:
-				logger.warn("checkForResult() Unknown instanceResultStatusType:"+(instanceResultStatusType==null?"NULL":instanceResultStatusType));
+				logger.warn("checkForResult() Unknown instanceResultStatusType:"+instanceResultStatusType);
 			}
 
 			// Is Query Result instance list complete?
-
 			QueryResultInstanceType queryResultInstance = crcCell
 					.getQueryResultInstanceListFromQueryInstanceId(client, queryId).get(0);
 
@@ -954,13 +960,21 @@ public class I2B2XMLResourceImplementation
 	}
 
 	private PMCell createPMCell() throws JAXBException {
+		logger.debug("createPMCell() Starting");
 		if (this.useProxy) {
+			logger.debug("createPMCell() using proxy "+this.useProxy);
 			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "", this.useProxy,
 					this.proxyURL + "/PMService");
 		} else {
+			logger.debug("createPMCell() not using proxy. resourceURL:"+this.resourceURL);
+			logger.debug("createPMCell() not using proxy. resourceURL:"+this.domain);
+			logger.debug("createPMCell() not using proxy. resourceURL:"+this.userName);
+			logger.debug("createPMCell() not using proxy. resourceURL:"+this.password);
+			
 			pmCell.setupConnection(this.resourceURL + "PMService/", this.domain, this.userName, this.password, "",
 					false, null);
 		}
+		logger.debug("createPMCell() Finished");
 		return pmCell;
 	}
 

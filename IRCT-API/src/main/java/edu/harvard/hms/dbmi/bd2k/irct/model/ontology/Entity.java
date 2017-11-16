@@ -62,6 +62,7 @@ public class Entity {
 	 * @param pui Path Unique Identifier
 	 */
 	public Entity(String pui) {
+		
 		this.pui = pui;
 		this.name = "";
 		this.displayName = "";
@@ -72,6 +73,7 @@ public class Entity {
 		this.relationships = new ArrayList<OntologyRelationship>();
 		this.counts = new HashMap<String, Integer>();
 		this.attributes = new HashMap<String, String>();
+		
 	}
 
 	/**
