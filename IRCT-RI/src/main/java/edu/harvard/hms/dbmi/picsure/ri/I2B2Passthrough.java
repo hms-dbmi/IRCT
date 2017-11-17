@@ -551,8 +551,16 @@ public class I2B2Passthrough
 			logger.debug("getResults() getting PDOFromInputList with "+
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
-			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
-					OutputOptionSelectType.USING_INPUT_LIST);
+			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(
+					client, 
+					resultId, 
+					0, 
+					100000, 
+					false, 
+					false, 
+					false,
+					OutputOptionSelectType.USING_INPUT_LIST,
+					new ArrayList<String>());
 
 			logger.debug("getResults() calling `convertPatientSetToResultSet()`");
 			result = convertPatientSetToResultSet(pdrt, result);
