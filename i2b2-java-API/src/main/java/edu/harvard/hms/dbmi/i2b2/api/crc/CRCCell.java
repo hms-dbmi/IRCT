@@ -611,7 +611,7 @@ public class CRCCell extends Cell {
 	 */
 	public PatientDataResponseType getPDOfromInputList(HttpClient client,
 			String collectionId, int min, int max, boolean onlyKeys,
-			boolean blob, boolean techdata, OutputOptionSelectType select)
+			boolean blob, boolean techdata, OutputOptionSelectType select, List<String> itemTypeList)
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		
@@ -638,32 +638,32 @@ public class CRCCell extends Cell {
 		
 		logger.debug("getPDOfromInputList() set PatientList and InputList");
 		FilterListType fltp = pdoOF.createFilterListType();
-		String[] itemTypeList = {
-				"5|\\\\i2b2_LABS\\i2b2\\Labtests\\LAB\\(LLB53) Hematology\\(LLB54) Blood Diff - Absolute\\ABANDS\\LOINC:763-3\\|\\i2b2\\Labtests\\LAB\\(LLB53) Hematology\\(LLB54) Blood Diff - Absolute\\ABANDS\\LOINC:763-3\\",
-				"3|\\\\1000_DEM\\Demographics_1000\\Population\\|\\Demographics_1000\\Population\\",
-		};
-		int pnlIdx = 1;
-		for (String itRaw: itemTypeList) {
-			PanelType pnl = new PanelType();
-			pnl.setName("Panel"+(String) Integer.toString(pnlIdx));
-			pnl.setPanelAccuracyScale(0);
-			pnl.setPanelNumber(pnlIdx);
-			
-			String[] items = itRaw.split("\\|");
-			ItemType it = new ItemType();
-			it.setHlevel(Integer.parseInt(items[0]));
-			it.setItemKey(items[1]);
-			it.setDimTablename("concept_dimension");
-			it.setDimDimcode(items[2]);
-			
-			pnl.getItem().add(it);
-			fltp.getPanel().add(pnl);
-			
-			pnlIdx++;
-		}
 		
+		if (itemTypeList.size()>0) {
+			int pnlIdx = 1;
+			for (String itRaw: itemTypeList) {
+				String[] items = itRaw.split("\\|");
+				
+				PanelType pnl = new PanelType();
+				pnl.setName(items[0]);
+				pnl.setPanelAccuracyScale(0);
+				pnl.setPanelNumber(pnlIdx);
+				
+				ItemType it = new ItemType();
+				it.setHlevel(Integer.parseInt(items[1]));
+				it.setItemKey(items[2]);
+				it.setDimTablename("concept_dimension");
+				it.setDimDimcode(items[3]);
+				
+				pnl.getItem().add(it);
+				logger.debug("getPDOfromInputList() Added panel "+pnlIdx+" to filterList");
+				fltp.getPanel().add(pnl);
+				
+				pnlIdx++;
+			}
+		}
 		ilrt.setFilterList(fltp);
-		logger.debug("getPDOfromInputList() set FilterList");
+		
 
 		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
 		OutputOptionType oot = pdoOF.createOutputOptionType();

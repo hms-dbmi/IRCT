@@ -228,6 +228,7 @@ public class I2B2XMLResourceImplementation
 					}
 
 				} else {
+					logger.debug("getPathRelationship() createOntCell() from "+pathComponents[2]);
 					ontCell = createOntCell(pathComponents[2]);
 					ConceptsType conceptsType = null;
 					if (pathComponents.length == 3) {
@@ -240,11 +241,19 @@ public class I2B2XMLResourceImplementation
 							myPath += "\\" + pathComponent;
 						}
 						basePath = pathComponents[0] + "/" + pathComponents[1] + "/" + pathComponents[2];
+						logger.debug("getPathRelationship() basePath:"+basePath+" myPath:"+myPath);
 
 						conceptsType = ontCell.getChildren(client, myPath, false, false, false, -1, "core");
+						logger.debug("getPathRelationship() got children conceptsType:"+conceptsType.getConcept().size()+" size");
 
 					}
 					// Convert ConceptsType to Entities
+					logger.debug("getPathRelationship() Convert ConceptsType to Entities");
+					if (conceptsType!=null) {
+						logger.debug("getPathRelationship() there are "+conceptsType.getConcept().size()+" conceptsType");
+					} else {
+						logger.debug("getPathRelationship() there are no concepts anyway");
+					}
 					entities = convertConceptsTypeToEntities(basePath, conceptsType);
 				}
 
@@ -274,10 +283,9 @@ public class I2B2XMLResourceImplementation
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
+				logger.debug("getPathRelationship() createOntCell() from "+pathComponents[2]);
 				ontCell = createOntCell(pathComponents[2]);
-
 				ConceptsType conceptsType = null;
-
 				conceptsType = ontCell.getTermInfo(client, true, resourcePath, true, -1, true, "core");
 				entities = convertConceptsTypeToEntities(basePath, conceptsType);
 			} else {
@@ -287,7 +295,6 @@ public class I2B2XMLResourceImplementation
 			logger.error("getPathRelationship()", e);
 			throw new ResourceInterfaceException(e.getMessage());
 		}
-
 		return entities;
 	}
 
@@ -393,8 +400,8 @@ public class I2B2XMLResourceImplementation
 
 		try {
 			PanelType currentPanel = createPanel(panelCount);
-
 			for (ClauseAbstract clause : query.getClauses().values()) {
+				
 				if (clause instanceof WhereClause) {
 					// Get the projectId if it isn't already set
 					if (projectId.equals("")) {
@@ -420,31 +427,6 @@ public class I2B2XMLResourceImplementation
 						currentPanel.setInvert(1);
 						panels.add(currentPanel);
 						currentPanel = createPanel(panelCount++);
-					}
-				}
-				
-				if (clause instanceof SelectClause) {
-					SelectClause selectClause = (SelectClause) clause;
-					logger.debug("\talias       :"+selectClause.getAlias());
-					logger.debug("\tparamEntity :"+selectClause.getParameter().toJson().toString());
-					
-					//Entity e = PathContoller.traversePath(selectClause.getParameter().getPui())
-					
-					if (selectClause.getStringValues().isEmpty()) {
-						logger.debug("runQuery() No `StringValues` objects");
-					} else {
-						for (String key: selectClause.getStringValues().keySet()) {
-							logger.debug("\t\tstrvals :"+key+"="+selectClause.getStringValues().get(key));
-						}
-					}
-					if (selectClause.getObjectValues()!=null) {
-						if (selectClause.getObjectValues().isEmpty()) {
-							logger.debug("runQuery() No `ObjectValues` objects");
-						} else {
-							for (String key: selectClause.getObjectValues().keySet()) {
-								logger.debug("\t\tobjvals :"+key+"="+selectClause.getObjectValues().get(key));
-							}
-						}
 					}
 				}
 			}
@@ -517,8 +499,30 @@ public class I2B2XMLResourceImplementation
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
 			
+			List<String> selectFields = new ArrayList<String>();
+			Query q = result.getQuery();
+			for (SelectClause selectClause : q.getClausesOfType(SelectClause.class)) {
+				List<Entity> elist = getPathRelationship(selectClause.getParameter(), I2B2OntologyRelationship.CHILD ,user);
+				if (elist.isEmpty()) {
+					logger.debug("getResults() Could not find nodes for "+selectClause.getAlias());
+				} else {
+					for (Entity e: elist) {
+						
+							// Found the concept we were looking for, now refresh it
+							selectClause.setParameters(e);
+							// TODO: I know, I know, I am tired
+							selectFields.add(
+									selectClause.getAlias()+"|"
+											+e.getAttributes().get("level")+"|"
+											+e.getAttributes().get("key")+"|"
+											+e.getAttributes().get("dimcode")
+							);
+					}
+				}
+			}
+			
 			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
-					OutputOptionSelectType.USING_INPUT_LIST);
+					OutputOptionSelectType.USING_INPUT_LIST, selectFields);
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
 			result = convertPatientSetToResultSet(pdrt, result);
@@ -806,31 +810,7 @@ public class I2B2XMLResourceImplementation
 		result.setData(mrs);
 		return result;
 	}
-
-	private void dumpObservationType(ObservationType ot) {
-		String valFlag = "NULL";
-		if (ot.getValueflagCd()!=null) {
-			valFlag = ot.getValueflagCd().getName()+":"+ot.getValueflagCd().getValue();
-		}
-		String quantNum = "NULL";
-		if (ot.getQuantityNum()!=null) {
-			quantNum = ot.getQuantityNum().toPlainString();
-		}
-		String valueType = "NULL";
-		if (ot.getValuetypeCd()!=null) {
-			valueType = ot.getValuetypeCd();
-		}
-		logger.debug("convertPatientSetToResultSet() "+
-				"\n\t TvalChar          :"+ot.getTvalChar()+
-				"\n\t NvalNum           :"+(ot.getNvalNum()!=null?" units:"+ot.getNvalNum().getUnits():"null")+
-				"\n\t ConceptCd         :"+ot.getConceptCd().getValue()+
-				"\n\t ModifierCd        :"+(ot.getModifierCd()!=null?ot.getModifierCd().getName()+"/"+ot.getModifierCd().getValue():"NULL")+
-				"\n\t PatientId         :"+ot.getPatientId().getValue()+
-				"\n\t QuantityNum       :"+quantNum+
-				"\n\t ValueflagCd       :"+valFlag+
-				"\n\t ValueType         :"+valueType
-			);
-	}
+	
 	private String getPathFromField(Entity field) {
 		return getPathFromString(field.getPui());
 	}
@@ -863,6 +843,8 @@ public class I2B2XMLResourceImplementation
 
 	private List<Entity> convertConceptsTypeToEntities(String basePath, ConceptsType conceptsType)
 			throws UnsupportedEncodingException {
+		logger.debug("convertConceptsTypeToEntities() basePath:"+basePath); 
+		
 		List<Entity> returns = new ArrayList<Entity>();
 		for (ConceptType concept : conceptsType.getConcept()) {
 			Entity returnEntity = new Entity();

@@ -78,6 +78,7 @@ public class QueryAction implements Action {
 
 			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
 			this.result.setUser(user);
+			this.result.setQuery(query);
 			this.result = queryInterface.runQuery(user, query, result);
 
 			// Update the result in the database

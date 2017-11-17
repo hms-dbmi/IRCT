@@ -26,6 +26,7 @@ import javax.persistence.Transient;
 import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
 
@@ -33,9 +34,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
  * The result class is created for each execution that is run on the IRCT
  * (Query, Process, etc...). It provides a way of the end user to rerun
  * processes, and retrieve the results.
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
 public class Result {
@@ -72,7 +70,8 @@ public class Result {
 	
 	private String resultSetLocation;
 	
-	private Integer queryId;
+	@ManyToOne(cascade = CascadeType.MERGE)
+	private Query query;
 
 	private String message;
 
@@ -355,5 +354,19 @@ public class Result {
 	 */
 	public void setJobType(String jobType) {
 		this.jobType = jobType;
+	}
+
+	/**
+	 * @return the Query that generates this result
+	 */
+	public Query getQuery() {
+		return query;
+	}
+
+	/**
+	 * @param query the Query that generates this result
+	 */
+	public void setQuery(Query query) {
+		this.query = query;
 	}
 }

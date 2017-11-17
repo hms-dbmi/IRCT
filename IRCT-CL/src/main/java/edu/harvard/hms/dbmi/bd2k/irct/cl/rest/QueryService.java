@@ -120,6 +120,7 @@ public class QueryService implements Serializable {
 				response.add("status", "error");
 				response.add("message", "`Result` could not be generated");
 			} else {
+				r.setQuery(query);
 				response.add("resultId", r.getId());
 			}
 			
@@ -148,6 +149,13 @@ public class QueryService implements Serializable {
 		try {
 			Result r = ec.runQuery(qc.getQuery(), (User) session.getAttribute("user"));
 			response.add("resultId", r.getId());
+			response.add("result", Json.createObjectBuilder()
+					.add("jobType", r.getJobType())
+					.add("message", r.getMessage())
+					.add("startTime", r.getStartTime().toString())
+					.add("endTime", r.getEndTime().toString())
+					.build()
+					);
 		} catch (Exception e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
