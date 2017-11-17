@@ -41,12 +41,12 @@ public class Query implements Serializable {
 	@Id
 	@GeneratedValue
 	private Long id;
-	
+
 	private String name;
 
 	@Lob
 	private String payload;
-	
+
 	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
 	private Map<String, SubQuery> subQueries;
 
@@ -55,10 +55,7 @@ public class Query implements Serializable {
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	private Set<Resource> resources;
-	
-	@ManyToOne
-	private Result result;
-	
+
 	/**
 	 * Creates an empty query
 	 * 
@@ -93,21 +90,10 @@ public class Query implements Serializable {
 	public JsonObject toJson(int depth) {
 		depth--;
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
-		if (getResult()!=null) {
-			jsonBuilder.add("query", 
-					Json.createObjectBuilder()
-					.add("id", getId())
-					.add("name", getName())
-					.add("payload", getPayload())
-					.build()
-				);
-			jsonBuilder.add("result", 
-					Json.createObjectBuilder()
-					.add("id", getResult().getId())
-					.add("status", getResult().getResultStatus().toString())
-					.build()
-				);
-		}
+
+		jsonBuilder.add("query", Json.createObjectBuilder().add("id", getId()).add("name", getName())
+				.add("payload", getPayload()).build());
+
 		return jsonBuilder.build();
 	}
 
@@ -138,12 +124,9 @@ public class Query implements Serializable {
 					if (!predicateFields.equals("")) {
 						predicateFields += ", ";
 					}
-					predicateFields += predicateField + "="
-							+ wc.getStringValues().get(predicateField);
+					predicateFields += predicateField + "=" + wc.getStringValues().get(predicateField);
 				}
-				where += wc.getField().getPui() + " "
-						+ wc.getPredicateType().getDisplayName() + " "
-						+ predicateFields;
+				where += wc.getField().getPui() + " " + wc.getPredicateType().getDisplayName() + " " + predicateFields;
 			}
 		}
 
@@ -158,12 +141,10 @@ public class Query implements Serializable {
 			select = "*";
 		}
 
-		return "select " + select + " from " + resourceNames + " where "
-				+ where;
+		return "select " + select + " from " + resourceNames + " where " + where;
 	}
 
-	public <T extends ClauseAbstract> List<T> getClausesOfType(
-			Class<T> clauseType) {
+	public <T extends ClauseAbstract> List<T> getClausesOfType(Class<T> clauseType) {
 		List<T> returns = new ArrayList<T>();
 
 		for (ClauseAbstract clause : this.clauses.values()) {
@@ -361,23 +342,10 @@ public class Query implements Serializable {
 	}
 
 	/**
-	 * @param payload the payload to set
+	 * @param payload
+	 *            the payload to set
 	 */
 	public void setPayload(String payload) {
 		this.payload = payload;
-	}
-
-	/**
-	 * @return the result
-	 */
-	public Result getResult() {
-		return result;
-	}
-
-	/**
-	 * @param result the result to set
-	 */
-	public void setResult(Result result) {
-		this.result = result;
 	}
 }

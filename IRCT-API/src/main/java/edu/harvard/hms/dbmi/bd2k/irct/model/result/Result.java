@@ -69,7 +69,10 @@ public class Result {
 
 	@Convert(converter = DataConverter.class)
 	private Data data;
+	
 	private String resultSetLocation;
+	
+	private Integer queryId;
 
 	private String message;
 

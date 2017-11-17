@@ -136,7 +136,6 @@ public class QueryAction implements Action {
 			result.setMessage(e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-		this.query.setResult(this.result);
 		return this.result;
 	}
 

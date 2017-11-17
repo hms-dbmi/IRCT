@@ -488,24 +488,7 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
-		query.setResult(result);
 		return result;
-	}
-
-	@Override
-	public Result getResults(User user, Query query) throws ResourceInterfaceException {
-		logger.debug("getResult(from Query)");
-		
-		// TODO: Until I figure out a better way to do this.
-		Result res = null;
-		try {
-			res = getResults(user, res);
-		} catch (Exception e) {
-			res.setResultStatus(ResultStatus.ERROR);
-			res.setMessage(e.getMessage());
-		}
-		query.setResult(getResults(user, res));
-		return query.getResult();
 	}
 	
 	@Override

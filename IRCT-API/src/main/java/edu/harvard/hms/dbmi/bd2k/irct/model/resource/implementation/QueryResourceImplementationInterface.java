@@ -41,16 +41,6 @@ public interface QueryResourceImplementationInterface extends
 	/**
 	 * Returns the results of the query if they are available
 	 * 
-	 * @param user Credentials for getting the results
-	 * @param query The query, who's results we want 
-	 * @return Results
-	 * @throws ResourceInterfaceException A resource exception occurred
-	 */
-	Result getResults(User user, Query query) throws ResourceInterfaceException;
-
-	/**
-	 * Returns the results of the query if they are available
-	 * 
 	 * @param session Session to run in
 	 * @param result Results     
 	 * @return Results
