@@ -131,6 +131,7 @@ public class ExecutionController {
 			ExecutionPlan exp = new ExecutionPlan();
 			logger.debug("runQuery() Setting up `ExecutionPlan`");
 			exp.setup(eln, user);
+			
 			logger.debug("runQuery() calling `runExecutionPlan` local method");
 			runExecutionPlan(exp, newResult);
 			
@@ -214,8 +215,8 @@ public class ExecutionController {
 						result.setResultStatus(ResultStatus.ERROR);
 						result.setMessage(finalResult.getMessage());
 					}
-
 					result.setEndTime(new Date());
+					
 					UserTransaction userTransaction = lookup();
 					userTransaction.begin();
 					entityManager.merge(result);

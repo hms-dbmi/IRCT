@@ -64,7 +64,7 @@ public class PathController {
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(resourcePath, relationship, user);
 		} else {
-			logger.error("traversePath() resource ```"+resource.getName()+"``` does not implement PathResource");
+			logger.error("traversePath() resource `"+resource.getName()+"` does not implement PathResource");
 		}
 		logger.debug("traversePath() returning NULL");
 		return null;

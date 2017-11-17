@@ -88,12 +88,18 @@ public class QueryService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery(String payload) {
 		logger.debug("POST /runQuery Starting");
-		
 		JsonObjectBuilder response = Json.createObjectBuilder();
-
-		JsonReader jsonReader = Json.createReader(new StringReader(payload));
-		JsonObject jsonQuery = jsonReader.readObject();
-		jsonReader.close();
+		JsonObject jsonQuery = null;
+		try {
+			JsonReader jsonReader = Json.createReader(new StringReader(payload));
+			jsonQuery = jsonReader.readObject();
+			jsonReader.close();
+		} catch (Exception e) {
+			response.add("status", "error");
+			response.add("message", "Error processing JSON."+(e.getMessage()==null?"":e.getMessage()));
+			return Response.status(400).entity(response.build()).build();
+		}
+		
 		Query query = null;
 		try {
 			query = convertJsonToQuery(jsonQuery);
@@ -142,7 +148,7 @@ public class QueryService implements Serializable {
 		try {
 			Result r = ec.runQuery(qc.getQuery(), (User) session.getAttribute("user"));
 			response.add("resultId", r.getId());
-		} catch (PersistableException e) {
+		} catch (Exception e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
@@ -245,7 +251,6 @@ public class QueryService implements Serializable {
 			Resource resource, Entity field, String alias,
 			String operationName, Map<String, String> fields,
 			Map<String, Object> objectFields) throws QueryException {
-		
 		logger.debug("validateSelectClause(SubQuery, ...) Starting");
 
 		SelectOperationType operation = null;
@@ -404,6 +409,7 @@ public class QueryService implements Serializable {
 
 		Map<String, Object> objectFields = new HashMap<String, Object>();
 		Map<String, String> fields = new HashMap<String, String>();
+		
 		if (selectClause.containsKey("operation")) {
 			operationName = selectClause.getString("operation");
 

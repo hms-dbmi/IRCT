@@ -46,6 +46,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -421,6 +422,31 @@ public class I2B2XMLResourceImplementation
 						currentPanel = createPanel(panelCount++);
 					}
 				}
+				
+				if (clause instanceof SelectClause) {
+					SelectClause selectClause = (SelectClause) clause;
+					logger.debug("\talias       :"+selectClause.getAlias());
+					logger.debug("\tparamEntity :"+selectClause.getParameter().toJson().toString());
+					
+					//Entity e = PathContoller.traversePath(selectClause.getParameter().getPui())
+					
+					if (selectClause.getStringValues().isEmpty()) {
+						logger.debug("runQuery() No `StringValues` objects");
+					} else {
+						for (String key: selectClause.getStringValues().keySet()) {
+							logger.debug("\t\tstrvals :"+key+"="+selectClause.getStringValues().get(key));
+						}
+					}
+					if (selectClause.getObjectValues()!=null) {
+						if (selectClause.getObjectValues().isEmpty()) {
+							logger.debug("runQuery() No `ObjectValues` objects");
+						} else {
+							for (String key: selectClause.getObjectValues().keySet()) {
+								logger.debug("\t\tobjvals :"+key+"="+selectClause.getObjectValues().get(key));
+							}
+						}
+					}
+				}
 			}
 			if (currentPanel.getItem().size() != 0) {
 				panels.add(currentPanel);
@@ -434,11 +460,12 @@ public class I2B2XMLResourceImplementation
 		}
 
 		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
+		
 		ResultOutputOptionType root = new ResultOutputOptionType();
 		root.setPriorityIndex(10);
 		root.setName("PATIENTSET");
 		roolt.getResultOutput().add(root);
-
+		
 		try {
 			crcCell = createCRCCell(projectId, user.getName());
 			MasterInstanceResultResponseType mirrt = crcCell.runQueryInstanceFromQueryDefinition(client, null, null,
@@ -449,6 +476,7 @@ public class I2B2XMLResourceImplementation
 			
 			result.setResourceActionId(projectId + "|" + queryId + "|" + resultId);
 			result.setResultStatus(ResultStatus.RUNNING);
+			
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
 
@@ -460,9 +488,26 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
+		query.setResult(result);
 		return result;
 	}
 
+	@Override
+	public Result getResults(User user, Query query) throws ResourceInterfaceException {
+		logger.debug("getResult(from Query)");
+		
+		// TODO: Until I figure out a better way to do this.
+		Result res = null;
+		try {
+			res = getResults(user, res);
+		} catch (Exception e) {
+			res.setResultStatus(ResultStatus.ERROR);
+			res.setMessage(e.getMessage());
+		}
+		query.setResult(getResults(user, res));
+		return query.getResult();
+	}
+	
 	@Override
 	public Result getResults(User user, Result result) throws ResourceInterfaceException {
 		logger.debug("getResults() Starting...");
@@ -488,6 +533,7 @@ public class I2B2XMLResourceImplementation
 			logger.debug("getResults() getting PDOFromInputList with "+
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
+			
 			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
 					OutputOptionSelectType.USING_INPUT_LIST);
 
@@ -711,13 +757,6 @@ public class I2B2XMLResourceImplementation
 		List<ObservationSet> observationSets = patientDataResponse.getPatientData().getObservationSet();
 		if (observationSets.isEmpty()) {
 			logger.warn("convertPatientSetToResultSet() No observation facts have been returned from PDO response");
-		} else {
-			for(ObservationSet os: observationSets) {
-				List<ObservationType> ots = os.getObservation();
-				for (ObservationType ot: ots) {
-					logger.debug("convertPatientSetToResultSet() tValChar"+ot.getTvalChar());
-				}
-			}
 		}
 		
 		logger.debug("convertPatientSetToResultSet() getting data from `result`.");
@@ -730,30 +769,85 @@ public class I2B2XMLResourceImplementation
 			logger.debug("convertPatientSetToResultSet() patient set size is "+patientSet.getPatient().size());
 		}
 
-		PatientType columnPT = patientSet.getPatient().get(0);
+		// Add a default first column
 		Column idColumn = new Column();
 		idColumn.setName("Patient Id");
 		idColumn.setDataType(PrimitiveDataType.STRING);
 		mrs.appendColumn(idColumn);
+		
+		// Take the first row, just for the column names
+		PatientType columnPT = patientSet.getPatient().get(0);
 		for (ParamType paramType : columnPT.getParam()) {
 			Column column = new Column();
 			column.setName(paramType.getColumn());
 			column.setDataType(PrimitiveDataType.STRING);
 			mrs.appendColumn(column);
 		}
+		
+		for(ObservationSet os: observationSets) {
+			String columnName = os.getPanelName();
+			Column obsColumn = new Column();
+			obsColumn.setName(columnName);
+			obsColumn.setDataType(PrimitiveDataType.STRING);
+			mrs.appendColumn(obsColumn);
+		}
 
 		for (PatientType patientType : patientSet.getPatient()) {
 			mrs.appendRow();
 			mrs.updateString("Patient Id", patientType.getPatientId().getValue());
+			
 			for (ParamType paramType : patientType.getParam()) {
 				mrs.updateString(paramType.getColumn(), paramType.getValue());
 			}
+			
+			// TODO: Don't hate me, but this is a quick and dirty. I am indeed sorry!
+			for(ObservationSet os: observationSets) {
+				String columnName = os.getPanelName();
+				List<ObservationType> ots = os.getObservation();
+				for (ObservationType ot: ots) {
+					// TODO: I know I know, but don't want to deal with Map object, just yet
+					if (patientType.getPatientId().getValue().equals(ot.getPatientId().getValue())) {
+						if (ot.getValuetypeCd() == null) {
+							mrs.updateString(columnName, ot.getConceptCd().getValue());
+						} else if (ot.getValuetypeCd().equals("N")) {
+							mrs.updateString(columnName, ot.getNvalNum().getValue()+" "+ot.getUnitsCd());
+						} else if (ot.getValuetypeCd().equals("T")) {
+							mrs.updateString(columnName, ot.getTvalChar());
+						} else {
+							mrs.updateString(columnName, "unknown:"+ot.getValuetypeCd());
+						}
+					}
+				}
+			}
 		}
 		result.setData(mrs);
-
 		return result;
 	}
 
+	private void dumpObservationType(ObservationType ot) {
+		String valFlag = "NULL";
+		if (ot.getValueflagCd()!=null) {
+			valFlag = ot.getValueflagCd().getName()+":"+ot.getValueflagCd().getValue();
+		}
+		String quantNum = "NULL";
+		if (ot.getQuantityNum()!=null) {
+			quantNum = ot.getQuantityNum().toPlainString();
+		}
+		String valueType = "NULL";
+		if (ot.getValuetypeCd()!=null) {
+			valueType = ot.getValuetypeCd();
+		}
+		logger.debug("convertPatientSetToResultSet() "+
+				"\n\t TvalChar          :"+ot.getTvalChar()+
+				"\n\t NvalNum           :"+(ot.getNvalNum()!=null?" units:"+ot.getNvalNum().getUnits():"null")+
+				"\n\t ConceptCd         :"+ot.getConceptCd().getValue()+
+				"\n\t ModifierCd        :"+(ot.getModifierCd()!=null?ot.getModifierCd().getName()+"/"+ot.getModifierCd().getValue():"NULL")+
+				"\n\t PatientId         :"+ot.getPatientId().getValue()+
+				"\n\t QuantityNum       :"+quantNum+
+				"\n\t ValueflagCd       :"+valFlag+
+				"\n\t ValueType         :"+valueType
+			);
+	}
 	private String getPathFromField(Entity field) {
 		return getPathFromString(field.getPui());
 	}

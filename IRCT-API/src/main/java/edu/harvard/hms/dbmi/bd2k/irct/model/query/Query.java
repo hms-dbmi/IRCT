@@ -23,8 +23,10 @@ import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 
 /**
  * The query class represents any query against any individual or group of
@@ -53,6 +55,9 @@ public class Query implements Serializable {
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	private Set<Resource> resources;
+	
+	@ManyToOne
+	private Result result;
 	
 	/**
 	 * Creates an empty query
@@ -88,7 +93,21 @@ public class Query implements Serializable {
 	public JsonObject toJson(int depth) {
 		depth--;
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
-		// TODO: FILL IN
+		if (getResult()!=null) {
+			jsonBuilder.add("query", 
+					Json.createObjectBuilder()
+					.add("id", getId())
+					.add("name", getName())
+					.add("payload", getPayload())
+					.build()
+				);
+			jsonBuilder.add("result", 
+					Json.createObjectBuilder()
+					.add("id", getResult().getId())
+					.add("status", getResult().getResultStatus().toString())
+					.build()
+				);
+		}
 		return jsonBuilder.build();
 	}
 
@@ -346,5 +365,19 @@ public class Query implements Serializable {
 	 */
 	public void setPayload(String payload) {
 		this.payload = payload;
+	}
+
+	/**
+	 * @return the result
+	 */
+	public Result getResult() {
+		return result;
+	}
+
+	/**
+	 * @param result the result to set
+	 */
+	public void setResult(Result result) {
+		this.result = result;
 	}
 }

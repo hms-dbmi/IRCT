@@ -109,7 +109,6 @@ public class CRCCell extends Cell {
 
 	private String token;
 	private long timeout;
-
 	
 	@Override
 	public void setup(String connectionURL, String domain, String userName,
@@ -638,23 +637,30 @@ public class CRCCell extends Cell {
 		ilrt.setInputList(iolt);
 		
 		logger.debug("getPDOfromInputList() set PatientList and InputList");
-	
-		ItemType it = new ItemType();
-		it.setHlevel(3);
-		it.setItemKey("\\\\1000_DEM\\Demographics_1000\\Population\\CEU\\");
-		it.setDimTablename("concept_dimension");
-		it.setDimDimcode("\\Demographics_1000\\Population\\CEU\\");
-		//it.setItemIsSynonym(false);
-		
-		PanelType pnl = new PanelType();
-		pnl.setName("ObservationFacts");
-		pnl.setPanelAccuracyScale(0);
-		pnl.setPanelNumber(1);
-		
-		pnl.getItem().add(it);
-		
 		FilterListType fltp = pdoOF.createFilterListType();
-		fltp.getPanel().add(pnl);
+		String[] itemTypeList = {
+				"5|\\\\i2b2_LABS\\i2b2\\Labtests\\LAB\\(LLB53) Hematology\\(LLB54) Blood Diff - Absolute\\ABANDS\\LOINC:763-3\\|\\i2b2\\Labtests\\LAB\\(LLB53) Hematology\\(LLB54) Blood Diff - Absolute\\ABANDS\\LOINC:763-3\\",
+				"3|\\\\1000_DEM\\Demographics_1000\\Population\\|\\Demographics_1000\\Population\\",
+		};
+		int pnlIdx = 1;
+		for (String itRaw: itemTypeList) {
+			PanelType pnl = new PanelType();
+			pnl.setName("Panel"+(String) Integer.toString(pnlIdx));
+			pnl.setPanelAccuracyScale(0);
+			pnl.setPanelNumber(pnlIdx);
+			
+			String[] items = itRaw.split("\\|");
+			ItemType it = new ItemType();
+			it.setHlevel(Integer.parseInt(items[0]));
+			it.setItemKey(items[1]);
+			it.setDimTablename("concept_dimension");
+			it.setDimDimcode(items[2]);
+			
+			pnl.getItem().add(it);
+			fltp.getPanel().add(pnl);
+			
+			pnlIdx++;
+		}
 		
 		ilrt.setFilterList(fltp);
 		logger.debug("getPDOfromInputList() set FilterList");

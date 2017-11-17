@@ -418,6 +418,7 @@ public class QueryController {
 
 	private void validateFields(List<Field> fields, Map<String, String> valueFields, Map<String, Object> objectFields)
 			throws QueryException {
+		logger.debug("validateFields() Starting"); 
 
 		for (Field predicateField : fields) {
 			if (predicateField.isRequired() && ((valueFields != null) && (valueFields.containsKey(predicateField.getPath())))) {
@@ -456,6 +457,7 @@ public class QueryController {
 				throw new QueryException("Required field " + predicateField.getName() + " is not set in "+valueFields.keySet().toString());
 			}
 		}
+		logger.debug("validateFields() Finished"); 
 	}
 
 	/**
