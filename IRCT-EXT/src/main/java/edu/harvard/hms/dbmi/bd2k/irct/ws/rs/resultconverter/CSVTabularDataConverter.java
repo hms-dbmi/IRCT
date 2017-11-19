@@ -68,6 +68,10 @@ public class CSVTabularDataConverter implements ResultDataConverter {
 					rs = (ResultSet) result.getData();
 					rs.load(result.getResultSetLocation());
 					
+					if (rs.getColumnSize() < 1) {
+						throw new RuntimeException("No columns/data available for retrieval.");
+					}
+					
 					printer = new CSVPrinter(new OutputStreamWriter(
 							outputStream), CSVFormat.DEFAULT);
 
@@ -87,8 +91,8 @@ public class CSVTabularDataConverter implements ResultDataConverter {
 					}
 					printer.flush();
 					
-				} catch (ResultSetException | PersistableException e) {
-					log.info("Error creating CSV Stream: " + e.getMessage());
+				} catch (Exception e) {
+					log.error("createStream() Exception (creating CSV): " + e.getMessage());
 				} finally {
 					if(printer != null) {
 						printer.close();
