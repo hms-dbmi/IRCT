@@ -6,12 +6,12 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -26,13 +26,13 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.Visualizatio
  */
 @Stateless
 public class ResourceController {
+	
 	@Inject
 	private IRCTApplication irctApp;
 
 	private List<String> categories;
 	
-	@Inject
-	Logger logger;
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	@PostConstruct
 	public void init() {
@@ -144,10 +144,10 @@ public class ResourceController {
 	 */
 	public boolean isValidCategory(String categoryName) {
 		if (this.categories == null) {
-			logger.log(Level.FINE, "isValidCategory(`"+categoryName+"`) missing `categories` list.");
+			logger.warn("isValidCategory(`"+categoryName+"`) missing `categories` list.");
 			return false;
 		}
-		logger.log(Level.FINE, "isValidCategory(`"+categoryName+"`) in "+this.categories.toString());
+		logger.debug("isValidCategory(`"+categoryName+"`) in "+this.categories.toString());
 		return this.categories.contains(categoryName);
 	}
 

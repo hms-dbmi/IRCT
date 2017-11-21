@@ -88,6 +88,7 @@ public class QueryService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery(String payload) {
 		logger.debug("POST /runQuery Starting");
+		
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		JsonObject jsonQuery = null;
 		try {
@@ -99,21 +100,10 @@ public class QueryService implements Serializable {
 			response.add("message", "Error processing JSON."+(e.getMessage()==null?"":e.getMessage()));
 			return Response.status(400).entity(response.build()).build();
 		}
-		
-		Query query = null;
-		try {
-			query = convertJsonToQuery(jsonQuery);
-		} catch (QueryException e) {
-			logger.error("POST /runQuery QueryException:"+e.getMessage());
-			
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		} catch (Exception e) {
-			logger.error("POST /runQuery Exception:"+e.getMessage());
-		}
 
 		try {
+			Query query = convertJsonToQuery(jsonQuery);
+			
 			Result r = ec.runQuery(query, (User) session.getAttribute("user"));
 			if (r==null){ 
 				logger.error("POST /runQuery `Result` object could not be generated.");
@@ -122,8 +112,31 @@ public class QueryService implements Serializable {
 			} else {
 				r.setQuery(query);
 				response.add("resultId", r.getId());
+				// Add a separate section for query
+				response.add("query",
+						Json.createObjectBuilder()
+						.add("id", query.getId())
+						.add("name", query.getName())
+						.build()
+					);
+				
+				// Add a separate section for Result
+				response.add("result",
+						Json.createObjectBuilder()
+						.add("id", r.getId())
+						.add("type", r.getJobType())
+						.add("status", r.getResultStatus().toString())
+						.add("startTime", r.getStartTime().toString())
+						.add("endTime", r.getEndTime().toString())
+						.build()
+					);
 			}
+		} catch (QueryException e) {
+			logger.error("POST /runQuery QueryException:"+e.getMessage());
 			
+			response.add("status", "error");
+			response.add("message", "Invalid query."+e.getMessage());
+			return Response.status(400).entity(response.build()).build();
 		} catch (Exception e) {
 			logger.error("POST /runQuery Exception:"+e.getMessage());
 			
@@ -131,6 +144,7 @@ public class QueryService implements Serializable {
 			response.add("message", (e.getMessage()==null?"Error running query":e.getMessage()));
 			return Response.status(400).entity(response.build()).build();
 		}
+		
 		logger.debug("POST /runQuery Finished");
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();

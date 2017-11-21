@@ -34,7 +34,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -135,7 +134,7 @@ public class I2B2TranSMARTResourceImplementation extends
 						.getContent());
 				JsonObject responseContent = jsonReader.readObject();
 
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ResponseEntity:"
+				logger.debug("getPathRelationship() ResponseEntity:"
 						+responseContent.toString());
 
 				JsonObject counts = responseContent.getJsonObject("counts");
