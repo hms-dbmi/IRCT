@@ -16,9 +16,9 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.Transient;
@@ -38,8 +38,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
 @Entity
 public class Result {
 	@Id
-	@GeneratedValue(generator = "resultSequencer")
-	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
 
 	@Transient

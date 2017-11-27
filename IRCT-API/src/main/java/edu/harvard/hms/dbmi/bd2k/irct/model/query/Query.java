@@ -24,10 +24,8 @@ import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
 
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 
 /**
  * The query class represents any query against any individual or group of
@@ -145,6 +143,7 @@ public class Query implements Serializable {
 		return "select " + select + " from " + resourceNames + " where " + where;
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T extends ClauseAbstract> List<T> getClausesOfType(Class<T> clauseType) {
 		List<T> returns = new ArrayList<T>();
 
@@ -229,7 +228,7 @@ public class Query implements Serializable {
 	 *            SubQuery ID
 	 */
 	public final void removeSubQuery(Long id) {
-		this.subQueries.remove(id);
+		this.subQueries.remove(Long.toString(id));
 	}
 
 	/**
