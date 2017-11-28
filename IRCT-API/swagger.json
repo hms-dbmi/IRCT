@@ -27,7 +27,40 @@
   "paths": {
     "/about": {
       "get": {
-        "description": "Basic endpoint to gather somem information about the deployed component",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Basic endpoint to gather somem information about the deployed component",
+        "responses": {
+          "200": {
+            "description": "Returns information about the provider API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIDescription"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User is not authorized to access this endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systemService/about": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "summary": "Old endpoint, to get some very basic, minimal information about the API",
         "responses": {
           "200": {
             "description": "Returns information about the provider API",
@@ -54,10 +87,13 @@
     },
     "/path": {
       "get": {
-        "description": "",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Get concept path information in a hierarchical way",
         "responses": {
           "200": {
-            "description": "Returns a concept description and various additional information",
+            "description": "Returns a concept description and various additional information, including immediate child information",
             "content": {
               "application/json": {
                 "schema": {
@@ -71,7 +107,10 @@
     },
     "/find": {
       "get": {
-        "description": "",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Find available concepts based on metadata information",
         "responses": {
           "200": {
             "description": "Returns a concept description and various additional information",
@@ -88,7 +127,10 @@
     },
     "/search": {
       "get": {
-        "description": "",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Execute a text search for available concepts",
         "responses": {
           "200": {
             "description": "Returns a concept description and various additional information",
@@ -105,14 +147,17 @@
     },
     "/resource": {
       "get": {
-        "description": "",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Get information about the datasource provider connected to this server.",
         "responses": {
           "200": {
             "description": "Returns a concept description and various additional information",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PathRecord"
+                  "$ref": "#/components/schemas/ResourceRecord"
                 }
               }
             }
@@ -122,14 +167,17 @@
     },
     "/query": {
       "get": {
-        "description": "",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Generic JSON query",
         "responses": {
           "200": {
             "description": "Returns a concept description and various additional information",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PathRecord"
+                  "$ref": "#/components/schemas/QueryRecord"
                 }
               }
             }
@@ -137,7 +185,10 @@
         }
       },
       "post": {
-        "description": "",
+        "tags": [
+          "v1.4"
+        ],
+        "summary": "Create a new query and execute it.",
         "responses": {
           "200": {
             "description": "Returns a concept description and various additional information",
@@ -166,6 +217,42 @@
             "type": "string"
           },
           "message": {
+            "type": "string"
+          }
+        }
+      },
+      "QueryRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ResourceRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
             "type": "string"
           }
         }
