@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "termsOfService": "https://raw.githubusercontent.com/hms-dbmi/IRCT/DI-931_NoHTMLResponse/IRCT-API/termsofservice.html?token=ARJ4SRLWirZlWhUKWEBG8XqdkwbNMGpYks5aJs0kwA%3D%3D",
-    "title": "NHANES via PIC-SURE",
+    "title": "NHANES via PIC-SURE API",
     "description": "Meta API to provide access to multiple data sources",
     "version": "1.4",
     "contact": {
