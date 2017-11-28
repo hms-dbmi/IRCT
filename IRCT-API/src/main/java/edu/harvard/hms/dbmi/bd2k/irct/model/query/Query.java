@@ -33,7 +33,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
  * Wheres).
  */
 @Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = InheritanceType.JOINED)
 public class Query implements Serializable {
 	private static final long serialVersionUID = -407606258205399129L;
 
