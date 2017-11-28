@@ -1,0 +1,190 @@
+{
+	"openapi": "3.0.0",
+	"info": {
+		"contact": {
+			"name": "Paul Avillach",
+			"x-id": "https://avillach-lab.hms.harvard.edu/",
+			"x-role": "responsible developer",
+			"email": "Avillach, Paul <Paul_Avillach@hms.harvard.edu>"
+		},
+		"title": "NHANES via PIC-SURE",
+		"version": "1.4.5",
+		"description": "Implementation of the BD2K PIC-SURE datasource discovery and data retrieval API [BD2K PIC-SURE RESTful API](http://bd2k-picsure.hms.harvard.edu/)",
+		"termsOfService": "https://www.apache.org/licenses/"
+	},
+	"servers": [
+		{
+			"url": "https://nhanes.hms.harvard.edu/rest/v1",
+			"description": "Production server"
+		},
+		{
+			"url": "https://ssc.hms.harvard.edu/rest/v1",
+			"description": "Restricted data access, for SimonSimplex data, with genetic information"
+		},
+		{
+			"url": "https://nhanes.hms.harvard.edu/rest/v1.4",
+			"description": "Production server with new endpoint implementation. Not available, yet (as of 2017-12-01)!"
+		},
+		{
+			"url": "https://bd2k-picsure.hms.harvard.edu/api/v1.4",
+			"description": "Encrypted Production server. Not available, yet (as of 2017-12-01)!"
+		}
+	],
+	"tags": [
+		{
+			"name": "ontology"
+		},
+		{
+			"name": "phenotype"
+		},
+		{
+			"name": "genotype"
+		},
+		{
+			"name": "NIHdatacommons"
+		}
+	],
+	"paths": {
+		"/about": {
+			"get": {
+				"tags": [
+
+				],
+				"responses": {
+					"x-responseValueType": [
+						{
+							"path": "api._id",
+							"valueType": "http://identifiers.org/ncbigene/"
+						},
+						{
+							"path": "api.version",
+							"valueType": "http://identifiers.org/ncbigene/"
+						},
+						{
+							"path": "api.host",
+							"valueType": "http://identifiers.org/hgnc.symbol/"
+						},
+						{
+							"path": "api.description",
+							"valueType": "http://identifiers.org/taxonomy/"
+						}
+					],
+					"description": "A smartAPI type JSON document, describing the capabilities of the PIC-SURE API.",
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/APIDescription"
+							}
+						}
+					}
+				},
+				"parameter": [
+
+				],
+				"summary": "Return descriptive information about the API in JSON format."
+			}
+		},
+		"/path": {
+			"get": {
+				"tags": [
+
+				],
+				"responses": {
+					"description": "JSON formatted description of a queryable endpoint.",
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Path"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/resources": {
+			"head": {
+				"responses": {
+					"200": {
+						"description": "List of datasource names, connected to this instance of PIC-SURE API"
+					}
+				},
+				"summary": "Get datasource name list of connected providers."
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"QueryResult": {
+				"type": "object",
+				"properties": {
+					"query": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Query"
+						}
+					},
+					"result": {
+						"$ref": "#/components/schemas/Result"
+					}
+				}
+			},
+			"Path": {
+				"type": "object",
+				"properties": {
+					"attributes": {
+						"type": "array",
+						"items": {
+							"valueType": "string"
+						}
+					},
+					"name": {
+						"valueType": "string"
+					},
+					"description": {
+						"valueType": "string"
+					},
+					"ontology": {
+						"valueType": "string"
+					},
+					"count": {
+						"valueType": "integer"
+					}
+				}
+			},
+			"Query": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"valueType": "string"
+					},
+					"startTime": {
+						"valueType": "string"
+					},
+					"endTime": {
+						"valueType": "string"
+					},
+					"user": {
+						"valueType": "integer"
+					}
+				}
+			},
+			"Result": {
+				"type": "object",
+				"properties": {
+					"status": {
+						"valueType": "string"
+					},
+					"type": {
+						"valueType": "string"
+					},
+					"message": {
+						"valueType": "string"
+					},
+					"count": {
+						"valueType": "integer"
+					}
+				}
+			}
+		}
+	}
+}
