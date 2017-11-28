@@ -18,7 +18,7 @@
 			"x-maturity": "production"
 		},
 		{
-			"url": "https://tm-dev.hms.harvard.edu/rest/v1.4",
+			"url": "https://tm-dev-app.hms.harvard.edu/rest/v1.4",
 			"description": "Open access development server",
 			"x-maturity": "development"
 		}
@@ -34,6 +34,16 @@
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/APIDescription"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "User is not authorized to access this endpoint",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UnauthorizedError"
 								}
 							}
 						}
@@ -144,6 +154,21 @@
 	},
 	"components": {
 		"schemas": {
+			"UnauthorizedError": {
+				"type": "object",
+				"required": [
+					"status",
+					"message"
+				],
+				"properties": {
+					"status": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					}
+				}
+			},
 			"PathRecord": {
 				"type": "object",
 				"required": [
@@ -161,13 +186,13 @@
 			"APIDescription": {
 				"type": "object",
 				"required": [
-					"concept"
+					"version"
 				],
 				"properties": {
-					"concept": {
+					"version": {
 						"type": "string"
 					},
-					"pui": {
+					"username": {
 						"type": "string"
 					}
 				}
