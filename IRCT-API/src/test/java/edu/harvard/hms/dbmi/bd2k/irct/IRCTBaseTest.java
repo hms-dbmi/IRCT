@@ -11,7 +11,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
  * @author Yu
  *
  */
-@RunWith(PowerMockRunner.class)
 public class IRCTBaseTest {
 
 	/**
