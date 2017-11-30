@@ -7,7 +7,7 @@
 	<xs:complexType name="panelType">
 		<xs:sequence>
 			<xs:element name="panel_number" type="xs:int" />
-			<xs:element name="panel_timing" type="xs:string" default="ANY"/>
+			<xs:element name="panel_timing" type="xs:string" default="SAMEPATIENT"/>
 			<xs:element name="panel_date_from" type="constrainDateType" />
 			<xs:element name="panel_date_to" type="constrainDateType" />
 			<!-- this element is not used -->
