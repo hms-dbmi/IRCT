@@ -10,9 +10,12 @@
  	      <methods>
  	      
  		<include name="verifyGetResultStatusCode" />
- 
-        <include name="verifyGetResultJsonResponse" />
-        
+      <!--    <include name="verifyGetResultJsonResponse" />-->
+      <include name="verifyGetResultStatusInvalidResultId" />
+      
+        <include name="verifyAvailableFormatInvalidResultId" />
+        				
+        				
       </methods>
  
        </class>
