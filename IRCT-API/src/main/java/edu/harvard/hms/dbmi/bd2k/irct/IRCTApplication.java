@@ -193,7 +193,7 @@ public class IRCTApplication {
 		CriteriaQuery<Resource> criteria = cb.createQuery(Resource.class);
 		Root<Resource> load = criteria.from(Resource.class);
 		criteria.select(load);
-		logger.info("loadResources() "+criteria.toString());
+		
 		for (Resource resource : oem.createQuery(criteria).getResultList()) {
 			try {
 				logger.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());

@@ -51,6 +51,7 @@ public class Resource implements Serializable {
 	@GeneratedValue
 	private long id;
 	private String name;
+	private String ontologyType;
 
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;

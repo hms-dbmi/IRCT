@@ -5,6 +5,8 @@ import java.util.Map;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
 import javax.servlet.http.HttpSession;
@@ -35,19 +37,19 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 @Path("/")
 @RequestScoped
 public class Endpoints {
-	
+
 	@Inject
 	private IRCTApplication picsure;
 
 	@Inject
 	private HttpSession session;
-	
+
 	@Inject
 	private QueryController queryService;
-	
-	@Inject 
+
+	@Inject
 	private ExecutionController executionService;
-	
+
 	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
@@ -63,59 +65,96 @@ public class Endpoints {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response execute(String payload) {
 		User currentUser = (User) session.getAttribute("user");
-		
+
 		logger.info("POST /query Starting new query for user:" + currentUser.getName());
 		String rspStatus = "unknown", rspMessage = "N/A";
-		
+
 		JsonObjectBuilder resp = Json.createObjectBuilder();
 		Query query = null;
 		try {
 			// Convert the payload into an internal representation of a query
 			// After the query is parsed and persisted, get the queryObject
 			query = queryService.createQuery(payload);
-			query.setName(currentUser.getName()+"-QUERY-"+query.getId());
-			
+			query.setName(currentUser.getName() + "-QUERY-" + query.getId());
+
 			logger.debug("POST /query Query created. now onto executing it");
 			Result result = executionService.runQuery(query, currentUser);
-			
+
 			/*
-			 * Query query = new Query(payload);
-			 * Result result = query.runAsUser(user).getResult();
+			 * Query query = new Query(payload); Result result =
+			 * query.runAsUser(user).getResult();
 			 */
-			
+
 			rspStatus = "ok";
-			rspMessage = "Query id:"+query.getId()+" named `"+query.getName()+"` is now "+result.getResultStatus();
-			
+			rspMessage = "Query id:" + query.getId() + " named `" + query.getName() + "` is now "
+					+ result.getResultStatus();
+
 			resp.add("datasource", ((Resource) query.getResources().toArray()[0]).getName());
 
-			resp.add("query", Json.createObjectBuilder()
-					.add("id", query.getId())
-					.add("name", query.getName())
-				);
-			
-			resp.add("result", Json.createObjectBuilder()
-					.add("id", result.getId())
-					.add("JobType", result.getJobType())
-					.add("ResultSetLocation", (result.getResultSetLocation()==null?"NULL":result.getResultSetLocation()))
-					.add("ResourceActionId", (result.getResourceActionId()==null?"NULL":result.getResourceActionId()))
-					.add("StartTime", result.getStartTime().toString())
-					.add("EndTime", (result.getEndTime()==null?"NULL":result.getEndTime().toString()))
-					.add("ResultStatus", result.getResultStatus().toString())
-				);
-			
+			resp.add("query", Json.createObjectBuilder().add("id", query.getId()).add("name", query.getName()));
+
+			resp.add("result",
+					Json.createObjectBuilder().add("id", result.getId()).add("JobType", result.getJobType())
+							.add("ResultSetLocation",
+									(result.getResultSetLocation() == null ? "NULL" : result.getResultSetLocation()))
+							.add("ResourceActionId",
+									(result.getResourceActionId() == null ? "NULL" : result.getResourceActionId()))
+							.add("StartTime", result.getStartTime().toString())
+							.add("EndTime", (result.getEndTime() == null ? "NULL"
+									: result.getEndTime().toString()))
+							.add("ResultStatus", result.getResultStatus().toString()));
+
 		} catch (Exception e) {
-			logger.error("/query Exception:"+e.getMessage());
-			
+			logger.error("/query Exception:" + e.getMessage());
+
 			rspStatus = "error";
 			rspMessage = e.getMessage();
 		}
-		
+
 		// Build response object
-		
+
 		resp.add("status", rspStatus);
-		resp.add("message", (rspMessage==null?"NULL":rspMessage));
+		resp.add("message", (rspMessage == null ? "NULL" : rspMessage));
 
 		logger.info("POST /query Finished.");
+		return Response.ok(resp.build(), MediaType.APPLICATION_JSON).build();
+	}
+
+	@GET
+	@Path("/resources/{resourceName: .*}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getResources(@PathParam("resourceName") String resourceName) {
+
+		JsonObjectBuilder resp = Json.createObjectBuilder();
+		JsonArrayBuilder resourceList = Json.createArrayBuilder();
+		String respStatus = "unknown";
+		String respMessage = null;
+		
+		try {
+			if (resourceName == null) {
+				Map<String, Resource> resources = picsure.getResources();
+				for (String resourceKey : resources.keySet()) {
+					Resource resource = resources.get(resourceKey);
+					resourceList.add(resourceObjectToJsonObject(resource));
+				}
+			} else {
+				Map<String, Resource> resources = picsure.getResources();
+				Resource resource = resources.get(resourceName);
+				resp.add(resourceName,
+						Json.createObjectBuilder().add("id", resource.getId()).add("name", resource.getName()).build());
+				resourceList.add(resourceObjectToJsonObject(resource));
+			}
+			respStatus = "ok";
+			
+		} catch (Exception e) {
+			respStatus = "error";
+			respMessage = e.getMessage();
+		} finally {
+			resp.add("status", respStatus);
+			if (respMessage != null) { resp.add("message", respMessage); }
+			resp.add("resources", resourceList);
+		}
+
 		return Response.ok(resp.build(), MediaType.APPLICATION_JSON).build();
 	}
 
@@ -126,45 +165,47 @@ public class Endpoints {
 	 * @return queryDetails
 	 */
 	@GET
-	@Path("/{queryId : .*}")
+	@Path("/query/{queryId : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getQueryDetails(@PathParam("queryId") Long queryId) {
+	public Response getQuery(@PathParam("queryId") Long queryId) {
 		JsonObjectBuilder resp = Json.createObjectBuilder();
-		
+
 		String rspStatus = "unknown", rspMessage = "N/A";
-		
-		logger.info("GET /query Starting queryId:" + queryId + " user:" + ((User) session.getAttribute("user")).getName());
+
+		logger.info(
+				"GET /query Starting queryId:" + queryId + " user:" + ((User) session.getAttribute("user")).getName());
 		edu.harvard.hms.dbmi.bd2k.irct.model.query.Query query = null;
 		try {
-			queryService.loadQuery(queryId);			
+			queryService.loadQuery(queryId);
 			query = queryService.getQuery();
-			
+
 			rspStatus = "ok";
 			rspMessage = "";
-			
-			resp.add("query", Json.createObjectBuilder()
-					.add("id", query.getId())
-					.add("name", (query.getName()==null?"NULL":query.getName()))
-					.add("resources", resourceObjectToJson((Resource) query.getResources().toArray()[0]))
-				);
-			
+
+			resp.add("query",
+					Json.createObjectBuilder().add("id", query.getId())
+							.add("name", (query.getName() == null ? "NULL" : query.getName()))
+							.add("resources", resourceObjectToJsonObject((Resource) query.getResources().toArray()[0])));
+
 		} catch (Exception e) {
 			rspStatus = "error";
 			rspMessage = e.getMessage();
 		}
-		
+
 		resp.add("status", rspStatus);
 		resp.add("message", rspMessage);
-		
-		return Response.ok(resp.build(),
-				MediaType.APPLICATION_JSON).build();
+
+		return Response.ok(resp.build(), MediaType.APPLICATION_JSON).build();
 	}
-	
-	private String resourceObjectToJson(Resource resource) {
+
+	private JsonObject resourceObjectToJsonObject(Resource resource) {
 		if (resource == null) {
-			return "NULL";
+			return Json.createObjectBuilder().add("id", "N/A")
+					.add("name", "N/A").build();
+		} else {
+			return Json.createObjectBuilder().add("id", resource.getId())
+			.add("name", resource.getName()).build();
 		}
-		return resource.getName();
 	}
 
 	/**
@@ -184,21 +225,15 @@ public class Endpoints {
 			JsonObjectBuilder claimsObject = Json.createObjectBuilder();
 			for (String key : token_claims.keySet()) {
 				Claim claim = token_claims.get(key);
-				claimsObject.add(key, (String) (claim.asString()==null?claim.asDate().toString():claim.asString()));
+				claimsObject.add(key,
+						(String) (claim.asString() == null ? claim.asDate().toString() : claim.asString()));
 			}
-			
-			return Json.createObjectBuilder()
-				.add("appVersion", app.getVersion())
-				.add("userId", user.getUserId())
-				.add("userName", user.getName())
-				.add("userClaims", claimsObject.build())
-				.build();
+
+			return Json.createObjectBuilder().add("appVersion", app.getVersion()).add("userId", user.getUserId())
+					.add("userName", user.getName()).add("userClaims", claimsObject.build()).build();
 
 		} catch (Exception e) {
-			return Json.createObjectBuilder()
-				.add("status", "error")
-				.add("message", e.getMessage())
-				.build();
+			return Json.createObjectBuilder().add("status", "error").add("message", e.getMessage()).build();
 		}
 	}
 }

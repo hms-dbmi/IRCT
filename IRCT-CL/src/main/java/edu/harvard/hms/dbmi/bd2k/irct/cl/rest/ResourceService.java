@@ -90,6 +90,7 @@ public class ResourceService {
 
 		if (returnResources == null) {
 			JsonObjectBuilder build = Json.createObjectBuilder();
+			
 			build.add("status", "Invalid type");
 			build.add("message",
 					"The type submitted is not a supported resource type");
