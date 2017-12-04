@@ -72,19 +72,24 @@ public class SystemService {
 	public JsonStructure about() {
 
 		JsonArrayBuilder build = Json.createArrayBuilder();
-		IRCTApplication app = new IRCTApplication();
-		
-		build.add(Json.createObjectBuilder().add("version", app.getVersion()));
+		try {
+			IRCTApplication app = new IRCTApplication();
+			if (app!=null){
+				build.add(Json.createObjectBuilder().add("version", app.getVersion()));
+			}
 
-		// Add user details
-		User user = (User) session.getAttribute("user");
-		
-		build.add(
-			Json.createObjectBuilder()
-			.add("userid", user.getUserId())
-			.add("name", user.getName())
-			.add("token", user.getToken())
-		);
+			// Add user details
+			User user = (User) session.getAttribute("user");
+			if (user!=null) {
+				build.add(
+						Json.createObjectBuilder()
+						.add("userid", user.getUserId())
+						.add("username", user.getName())
+					);
+			}
+		} catch (Exception e) {
+			build.add(Json.createObjectBuilder().add("status", "error").add("message", e.getMessage()));
+		}
 		return build.build();
 	}
 }

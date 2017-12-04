@@ -44,18 +44,21 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConve
 /**
  * The resource class provides a way for the IRCT application to keep track of
  * which resources are available.
- * 
+ *
  * @author Jeremy R. Easton-Marks
  *
  */
 @Entity
 public class Resource implements Serializable {
 	private static final long serialVersionUID = 8099637983212553759L;
-	
+
 	@Id
 	@GeneratedValue
 	private long id;
+
 	private String name;
+
+	private String ontologyType;
 
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;
@@ -76,13 +79,13 @@ public class Resource implements Serializable {
 
 	@OneToMany
 	private List<PredicateType> supportedPredicates;
-	
+
 	@OneToMany
 	private List<SelectOperationType> supportedSelectOperations;
-	
+
 	@OneToMany
 	private List<Field> supportedSelectFields;
-	
+
 	@OneToMany
 	private List<SortOperationType> supportedSortOperations;
 
@@ -103,7 +106,7 @@ public class Resource implements Serializable {
 
 	@Transient
 	private boolean setup = false;
-	
+
 	/**
 	 * Sets up the Resource and the implementing interface
 	 * @throws ResourceInterfaceException Throws a resource interface
@@ -123,9 +126,9 @@ public class Resource implements Serializable {
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
 	 * attributes associated with this object and not their representation.
-	 * 
+	 *
 	 * This is equivalent of toJson(1);
-	 * 
+	 *
 	 * @return JSON Representation
 	 */
 	public JsonObject toJson() {
@@ -135,8 +138,8 @@ public class Resource implements Serializable {
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
 	 * attributes associated with this object and not their representation.
-	 * 
-	 * 
+	 *
+	 *
 	 * @param depth
 	 *            Depth to travel
 	 * @return JSON Representation
@@ -179,7 +182,7 @@ public class Resource implements Serializable {
 					}
 				}
 				jsonBuilder.add("predicates", predicateArray.build());
-				
+
 				// Supported Select Operations (Query Interface)
 				JsonArrayBuilder selectArray = Json.createArrayBuilder();
 				if (this.supportedPredicates != null) {
@@ -197,7 +200,7 @@ public class Resource implements Serializable {
 					}
 				}
 				jsonBuilder.add("selectFields", selectFieldsArray.build());
-				
+
 				// JOINS (Query Interface)
 				JsonArrayBuilder joinArray = Json.createArrayBuilder();
 				if (this.supportedJoins != null) {
@@ -206,7 +209,7 @@ public class Resource implements Serializable {
 					}
 				}
 				jsonBuilder.add("joins", joinArray.build());
-				
+
 				// SORTS (Query Interface)
 				JsonArrayBuilder sortArray = Json.createArrayBuilder();
 				if (this.supportedSortOperations != null) {
@@ -250,10 +253,10 @@ public class Resource implements Serializable {
 
 		return jsonBuilder.build();
 	}
-	
+
 	/**
 	 * Returns a relationship from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param relationshipString Relationship name
 	 * @return Ontology Relationship
 	 */
@@ -265,10 +268,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a predicate type from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param predicateName Predicate name
 	 * @return Predicate Type
 	 */
@@ -280,10 +283,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a select operation from its name. It will return null if it does not exist
-	 * 
+	 *
 	 * @param operationName Operation name
 	 * @return Select Operation Type
 	 */
@@ -296,10 +299,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a sort operation from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param operationName Sort name
 	 * @return Sort Operation Type
 	 */
@@ -312,10 +315,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a process type from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param processName Process Name
 	 * @return Process Type
 	 */
@@ -327,10 +330,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a Logical Operator from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param logicalOperatorName Logical Operator Name
 	 * @return Logical Operator
 	 */
@@ -342,10 +345,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a data type from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param dataTypeName Data Type Name
 	 * @return Data Type
 	 */
@@ -357,8 +360,8 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
-	
+
+
 	public JoinType getSupportedJoinByName(String joinTypeName) {
 		for(JoinType joinType : this.supportedJoins) {
 			if(joinType.getName().equals(joinTypeName)) {
@@ -374,7 +377,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns the id of the resource
-	 * 
+	 *
 	 * @return the id
 	 */
 	public long getId() {
@@ -383,7 +386,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the id of the resource
-	 * 
+	 *
 	 * @param id
 	 *            the id to set
 	 */
@@ -393,7 +396,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns the name of the resource
-	 * 
+	 *
 	 * @return the name
 	 */
 	public String getName() {
@@ -402,7 +405,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the name of the resource
-	 * 
+	 *
 	 * @param name
 	 *            the name to set
 	 */
@@ -412,7 +415,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns the implementing interface of the resource
-	 * 
+	 *
 	 * @return the implementingInterface
 	 */
 	public ResourceImplementationInterface getImplementingInterface() {
@@ -421,7 +424,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the implementing interface of the resource
-	 * 
+	 *
 	 * @param implementingInterface
 	 *            the implementingInterface to set
 	 */
@@ -432,7 +435,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of data types that are supported by the resource
-	 *  
+	 *
 	 * @return the dataTypes
 	 */
 	public List<DataType> getDataTypes() {
@@ -441,7 +444,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of data type that are supported by the resource
-	 * 
+	 *
 	 * @param dataTypes
 	 *            the dataTypes to set
 	 */
@@ -451,7 +454,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of relationships that are supported by the resource
-	 * 
+	 *
 	 * @return the relationships
 	 */
 	public List<OntologyRelationship> getRelationships() {
@@ -460,7 +463,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of relationships that are supported by the resource
-	 * 
+	 *
 	 * @param relationships
 	 *            the relationships to set
 	 */
@@ -470,7 +473,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of logical operators that are supported by the resource
-	 * 
+	 *
 	 * @return the logicalOperators
 	 */
 	public List<LogicalOperator> getLogicalOperators() {
@@ -479,7 +482,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets a list of logical operators that are supported by the resource
-	 * 
+	 *
 	 * @param logicalOperators
 	 *            the logicalOperators to set
 	 */
@@ -489,7 +492,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of supported predicates that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedPredicates
 	 */
 	public List<PredicateType> getSupportedPredicates() {
@@ -498,7 +501,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of supported predicates that are supported by the resource
-	 * 
+	 *
 	 * @param supportedPredicates
 	 *            the supportedPredicates to set
 	 */
@@ -508,7 +511,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of select operation that are supported by the resource
-	 *  
+	 *
 	 * @return the supportedSelectOperations
 	 */
 	public List<SelectOperationType> getSupportedSelectOperations() {
@@ -517,7 +520,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of select operations that are supported by the resources
-	 * 
+	 *
 	 * @param supportedSelectOperations the supportedSelectOperations to set
 	 */
 	public void setSupportedSelectOperations(
@@ -527,7 +530,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Gets the list of supported select fields that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedSelectFields
 	 */
 	public List<Field> getSupportedSelectFields() {
@@ -536,7 +539,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of supported select fields that are supported by the resource
-	 * 
+	 *
 	 * @param supportedSelectFields the supportedSelectFields to set
 	 */
 	public void setSupportedSelectFields(List<Field> supportedSelectFields) {
@@ -545,7 +548,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of sort operation that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedSortOperations
 	 */
 	public List<SortOperationType> getSupportedSortOperations() {
@@ -554,7 +557,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of sort operations that are supporterd by the resource
-	 * 
+	 *
 	 * @param supportedSortOperations the supportedSortOperations to set
 	 */
 	public void setSupportedSortOperations(List<SortOperationType> supportedSortOperations) {
@@ -563,7 +566,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list joins that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedJoins
 	 */
 	public List<JoinType> getSupportedJoins() {
@@ -572,7 +575,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list joins that are supported by the resource
-	 * 
+	 *
 	 * @param supportedJoins
 	 *            the supportedJoins to set
 	 */
@@ -582,7 +585,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of process that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedProcesses
 	 */
 	public List<ProcessType> getSupportedProcesses() {
@@ -600,7 +603,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of visualizations that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedVisualizations
 	 */
 	public List<VisualizationType> getSupportedVisualizations() {
@@ -609,7 +612,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets a list of visualizations that are supported by the resource
-	 * 
+	 *
 	 * @param supportedVisualizations
 	 *            the supportedVisualizations to set
 	 */
@@ -620,7 +623,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a map of parameters for the resource
-	 * 
+	 *
 	 * @return the parameters
 	 */
 	public Map<String, String> getParameters() {
@@ -629,7 +632,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets a map of resources for the resource
-	 * 
+	 *
 	 * @param parameters
 	 *            the parameters to set
 	 */
@@ -651,5 +654,5 @@ public class Resource implements Serializable {
 		this.setup = setup;
 	}
 
-	
+
 }

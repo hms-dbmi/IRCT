@@ -141,14 +141,12 @@ public class SecurityService implements Serializable {
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
 			session.setAttribute("user", sc.validateKey(key));
-			build.add("status", "ok");	
-			build.add("user",  ((User) session.getAttribute("user")).getName());
-			build.add("warning", "deprecated");
+			build.add("status", "warning");
+			build.add("message", "Direct session management has been deprecated. Please consider using a newer version of PIC-SURE. Authenticated as `"+((User) session.getAttribute("user")).getName()+"`");
 		} catch (Exception e) {
 			logger.error("/startSession "+e.getMessage());
 			build.add("status", "error");
-			build.add("message", e.getMessage());
-			build.add("warning", "deprecated");
+			build.add("message", (e.getMessage()!=null?e.getMessage():"Session manage has been deprecated. Please use a newer version of PIC-SURE."));
 		}
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
