@@ -211,7 +211,7 @@
             <xs:sequence>
                 <xs:element name="query_name" type="xs:string"/>
                 <xs:element name="query_description" type="xs:string"/>
-                <xs:element name="query_timing" type="crc:queryTimingType" default="SAMEPATIENT"/>
+                <xs:element name="query_timing" type="crc:queryTimingType" default="SAME"/>
                 <xs:element name="panel" type="crc:panelType" maxOccurs="unbounded"/>
             </xs:sequence>
         </xs:sequence>
