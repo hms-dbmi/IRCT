@@ -5,7 +5,7 @@
 		"title": "NHANES via PIC-SURE API",
 		"description": "Meta API to provide access to multiple data sources",
 		"version": "1.4",
-		"contacts": [
+		"contact": [
 			{
 				"name": "Isaac Kohane",
 				"email": "isaac_kohane@harvard.edu",
