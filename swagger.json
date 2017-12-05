@@ -5,17 +5,17 @@
 		"title": "NHANES via PIC-SURE API",
 		"description": "Meta API to provide access to multiple data sources",
 		"version": "1.4",
-		"contact": [
+		"contact": {
+			 "name": "Paul Avillach",
+			"email": "paul_avillach@hms.harvard.edu",
+			"url": "https://avillach-lab.hms.harvard.edu/",
+			"x-role": "responsible developer"
+		},
+		"x-otherContacts": [
 			{
 				"name": "Isaac Kohane",
 				"email": "isaac_kohane@harvard.edu",
 				"url": "http://dbmi.hms.harvard.edu/person/faculty/zak-kohane",
-				"x-role": "responsible developer"
-			},
-			{
-				"name": "Paul Avillach",
-				"email": "paul_avillach@hms.harvard.edu",
-				"url": "https://avillach-lab.hms.harvard.edu/",
 				"x-role": "responsible developer"
 			},
 			{
