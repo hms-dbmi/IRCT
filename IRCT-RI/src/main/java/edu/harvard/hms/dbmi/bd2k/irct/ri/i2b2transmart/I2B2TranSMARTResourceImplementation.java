@@ -309,6 +309,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
 					+ resultId
+					+ "&gatherAllEncounterFacts=false"
 					+ "&conceptPaths="
 					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
 							"UTF-8");
