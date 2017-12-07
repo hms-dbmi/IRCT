@@ -14,6 +14,7 @@ import javax.persistence.Convert;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
@@ -33,7 +34,7 @@ public class Field implements Serializable {
 	private static final long serialVersionUID = -2150406406694041615L;
 
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	private String name;

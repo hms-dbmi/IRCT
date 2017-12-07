@@ -47,6 +47,7 @@
       
       <properties>
          <!-- Properties for Hibernate -->
+         <!-- do not set update in production environment, put validate instead -->
          <property name="hibernate.hbm2ddl.auto" value="update" />
          <property name="hibernate.show_sql" value="false" />
          <property name="hibernate.format_sql" value="false" />

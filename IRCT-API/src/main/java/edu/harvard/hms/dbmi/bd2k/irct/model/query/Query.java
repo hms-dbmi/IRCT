@@ -18,6 +18,7 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
@@ -34,12 +35,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
  *
  */
 @Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = InheritanceType.JOINED)
 public class Query implements Serializable {
 	private static final long serialVersionUID = -407606258205399129L;
 
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	private String name;
 
@@ -141,6 +142,7 @@ public class Query implements Serializable {
 				+ where;
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T extends ClauseAbstract> List<T> getClausesOfType(
 			Class<T> clauseType) {
 		List<T> returns = new ArrayList<T>();
@@ -226,7 +228,7 @@ public class Query implements Serializable {
 	 *            SubQuery ID
 	 */
 	public final void removeSubQuery(Long id) {
-		this.subQueries.remove(id);
+		this.subQueries.remove(Long.toString(id));
 	}
 
 	/**
