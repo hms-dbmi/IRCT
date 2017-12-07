@@ -141,14 +141,12 @@ public class SecurityService implements Serializable {
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
 			session.setAttribute("user", sc.validateKey(key));
-			build.add("status", "ok");	
-			build.add("user",  ((User) session.getAttribute("user")).getName());
-			build.add("warning", "deprecated");
+			build.add("status", "success");	
+			build.add("message", "This authentication method should only be used to validate prior research. Any new research being developed should instead use the Bearer token functionality. Contact an administrator to acquire a bearer token and instructions on how to use it.");
 		} catch (Exception e) {
 			logger.error("/startSession "+e.getMessage());
 			build.add("status", "error");
 			build.add("message", e.getMessage());
-			build.add("warning", "deprecated");
 		}
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
