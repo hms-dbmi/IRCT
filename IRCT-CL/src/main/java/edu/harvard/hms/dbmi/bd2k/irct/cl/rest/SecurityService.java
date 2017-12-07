@@ -138,15 +138,16 @@ public class SecurityService implements Serializable {
 	@Path("/startSession")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startSession(@QueryParam(value = "key") String key) {
+		String warning = "This authentication method should only be used to validate prior research. Any new research being developed should instead use the Bearer token functionality. Contact an administrator to acquire a bearer token and instructions on how to use it.";
+		
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
-			session.setAttribute("user", sc.validateKey(key));
-			build.add("status", "warning");
-			build.add("message", "Direct session management has been deprecated. Please consider using a newer version of PIC-SURE. Authenticated as `"+((User) session.getAttribute("user")).getName()+"`");
+			build.add("status", "success");
+			build.add("message", warning);
 		} catch (Exception e) {
 			logger.error("/startSession "+e.getMessage());
 			build.add("status", "error");
-			build.add("message", (e.getMessage()!=null?e.getMessage():"Session manage has been deprecated. Please use a newer version of PIC-SURE."));
+			build.add("message", (e.getMessage()!=null?e.getMessage():"Unkonw error starting session."+e.toString()));
 		}
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
