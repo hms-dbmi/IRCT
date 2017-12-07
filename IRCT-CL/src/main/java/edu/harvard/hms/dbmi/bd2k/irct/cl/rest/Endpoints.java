@@ -61,9 +61,9 @@ public class Endpoints {
 	 * @return QueryResponse
 	 */
 	@POST
-	@Path("/")
+	@Path("/query")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response execute(String payload) {
+	public Response runQuery(String payload) {
 		User currentUser = (User) session.getAttribute("user");
 
 		logger.info("POST /query Starting new query for user:" + currentUser.getName());
@@ -121,7 +121,7 @@ public class Endpoints {
 	}
 
 	@GET
-	@Path("/resources/{resourceName: .*}")
+	@Path("/resources{resourceName: .*}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getResources(@PathParam("resourceName") String resourceName) {
 
