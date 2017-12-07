@@ -188,7 +188,7 @@ public class ResultSetImpl implements ResultSet {
 
 		int position = ArrayUtils.indexOf(this.columnNames, columnLabel);
 		if (position == ArrayUtils.INDEX_NOT_FOUND) {
-			throw new ResultSetException("Column not found");
+			throw new ResultSetException("Column label `"+columnLabel+"` is not found.");
 		}
 		return position;
 	}
@@ -199,7 +199,7 @@ public class ResultSetImpl implements ResultSet {
 			throw new ResultSetException("ResultSet is closed");
 		}
 		if (columnIndex >= columns.length) {
-			throw new ResultSetException("Column not found");
+			throw new ResultSetException("Column index `"+columnIndex+"` is not found (there are only "+columns.length+" columns.)");
 		}
 
 		return columns[columnIndex];

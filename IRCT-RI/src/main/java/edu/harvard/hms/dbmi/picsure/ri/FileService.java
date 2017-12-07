@@ -1,4 +1,4 @@
-package edu.harvard.hms.dbmi.bd2k.irct.ri.fileService;
+package edu.harvard.hms.dbmi.picsure.ri;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -13,6 +13,7 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -32,13 +33,16 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
-public class FileServiceResourceImplementation implements
+public class FileService implements
 		QueryResourceImplementationInterface,
 		PathResourceImplementationInterface {
+	
 	private String resourceName;
 	private String baseDir;
 	private ResourceState resourceState;
 	private File baseFilePath;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	@Override
 	public void setup(Map<String, String> parameters)
@@ -49,9 +53,7 @@ public class FileServiceResourceImplementation implements
 		}
 		this.resourceName = parameters.get("resourceName");
 		this.baseDir = parameters.get("baseDir");
-
 		this.baseFilePath = new File(this.baseDir);
-
 		this.resourceState = ResourceState.READY;
 	}
 
@@ -59,6 +61,7 @@ public class FileServiceResourceImplementation implements
 	public List<Entity> getPathRelationship(Entity path,
 			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
+
 		List<Entity> returns = new ArrayList<Entity>();
 
 		String basePath = path.getPui();
@@ -87,23 +90,21 @@ public class FileServiceResourceImplementation implements
 	@Override
 	public Result runQuery(User user, Query qep, Result result)
 			throws ResourceInterfaceException {
+		logger.debug("runQuery() Starting");
+		
 		WhereClause wc = (WhereClause) qep.getClauses().get(0L);
-
 		String[] pathComponents = wc.getField().getPui().split("/");
 		String fileName = pathComponents[2];
+		logger.debug("runQuery() fileName:"+fileName);
 		
 		try {
 			ResultSet rs = (ResultSet) result.getData();
-			
-			
 			Reader in = new FileReader(this.baseDir + "/" + fileName);
-			
-		    CSVParser parser = new CSVParser(in, CSVFormat.EXCEL.withHeader());
 		    
+			logger.debug("runQuery() create ApacheCSVParser, and read in file:" + this.baseDir + "/" + fileName);
+			CSVParser parser = new CSVParser(in, CSVFormat.EXCEL.withHeader());
 		    rs = createInitialDataset(result, parser.getHeaderMap().keySet());
-			
 			for (CSVRecord record : parser) {
-				
 				Map<String, String> line = record.toMap();
 				rs.appendRow();
 				for (String header : line.keySet()) {
@@ -113,33 +114,42 @@ public class FileServiceResourceImplementation implements
 			parser.close();
 			in.close();
 			
+			logger.debug("runQuery() setting data of `result` object");
 			result.setData(rs);
 			result.setResultStatus(ResultStatus.COMPLETE);
+			logger.debug("runQuery() setting status of `result` object to COMPLETE");
+			
 		} catch (Exception e) {
+			logger.error("runQuery() Exception:"+e.getMessage());
+			
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage());
-			e.printStackTrace();
 		}
-		
+		logger.debug("runQuery() Finished.");
 		return result;
 	}
 	
 	
 
 	private ResultSet createInitialDataset(Result result, Set<String> headers) throws ResultSetException {
+		logger.debug("createInitialDataset() Starting");
 		ResultSet rs = (ResultSet) result.getData();
+		logger.debug("createInitialDataset() Setting "+headers.size()+" columns.");		
 		for(String header : headers) {
 			Column encounterColumn = new Column();
 			encounterColumn.setName(header);
 			encounterColumn.setDataType(PrimitiveDataType.STRING);
+			logger.trace("createInitialDataset() Header "+header+" added.");
 			rs.appendColumn(encounterColumn);
 		}
+		logger.debug("createInitialDataset() Finished");
 		return rs;
 	}
 
 	@Override
 	public Result getResults(User user, Result result)
 			throws ResourceInterfaceException {
+		logger.debug("createInitialDataset() Starting");
 		return result;
 	}
 	
@@ -164,6 +174,12 @@ public class FileServiceResourceImplementation implements
 	@Override
 	public ResultDataType getQueryDataType(Query query) {
 		return ResultDataType.TABULAR;
+	}
+
+	@Override
+	public Result runRawQuery(String queryString) throws ResourceInterfaceException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

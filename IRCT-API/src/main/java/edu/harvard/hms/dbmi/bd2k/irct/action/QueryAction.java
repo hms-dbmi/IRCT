@@ -76,14 +76,14 @@ public class QueryAction implements Action {
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
 					.getImplementingInterface();
 
-			this.result = ActionUtilities.createResult(queryInterface
-					.getQueryDataType(query));
+			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
 			this.result.setUser(user);
-
+			this.result.setQuery(query);
 			this.result = queryInterface.runQuery(user, query, result);
 
 			// Update the result in the database
 			ActionUtilities.mergeResult(this.result);
+			
 		} catch (Exception e) {
 			logger.error("run() Exception:"+e.getMessage());
 			
@@ -101,12 +101,13 @@ public class QueryAction implements Action {
 	@Override
 	public Result getResults(User user)
 			throws ResourceInterfaceException {
+		this.status = ActionStatus.RUNNING;
 		try {
-			this.result = ((QueryResourceImplementationInterface) resource
-					.getImplementingInterface()).getResults(user, result);
+			this.result = (
+					(QueryResourceImplementationInterface) resource.getImplementingInterface()
+			).getResults(user, result);
 
-			while ((this.result.getResultStatus() != ResultStatus.ERROR)
-					&& (this.result.getResultStatus() != ResultStatus.COMPLETE)) {
+			while ((this.result.getResultStatus() != ResultStatus.ERROR) && (this.result.getResultStatus() != ResultStatus.COMPLETE)) {
 				Thread.sleep(3000);
 				this.result = ((QueryResourceImplementationInterface) resource
 						.getImplementingInterface())
@@ -120,14 +121,14 @@ public class QueryAction implements Action {
 					((Persistable) result.getData()).persist();
 				}
 			}
-
 			result.getData().close();
+			
 		} catch (Exception e) {
 			this.result.setResultStatus(ResultStatus.ERROR);
 			this.result.setMessage(e.getMessage());
 		}
-
 		result.setEndTime(new Date());
+		
 		// Save the query Action
 		try {
 			ActionUtilities.mergeResult(result);
@@ -136,7 +137,6 @@ public class QueryAction implements Action {
 			result.setMessage(e.getMessage());
 			this.status = ActionStatus.ERROR;
 		}
-
 		return this.result;
 	}
 

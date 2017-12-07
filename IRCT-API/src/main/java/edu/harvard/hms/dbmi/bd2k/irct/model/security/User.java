@@ -8,10 +8,10 @@ import java.security.Principal;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
-import javax.persistence.SequenceGenerator;
 
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
@@ -23,8 +23,7 @@ public class User implements Principal, Serializable {
 	private static final long serialVersionUID = 225027371671010450L;
 
 	@Id
-	@GeneratedValue(generator = "userSequencer")
-	@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
 
 	private String userId;

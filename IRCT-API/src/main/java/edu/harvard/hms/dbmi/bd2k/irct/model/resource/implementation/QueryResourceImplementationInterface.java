@@ -29,6 +29,16 @@ public interface QueryResourceImplementationInterface extends
 	Result runQuery(User user, Query qep, Result result) throws ResourceInterfaceException;
 
 	/**
+	 * Parses and runs a raw string.
+	 * 
+	 * @param query A `String` object, that hopefully includes the resource being queried and the credentials that are allowed to query that particular resource
+	 *
+	 * @return A `Result` object, that is the response from the queried resource.
+	 * @throws ResourceInterfaceException An `Exception` that refers to the parsing, querying (asyncronous) and result processing portion of this request.
+	 */
+	Result runRawQuery(String queryString) throws ResourceInterfaceException;
+
+	/**
 	 * Returns the results of the query if they are available
 	 * 
 	 * @param session Session to run in

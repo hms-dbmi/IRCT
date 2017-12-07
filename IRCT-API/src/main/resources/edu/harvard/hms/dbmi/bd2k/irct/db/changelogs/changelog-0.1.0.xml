@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+        
+        <!-- add auto increment to table EventConverterImplementation -->
+        <changeSet author="yu" id="1" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropForeignKeyConstraint baseTableName="event_parameters" constraintName="FK_py5urtysdr89rhdjt9vmfr6xt"/>
+        		<rollback>
+        			<addForeignKeyConstraint constraintName="FK_py5urtysdr89rhdjt9vmfr6xt" referencedTableName="EventConverterImplementation" baseColumnNames="id" baseTableName="event_parameters" referencedColumnNames="id"/>
+        		</rollback>
+        	</changeSet>
+        	<changeSet author="yu" id="2" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="EventConverterImplementation"/>
+	        <rollback>
+	        		<sql>alter table `irct`.`EventConverterImplementation` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
+        <changeSet author="yu" id="3" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addForeignKeyConstraint constraintName="FK_py5urtysdr89rhdjt9vmfr6xt" referencedTableName="EventConverterImplementation" baseColumnNames="id" baseTableName="event_parameters" referencedColumnNames="id"/>
+        		<rollback>
+	        		<dropForeignKeyConstraint baseTableName="event_parameters" constraintName="FK_py5urtysdr89rhdjt9vmfr6xt"/>
+        		</rollback>
+        	</changeSet>
+        	
+        	<!-- add auto increment to table IRCTJoin -->
+        	<changeSet author="yu" id="4" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropForeignKeyConstraint baseTableName="IRCTJoin_Field" constraintName="FK_jsa7dpa9w29eviuiu397l6wnu"/>
+        		<dropForeignKeyConstraint baseTableName="join_values" constraintName="FK_g73pju28bqi5qinm6be2hp97h"/>
+        		<dropForeignKeyConstraint baseTableName="Resource_IRCTJoin" constraintName="FK_hpva18ho5d8toqkqer2xpxgf5"/>
+        		<rollback>
+        			<addForeignKeyConstraint constraintName="FK_jsa7dpa9w29eviuiu397l6wnu" referencedTableName="IRCTJoin" baseColumnNames="IRCTJoin_id" baseTableName="IRCTJoin_Field" referencedColumnNames="id"/>
+        			<addForeignKeyConstraint constraintName="FK_g73pju28bqi5qinm6be2hp97h" referencedTableName="IRCTJoin" baseColumnNames="JOIN_VALUE" baseTableName="join_values" referencedColumnNames="id"/>
+        			<addForeignKeyConstraint constraintName="FK_hpva18ho5d8toqkqer2xpxgf5" referencedTableName="IRCTJoin" baseColumnNames="supportedJoins_id" baseTableName="Resource_IRCTJoin" referencedColumnNames="id"/>        		
+	        	</rollback>
+        	</changeSet>
+        	<changeSet author="yu" id="5" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="IRCTJoin"/>
+	        <rollback>
+        			<sql>alter table `irct`.`IRCTJoin` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
+        <changeSet author="yu" id="6" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addForeignKeyConstraint constraintName="FK_jsa7dpa9w29eviuiu397l6wnu" referencedTableName="IRCTJoin" baseColumnNames="IRCTJoin_id" baseTableName="IRCTJoin_Field" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_g73pju28bqi5qinm6be2hp97h" referencedTableName="IRCTJoin" baseColumnNames="JOIN_VALUE" baseTableName="join_values" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_hpva18ho5d8toqkqer2xpxgf5" referencedTableName="IRCTJoin" baseColumnNames="supportedJoins_id" baseTableName="Resource_IRCTJoin" referencedColumnNames="id"/>        		
+        		<rollback>
+        			<dropForeignKeyConstraint baseTableName="IRCTJoin_Field" constraintName="FK_jsa7dpa9w29eviuiu397l6wnu"/>
+        			<dropForeignKeyConstraint baseTableName="join_values" constraintName="FK_g73pju28bqi5qinm6be2hp97h"/>
+        			<dropForeignKeyConstraint baseTableName="Resource_IRCTJoin" constraintName="FK_hpva18ho5d8toqkqer2xpxgf5"/>
+        		</rollback>
+        	</changeSet>
+        	
+        	<!-- add auto increment to table Entity -->
+        <changeSet author="yu" id="7" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropForeignKeyConstraint baseTableName="ClauseAbstract" constraintName="FK_i4f9j65v4niywg5ypb9ai2shh"/>
+        		<dropForeignKeyConstraint baseTableName="ClauseAbstract" constraintName="FK_klj5ek154cn5ky9u4xnepvem0"/>
+        		<rollback>
+        			<addForeignKeyConstraint constraintName="FK_i4f9j65v4niywg5ypb9ai2shh" referencedTableName="Entity" baseColumnNames="field_id" baseTableName="ClauseAbstract" referencedColumnNames="id"/>
+        			<addForeignKeyConstraint constraintName="FK_i4f9j65v4niywg5ypb9ai2shh" referencedTableName="Entity" baseColumnNames="parameter_id" baseTableName="ClauseAbstract" referencedColumnNames="id"/>
+        		</rollback>
+        	</changeSet>
+        	<changeSet author="yu" id="8" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="Entity"/>
+	        <rollback>
+	        		<sql>alter table `irct`.`Entity` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
+        <changeSet author="yu" id="9" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addForeignKeyConstraint constraintName="FK_i4f9j65v4niywg5ypb9ai2shh" referencedTableName="Entity" baseColumnNames="field_id" baseTableName="ClauseAbstract" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_klj5ek154cn5ky9u4xnepvem0" referencedTableName="Entity" baseColumnNames="parameter_id" baseTableName="ClauseAbstract" referencedColumnNames="id"/>
+        		<rollback>
+	        		<dropForeignKeyConstraint baseTableName="ClauseAbstract" constraintName="FK_i4f9j65v4niywg5ypb9ai2shh"/>
+        			<dropForeignKeyConstraint baseTableName="ClauseAbstract" constraintName="FK_klj5ek154cn5ky9u4xnepvem0"/>
+        		</rollback>
+        	</changeSet>
+        	
+        	<!-- add auto increment to table IRCTProcess -->
+        <changeSet author="yu" id="10" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropForeignKeyConstraint baseTableName="IRCTProcess_Resource" constraintName="FK_1tqx70p8cfuiymhx354a4krrr"/>
+        		<dropForeignKeyConstraint baseTableName="process_values" constraintName="FK_i8mexg49fhgxpjj1nmm56li4m"/>
+        		<rollback>
+        			<addForeignKeyConstraint constraintName="FK_1tqx70p8cfuiymhx354a4krrr" referencedTableName="IRCTProcess" baseColumnNames="IRCTProcess_id" baseTableName="IRCTProcess_Resource" referencedColumnNames="id"/>
+        			<addForeignKeyConstraint constraintName="FK_i8mexg49fhgxpjj1nmm56li4m" referencedTableName="IRCTProcess" baseColumnNames="PROCESS_VALUE" baseTableName="process_values" referencedColumnNames="id"/>
+        		</rollback>
+        	</changeSet>
+        	<changeSet author="yu" id="11" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="IRCTProcess"/>
+	        <rollback>
+	        		<sql>alter table `irct`.`IRCTProcess` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
+        <changeSet author="yu" id="12" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addForeignKeyConstraint constraintName="FK_1tqx70p8cfuiymhx354a4krrr" referencedTableName="IRCTProcess" baseColumnNames="IRCTProcess_id" baseTableName="IRCTProcess_Resource" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_i8mexg49fhgxpjj1nmm56li4m" referencedTableName="IRCTProcess" baseColumnNames="PROCESS_VALUE" baseTableName="process_values" referencedColumnNames="id"/>
+        		<rollback>
+	        		<dropForeignKeyConstraint baseTableName="IRCTProcess_Resource" constraintName="FK_1tqx70p8cfuiymhx354a4krrr"/>
+        			<dropForeignKeyConstraint baseTableName="process_values" constraintName="FK_i8mexg49fhgxpjj1nmm56li4m"/>
+        		</rollback>
+        	</changeSet>
+        	
+        	<!-- add auto increment to table Result -->
+        	<changeSet author="yu" id="13" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="Result"/>
+	        <rollback>
+	        		<sql>alter table `irct`.`Result` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
+        
+        <!-- delete seq table resSeq -->
+        	<changeSet author="yu" id="14" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropTable tableName="resSeq"/>
+	        <rollback/>
+        </changeSet>
+        
+        <!-- add auto increment to table User -->
+        <changeSet author="yu" id="15" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropForeignKeyConstraint baseTableName="Result" constraintName="FK_nsj6avfmh039xlgof62dsntsm"/>
+        		<dropForeignKeyConstraint baseTableName="SecureSession" constraintName="FK_dgjur05ifbc49vc9vnnrbn1ps"/>
+        		<rollback>
+        			<addForeignKeyConstraint constraintName="FK_nsj6avfmh039xlgof62dsntsm" referencedTableName="User" baseColumnNames="user_id" baseTableName="Result" referencedColumnNames="id"/>
+        			<addForeignKeyConstraint constraintName="FK_dgjur05ifbc49vc9vnnrbn1ps" referencedTableName="User" baseColumnNames="user_id" baseTableName="SecureSession" referencedColumnNames="id"/>
+        		</rollback>
+        	</changeSet>
+        	<changeSet author="yu" id="16" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="User"/>
+	        <rollback>
+	        		<sql>alter table `irct`.`User` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
+        <changeSet author="yu" id="17" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addForeignKeyConstraint constraintName="FK_nsj6avfmh039xlgof62dsntsm" referencedTableName="User" baseColumnNames="user_id" baseTableName="Result" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_dgjur05ifbc49vc9vnnrbn1ps" referencedTableName="User" baseColumnNames="user_id" baseTableName="SecureSession" referencedColumnNames="id"/>
+        		<rollback>
+	        		<dropForeignKeyConstraint baseTableName="Result" constraintName="FK_nsj6avfmh039xlgof62dsntsm"/>
+        			<dropForeignKeyConstraint baseTableName="SecureSession" constraintName="FK_dgjur05ifbc49vc9vnnrbn1ps"/>
+        		</rollback>
+        	</changeSet>
+        
+        <!-- delete seq table userSeq -->
+        	<changeSet author="yu" id="18" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropTable tableName="userSeq"/>
+	        <rollback/>
+        </changeSet>
+        
+        <!-- add auto increment to table Query -->
+        	<changeSet author="yu" id="19" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<sql>insert into Query (id, name, payload)
+					select id, name, payload
+					from SubQuery
+			</sql>
+	        <rollback/>
+        </changeSet>
+        
+        <!-- alter table SubQuery to match the inheritance strategy: Joined -->
+        	<changeSet author="yu" id="20" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropColumn tableName="SubQuery" columnName="name"/>
+        		<dropColumn tableName="SubQuery" columnName="payload"/>
+	        <rollback/>
+        </changeSet>
+
+		<!-- add foreign key to support Joined inheritance strategy -->
+        	<changeSet author="yu" id="21" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addForeignKeyConstraint constraintName="FK_query_id_subquery_id" referencedTableName="Query" baseColumnNames="id" baseTableName="SubQuery" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_query_id_subquery_parent_id" referencedTableName="Query" baseColumnNames="parent_id" baseTableName="SubQuery" referencedColumnNames="id"/>
+        		<rollback>
+        			<dropForeignKeyConstraint baseTableName="SubQuery" constraintName="FK_query_id_subquery_id"/>
+        			<dropForeignKeyConstraint baseTableName="SubQuery" constraintName="FK_query_id_subquery_parent_id"/>
+        		</rollback>
+        </changeSet>
+        
+        
+        
+        
+        	
+        	
+            
+        
+        
+        
+</databaseChangeLog>

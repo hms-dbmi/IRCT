@@ -27,7 +27,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -63,13 +64,12 @@ public class QueryService implements Serializable {
 	private ResourceController rc;
 
 	@Inject
-	private AdminBean admin;
-
-	@Inject
 	private ExecutionController ec;
 
 	@Inject
 	private HttpSession session;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	// TODO For future generations
 	// qc.createQuery();
@@ -77,46 +77,7 @@ public class QueryService implements Serializable {
 	// qc.loadQuery(queryId);
 
 	/**
-	 * Saves a query
-	 * 
-	 * @param payload
-	 *            JSON
-	 * @return Query Id
-	 */
-	@POST
-	@Path("/saveQuery")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response saveQuery(String payload) {
-		JsonObjectBuilder response = Json.createObjectBuilder();
-
-		JsonReader jsonReader = Json.createReader(new StringReader(payload));
-		JsonObject jsonQuery = jsonReader.readObject();
-		jsonReader.close();
-
-		// Create the query
-		try {
-			convertJsonToQuery(jsonQuery);
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		try {
-			qc.saveQuery();
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
-
-		response.add("queryId", qc.getQuery().getId());
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-	}
-
-	/**
-	 * Runs a query using a JSON representation of the Query
+	 * Runs a query using a JSON representation of the QueryEndpoint
 	 * 
 	 * @param payload
 	 *            JSON
@@ -126,29 +87,65 @@ public class QueryService implements Serializable {
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery(String payload) {
+		logger.debug("POST /runQuery Starting");
+		
 		JsonObjectBuilder response = Json.createObjectBuilder();
-
-		JsonReader jsonReader = Json.createReader(new StringReader(payload));
-		JsonObject jsonQuery = jsonReader.readObject();
-		jsonReader.close();
-		Query query = null;
+		JsonObject jsonQuery = null;
 		try {
-			query = convertJsonToQuery(jsonQuery);
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
+			JsonReader jsonReader = Json.createReader(new StringReader(payload));
+			jsonQuery = jsonReader.readObject();
+			jsonReader.close();
+		} catch (Exception e) {
+			response.add("status", "error");
+			response.add("message", "Error processing JSON."+(e.getMessage()==null?"":e.getMessage()));
 			return Response.status(400).entity(response.build()).build();
 		}
 
 		try {
+			Query query = convertJsonToQuery(jsonQuery);
+			
 			Result r = ec.runQuery(query, (User) session.getAttribute("user"));
-			response.add("resultId", r.getId());
-		} catch (PersistableException e) {
-			response.add("status", "Error running request");
-			response.add("message", "An error occurred running this request");
+			if (r==null){ 
+				logger.error("POST /runQuery `Result` object could not be generated.");
+				response.add("status", "error");
+				response.add("message", "`Result` could not be generated");
+			} else {
+				r.setQuery(query);
+				response.add("resultId", r.getId());
+				// Add a separate section for query
+				response.add("query",
+						Json.createObjectBuilder()
+						.add("id", query.getId())
+						.add("name", query.getName())
+						.build()
+					);
+				
+				// Add a separate section for Result
+				response.add("result",
+						Json.createObjectBuilder()
+						.add("id", r.getId())
+						.add("type", r.getJobType())
+						.add("status", r.getResultStatus().toString())
+						.add("startTime", r.getStartTime().toString())
+						.add("endTime", r.getEndTime().toString())
+						.build()
+					);
+			}
+		} catch (QueryException e) {
+			logger.error("POST /runQuery QueryException:"+e.getMessage());
+			
+			response.add("status", "error");
+			response.add("message", "Invalid query."+e.getMessage());
+			return Response.status(400).entity(response.build()).build();
+		} catch (Exception e) {
+			logger.error("POST /runQuery Exception:"+e.getMessage());
+			
+			response.add("status", "error");
+			response.add("message", (e.getMessage()==null?"Error running query":e.getMessage()));
 			return Response.status(400).entity(response.build()).build();
 		}
-
+		
+		logger.debug("POST /runQuery Finished");
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -164,30 +161,42 @@ public class QueryService implements Serializable {
 	public Response runQuery() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		try {
-			Result r = ec.runQuery(qc.getQuery(),(User) session.getAttribute("user"));
+			Result r = ec.runQuery(qc.getQuery(), (User) session.getAttribute("user"));
 			response.add("resultId", r.getId());
-		} catch (PersistableException e) {
+			response.add("result", Json.createObjectBuilder()
+					.add("jobType", r.getJobType())
+					.add("message", r.getMessage())
+					.add("startTime", r.getStartTime().toString())
+					.add("endTime", r.getEndTime().toString())
+					.build()
+					);
+		} catch (Exception e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
 
 	private Query convertJsonToQuery(JsonObject jsonQuery)
 			throws QueryException {
+		logger.debug("convertJsonToQuery(JsonObject) Starting");
 		// Create the query
 		qc.createQuery();
+		logger.debug("convertJsonToQuery(JsonObject) `Query` object has been created.");
+		
 		return convertJsonToQuery(null, jsonQuery);
 	}
 
 	private Query convertJsonToQuery(SubQuery subQuery, JsonObject jsonQuery)
 			throws QueryException {
-
-		// Convert JSON Selects to Query
+		logger.debug("convertJsonToQuery(SubQuery, JsonObject) Starting ");
+		
+		// Convert JSON Selects to QueryEndpoint
 		if (jsonQuery.containsKey("select")) {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) processing SELECT ");
+			
 			JsonArray selectClauses = jsonQuery.getJsonArray("select");
 			Iterator<JsonValue> selectIterator = selectClauses.iterator();
 			while (selectIterator.hasNext()) {
@@ -196,8 +205,10 @@ public class QueryService implements Serializable {
 			}
 
 		}
-		// Convert JSON Where to Query
+		// Convert JSON Where to QueryEndpoint
 		if (jsonQuery.containsKey("where")) {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) processing WHERE ");
+			
 			JsonArray whereClauses = jsonQuery.getJsonArray("where");
 			Iterator<JsonValue> whereIterator = whereClauses.iterator();
 			while (whereIterator.hasNext()) {
@@ -205,8 +216,10 @@ public class QueryService implements Serializable {
 						(JsonObject) whereIterator.next());
 			}
 		}
-		// Convert JSON Join to Query
+		// Convert JSON Join to QueryEndpoint
 		if (jsonQuery.containsKey("join")) {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) processing JOIN ");
+			
 			JsonArray joinClauses = jsonQuery.getJsonArray("join");
 			Iterator<JsonValue> joinIterator = joinClauses.iterator();
 			while (joinIterator.hasNext()) {
@@ -214,8 +227,10 @@ public class QueryService implements Serializable {
 						(JsonObject) joinIterator.next());
 			}
 		}
-		// Convert JSON Sort to Query
+		// Convert JSON Sort to QueryEndpoint
 		if (jsonQuery.containsKey("sort")) {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) processing SORT ");
+
 			JsonArray sortClauses = jsonQuery.getJsonArray("sort");
 			Iterator<JsonValue> sortIterator = sortClauses.iterator();
 			while (sortIterator.hasNext()) {
@@ -223,8 +238,10 @@ public class QueryService implements Serializable {
 						(JsonObject) sortIterator.next());
 			}
 		}
-		// Convert JSON SubQueries to Query
+		// Convert JSON SubQueries to QueryEndpoint
 		if (jsonQuery.containsKey("subquery")) {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) processing SUBQUERY ");
+			
 			JsonObject subQueryObject = jsonQuery.getJsonObject("subquery");
 			for (String key : subQueryObject.keySet()) {
 				addJsonSubQueryToQuery(subQuery, key, subQueryObject.getJsonObject(key));
@@ -232,8 +249,10 @@ public class QueryService implements Serializable {
 		}
 
 		if (subQuery != null) {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) returning update `subQuery` ");
 			return subQuery;
 		} else {
+			logger.debug("convertJsonToQuery(SubQuery, JsonObject) returning new query ");
 			return qc.getQuery();
 		}
 	}
@@ -254,6 +273,7 @@ public class QueryService implements Serializable {
 			Resource resource, Entity field, String alias,
 			String operationName, Map<String, String> fields,
 			Map<String, Object> objectFields) throws QueryException {
+		logger.debug("validateSelectClause(SubQuery, ...) Starting");
 
 		SelectOperationType operation = null;
 		if (operationName != null) {
@@ -263,13 +283,15 @@ public class QueryService implements Serializable {
 				throw new QueryException("Unknown select operation");
 			}
 		}
-
+		logger.debug("validateSelectClause(SubQuery, ...) returning `QueryController` addSelectClause() call");
 		return qc.addSelectClause(sq, clauseId, resource, field, alias,
 				operation, fields, objectFields);
 	}
 
 	private Long addJsonWhereClauseToQuery(SubQuery sq, JsonObject whereClause)
 			throws QueryException {
+		logger.debug("addJsonWhereClauseToQuery(SubQuery, JsonObject) Starting");
+		
 		String path = null;
 		String dataType = null;
 		if (whereClause.containsKey("field")) {
@@ -285,19 +307,29 @@ public class QueryService implements Serializable {
 			clauseId = whereClause.getJsonNumber("clauseId").longValue();
 		}
 
+		logger.debug("addJsonWhereClauseToQuery(SubQuery, JsonObject) processing entities from clause");
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
+			
+			// TODO This is stupid. We should remove this and test it and forgetaboutit!!!
 			path = "/" + path;
 			path = path.substring(1);
-			resource = rc.getResource(path.split("/")[1]);
+			
+			String newResourceName = path.split("/")[1];
+			logger.debug("addJsonWhereClauseToQuery(SubQuery, JsonObject) check `Resource` named '"+newResourceName+"'");
+			try {
+				resource = rc.getResource(newResourceName);
+			} catch (Exception e) {
+				throw new QueryException("Could not initialize `Resource` from '"+newResourceName+"'");
+			}
 			entity = new Entity(path);
 			if (dataType != null) {
 				entity.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
 		if ((resource == null) || (entity == null)) {
-			throw new QueryException("Invalid Path");
+			throw new QueryException("Invalid Path '"+(path!=null?path:"NULL")+"'");
 		}
 		String predicateName = whereClause.getString("predicate");
 		String logicalOperatorName = null;
@@ -333,6 +365,7 @@ public class QueryService implements Serializable {
 			Resource resource, Entity field, String predicateName,
 			String logicalOperatorName, Map<String, String> fields,
 			Map<String, Object> objectFields) throws QueryException {
+		logger.debug("validateWhereClause(SubQuery, ...) Starting");
 
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
@@ -348,13 +381,15 @@ public class QueryService implements Serializable {
 				throw new QueryException("Unknown logical operator");
 			}
 		}
-
+		logger.debug("validateWhereClause(SubQuery, ...) Adding WHERE clause in `QueryController`");
 		return qc.addWhereClause(sq, clauseId, resource, field, predicateType,
 				logicalOperator, fields, objectFields);
 	}
 
 	private Long addJsonSelectClauseToQuery(SubQuery sq, JsonObject selectClause)
 			throws QueryException {
+		logger.debug("addJsonSelectClauseToQuery(SubQuery, ...) Starting");
+		
 		String path = null;
 		String dataType = null;
 		if (selectClause.containsKey("field")) {
@@ -375,10 +410,12 @@ public class QueryService implements Serializable {
 		if (path != null && !path.isEmpty()) {
 			path = "/" + path;
 			path = path.substring(1);
-			resource = rc.getResource(path.split("/")[1]);
+			String newResourceName = path.split("/")[1];
+			resource = rc.getResource(newResourceName);
 			if (resource == null) {
-				throw new QueryException("Invalid Resource");
+				throw new QueryException("Invalid Resource `"+newResourceName+"`");
 			}
+			logger.debug("addJsonSelectClauseToQuery(SubQuery, ...) resource '"+newResourceName+"' is found.");
 			entity = new Entity(path);
 			if (dataType != null) {
 				entity.setDataType(resource.getDataTypeByName(dataType));
@@ -394,6 +431,7 @@ public class QueryService implements Serializable {
 
 		Map<String, Object> objectFields = new HashMap<String, Object>();
 		Map<String, String> fields = new HashMap<String, String>();
+		
 		if (selectClause.containsKey("operation")) {
 			operationName = selectClause.getString("operation");
 
@@ -431,7 +469,7 @@ public class QueryService implements Serializable {
 		}
 		
 		
-		
+		logger.debug("addJsonSelectClauseToQuery(SubQuery, ...) returning `validateSelectClause`");
 		return validateSelectClause(sq, clauseId, resource, entity, alias,
 				operationName, fields, objectFields);
 	}
@@ -616,6 +654,7 @@ public class QueryService implements Serializable {
 
 	private void addJsonSubQueryToQuery(Query query, String subQueryId, JsonObject subQuery)
 			throws QueryException {
+		logger.debug("addJsonSubQueryToQuery(Query, String, JsonObject) Starting");
 		SubQuery sq = (SubQuery) convertJsonToQuery(qc.createSubQuery(),
 				subQuery);
 		if(query == null) {
@@ -623,5 +662,6 @@ public class QueryService implements Serializable {
 		} else {
 			query.addSubQuery(subQueryId, sq);
 		}
+		logger.debug("addJsonSubQueryToQuery(Query, String, JsonObject) Finished");
 	}
 }

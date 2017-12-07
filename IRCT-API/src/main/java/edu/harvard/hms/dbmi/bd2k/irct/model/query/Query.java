@@ -18,9 +18,11 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
+import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
@@ -29,19 +31,20 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
  * The query class represents any query against any individual or group of
  * resources. A Query can have many subQueries, and clauses (Joins, Selects,
  * Wheres).
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = InheritanceType.JOINED)
 public class Query implements Serializable {
 	private static final long serialVersionUID = -407606258205399129L;
 
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
+
 	private String name;
+
+	@Lob
+	private String payload;
 
 	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
 	private Map<String, SubQuery> subQueries;
@@ -51,7 +54,7 @@ public class Query implements Serializable {
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	private Set<Resource> resources;
-	
+
 	/**
 	 * Creates an empty query
 	 * 
@@ -86,7 +89,10 @@ public class Query implements Serializable {
 	public JsonObject toJson(int depth) {
 		depth--;
 		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
-		// TODO: FILL IN
+
+		jsonBuilder.add("query", Json.createObjectBuilder().add("id", getId()).add("name", getName())
+				.add("payload", getPayload()).build());
+
 		return jsonBuilder.build();
 	}
 
@@ -117,12 +123,9 @@ public class Query implements Serializable {
 					if (!predicateFields.equals("")) {
 						predicateFields += ", ";
 					}
-					predicateFields += predicateField + "="
-							+ wc.getStringValues().get(predicateField);
+					predicateFields += predicateField + "=" + wc.getStringValues().get(predicateField);
 				}
-				where += wc.getField().getPui() + " "
-						+ wc.getPredicateType().getDisplayName() + " "
-						+ predicateFields;
+				where += wc.getField().getPui() + " " + wc.getPredicateType().getDisplayName() + " " + predicateFields;
 			}
 		}
 
@@ -137,12 +140,11 @@ public class Query implements Serializable {
 			select = "*";
 		}
 
-		return "select " + select + " from " + resourceNames + " where "
-				+ where;
+		return "select " + select + " from " + resourceNames + " where " + where;
 	}
 
-	public <T extends ClauseAbstract> List<T> getClausesOfType(
-			Class<T> clauseType) {
+	@SuppressWarnings("unchecked")
+	public <T extends ClauseAbstract> List<T> getClausesOfType(Class<T> clauseType) {
 		List<T> returns = new ArrayList<T>();
 
 		for (ClauseAbstract clause : this.clauses.values()) {
@@ -226,7 +228,7 @@ public class Query implements Serializable {
 	 *            SubQuery ID
 	 */
 	public final void removeSubQuery(Long id) {
-		this.subQueries.remove(id);
+		this.subQueries.remove(Long.toString(id));
 	}
 
 	/**
@@ -330,5 +332,20 @@ public class Query implements Serializable {
 	 */
 	public void setResources(Set<Resource> resources) {
 		this.resources = resources;
+	}
+
+	/**
+	 * @return the payload
+	 */
+	public String getPayload() {
+		return payload;
+	}
+
+	/**
+	 * @param payload
+	 *            the payload to set
+	 */
+	public void setPayload(String payload) {
+		this.payload = payload;
 	}
 }

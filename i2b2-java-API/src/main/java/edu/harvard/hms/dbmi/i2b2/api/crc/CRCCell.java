@@ -1,6 +1,3 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.crc;
 
 import java.io.IOException;
@@ -13,10 +10,10 @@ import java.util.List;
 import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -30,7 +27,9 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.BodyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.EventPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FacilityType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactPrimaryKeyType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FilterListType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetConceptByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetEventByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObservationFactByPrimaryKeyRequestType;
@@ -39,11 +38,14 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPDOFromInputListRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPatientByPrimaryKeyRequestType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.InputOptionListType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ItemType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObserverPrimaryKeyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionListType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionNameType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PanelType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PasswordType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientListType;
@@ -81,9 +83,6 @@ import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 /**
  * The CRC Cell communication class makes requests to the i2b2 CRC Cell via XML
  * and returns a corresponding representation of an object.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class CRCCell extends Cell {
 
@@ -110,7 +109,6 @@ public class CRCCell extends Cell {
 
 	private String token;
 	private long timeout;
-
 	
 	@Override
 	public void setup(String connectionURL, String domain, String userName,
@@ -159,21 +157,19 @@ public class CRCCell extends Cell {
 			ClientProtocolException, I2B2InterfaceException, IOException {
 		logger.debug("getQueryInstanceListFromQueryId() Starting...");
 		
-		logger.debug("getQueryInstanceListFromQueryId() creating ```.psm.RequestMessageType```");
+		logger.debug("getQueryInstanceListFromQueryId() creating `.psm.RequestMessageType`");
 		edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.RequestMessageType rmt = createMinimumPSMBaseMessage(edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PsmRequestTypeType.CRC_QRY_GET_QUERY_INSTANCE_LIST_FROM_QUERY_MASTER_ID, "/request");
 		
-		logger.debug("getQueryInstanceListFromQueryId() creating ```MasterRequestType```");
+		logger.debug("getQueryInstanceListFromQueryId() creating `MasterRequestType`");
 		MasterRequestType mrt = psmOF.createMasterRequestType();
 		mrt.setQueryMasterId(queryMasterId);
 		rmt.getMessageBody().getAny().add(psmOF.createRequest(mrt));
 
 		StringWriter sw = new StringWriter();
 
-
-		logger.debug("getQueryInstanceListFromQueryId() Starting ```psmMarshaller```");
+		logger.debug("getQueryInstanceListFromQueryId() Starting `psmMarshaller`");
 		marshaller(PSM).marshal(psmOF.createHiveRequest(rmt), sw);
-		logger.debug("getQueryInstanceListFromQueryId() finished ```psmMarshaller```");
-
+		logger.debug("getQueryInstanceListFromQueryId() finished `psmMarshaller`");
 		
 		return (InstanceResponseType) getPSMResponseType(runRequest(client,
 				sw.toString(), "/request"));
@@ -615,7 +611,7 @@ public class CRCCell extends Cell {
 	 */
 	public PatientDataResponseType getPDOfromInputList(HttpClient client,
 			String collectionId, int min, int max, boolean onlyKeys,
-			boolean blob, boolean techdata, OutputOptionSelectType select)
+			boolean blob, boolean techdata, OutputOptionSelectType select, List<String> itemTypeList)
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		
@@ -623,11 +619,11 @@ public class CRCCell extends Cell {
 		
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PDO_FROM_INPUT_LIST, "/pdorequest");
 
-		logger.debug("getPDOfromInputList() created ```RequestMessageType```");
+		logger.debug("getPDOfromInputList() created `RequestMessageType`");
 		
 		GetPDOFromInputListRequestType ilrt = pdoOF
 				.createGetPDOFromInputListRequestType();
-		logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
+		logger.debug("getPDOfromInputList() created `GetPDOFromInputListRequestType`");
 
 		InputOptionListType iolt = pdoOF.createInputOptionListType();
 		PatientListType plt = pdoOF.createPatientListType();
@@ -641,9 +637,33 @@ public class CRCCell extends Cell {
 		ilrt.setInputList(iolt);
 		
 		logger.debug("getPDOfromInputList() set PatientList and InputList");
-		ilrt.setFilterList(pdoOF.createFilterListType());
-		logger.debug("getPDOfromInputList() set FilterList");
-
+		FilterListType fltp = pdoOF.createFilterListType();
+		
+		if (itemTypeList.size()>0) {
+			int pnlIdx = 1;
+			for (String itRaw: itemTypeList) {
+				String[] items = itRaw.split("\\|");
+				
+				PanelType pnl = new PanelType();
+				pnl.setName(items[0]);
+				pnl.setPanelAccuracyScale(0);
+				pnl.setPanelNumber(pnlIdx);
+				
+				ItemType it = new ItemType();
+				it.setHlevel(Integer.parseInt(items[1]));
+				it.setItemKey(items[2]);
+				it.setDimTablename("concept_dimension");
+				it.setDimDimcode(items[3]);
+				
+				pnl.getItem().add(it);
+				logger.debug("getPDOfromInputList() Added panel "+pnlIdx+" to filterList");
+				fltp.getPanel().add(pnl);
+				
+				pnlIdx++;
+			}
+		}
+		ilrt.setFilterList(fltp);
+		
 
 		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
 		OutputOptionType oot = pdoOF.createOutputOptionType();
@@ -652,7 +672,14 @@ public class CRCCell extends Cell {
 		oot.setTechdata(techdata);
 		oot.setSelect(select);
 
+		FactOutputOptionType foot = pdoOF.createFactOutputOptionType();
+		foot.setOnlykeys(false);
+		foot.setBlob(false);
+		
 		oolt.setPatientSet(oot);
+		oolt.setObservationSet(foot);
+		oolt.setNames(OutputOptionNameType.ASATTRIBUTES);
+		
 		logger.debug("getPDOfromInputList() create OutputOptionType");
 		ilrt.setOutputOption(oolt);
 		logger.debug("getPDOfromInputList() set OutputOptionType");
@@ -1187,6 +1214,32 @@ public class CRCCell extends Cell {
 
 		rmt.setMessageBody(bt);
 		return rmt;
+	}
+
+	/**
+	 * Runs a query given a query definition that may include many panels
+	 * 
+	 * @param client
+	 *            HTTPClient
+	 * @param payload
+	 *            A preformatted (hopefully) XML string
+	 * @return The response of the server
+	 * @throws JAXBException
+	 *             An Exception Occurred
+	 * @throws ClientProtocolException
+	 *             An Exception Occurred
+	 * @throws I2B2InterfaceException
+	 *             An Exception Occurred
+	 * @throws IOException
+	 *             An Exception Occurred
+	 */
+	public MasterInstanceResultResponseType runQueryInstanceFromXMLString(
+			HttpClient client, String payload) throws ClientProtocolException, I2B2InterfaceException, IOException {
+		return (MasterInstanceResultResponseType) this
+				.getPSMResponseType(runRequest(client, new String(Base64.decodeBase64(payload)),
+						"/request"));
+		
+		
 	}
 
 }

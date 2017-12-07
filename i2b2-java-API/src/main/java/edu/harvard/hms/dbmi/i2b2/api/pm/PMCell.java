@@ -10,10 +10,8 @@ import java.util.Arrays;
 import java.util.GregorianCalendar;
 
 import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 
@@ -21,6 +19,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.i2b2.api.Cell;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
@@ -37,7 +36,6 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.GetUserConfigurationType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.GlobalDataType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.GlobalDatasType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.MessageHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ObjectFactory;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ParamType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ParamsType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.PasswordType;
@@ -57,11 +55,11 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.UsersType;
  * The Project Management Cell communication class makes requests to the i2b2
  * Project Management Cell via XML and returns a corresponding representation of
  * an object
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class PMCell extends Cell {
+	
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	private final String PM = "edu.harvard.hms.dbmi.i2b2.api.pm.xml";
 	
 	private edu.harvard.hms.dbmi.i2b2.api.pm.xml.ObjectFactory pmOF = 
@@ -130,6 +128,8 @@ public class PMCell extends Cell {
 	public void setupConnection(String connectionURL, String domain,
 			String userName, String password, String projectId,
 			boolean useProxy, String proxyURL) {
+		
+		logger.debug("setupConnection() ");
 		// Setup Parameters
 		this.connectionURL = connectionURL;
 		this.domain = domain;

@@ -1,12 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -21,11 +17,14 @@ import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
@@ -44,16 +43,13 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConve
 /**
  * The resource class provides a way for the IRCT application to keep track of
  * which resources are available.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
 public class Resource implements Serializable {
 	private static final long serialVersionUID = 8099637983212553759L;
 	
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 	private String name;
 
@@ -104,6 +100,9 @@ public class Resource implements Serializable {
 	@Transient
 	private boolean setup = false;
 	
+	@Transient
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	/**
 	 * Sets up the Resource and the implementing interface
 	 * @throws ResourceInterfaceException Throws a resource interface
@@ -114,7 +113,7 @@ public class Resource implements Serializable {
 			implementingInterface.setup(this.parameters);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
+			logger.error("setup() Exception:"+e.getMessage());
 			e.printStackTrace();
 		}
 		this.setSetup(isDoneSettingUp);
@@ -258,6 +257,7 @@ public class Resource implements Serializable {
 	 * @return Ontology Relationship
 	 */
 	public OntologyRelationship getRelationshipByName(String relationshipString) {
+		logger.debug("getRelationshipByName("+relationshipString+") Starting");
 		for(OntologyRelationship relationship : this.relationships) {
 			if(relationship.toString().equalsIgnoreCase(relationshipString)) {
 				return relationship;
@@ -320,11 +320,16 @@ public class Resource implements Serializable {
 	 * @return Process Type
 	 */
 	public ProcessType getSupportedProcessesByName(String processName) {
+		logger.info("getSupportedProcessesByName() search for process with name `"+processName+"`");
+		
 		for(ProcessType processType : this.supportedProcesses) {
+			logger.info("getSupportedProcessesByName() is it "+processType.getName());
+			
 			if(processType.getName().equalsIgnoreCase(processName)) {
 				return processType;
 			}
 		}
+		logger.info("getSupportedProcessesByName() could not find `"+processName+"`");
 		return null;
 	}
 	

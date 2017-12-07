@@ -14,6 +14,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.persistence.Convert;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Transient;
 
@@ -22,15 +23,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 /**
  * The Entity class represents a path, and object in a resource. Entities can be linked to other
  * paths through ontology relationships.
- * 
- * @author Jeremy R. Easton-Marks
  */
 @javax.persistence.Entity
 public class Entity {
 	
-	
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	
 	private String pui;
@@ -42,13 +40,15 @@ public class Entity {
 
 	@Convert(converter = DataTypeConverter.class)
 	private DataType dataType;
+	
 	@Transient
 	private List<OntologyRelationship> relationships;
+	
 	@Transient
 	private Map<String, Integer> counts;
+	
 	@Transient
 	private Map<String, String> attributes;
-
 	
 	/**
 	 * Creates an empty Entity with no PUI
@@ -63,6 +63,7 @@ public class Entity {
 	 * @param pui Path Unique Identifier
 	 */
 	public Entity(String pui) {
+		
 		this.pui = pui;
 		this.name = "";
 		this.displayName = "";
@@ -73,6 +74,7 @@ public class Entity {
 		this.relationships = new ArrayList<OntologyRelationship>();
 		this.counts = new HashMap<String, Integer>();
 		this.attributes = new HashMap<String, String>();
+		
 	}
 
 	/**

@@ -13,8 +13,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -36,6 +34,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -65,12 +64,13 @@ public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String transmartURL;
 
-	final static Logger logger = Logger.getGlobal();
+	final Logger logger = Logger.getLogger(this.getClass());
+
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
 
-		logger.log(java.util.logging.Level.INFO, "setup() start");
+		logger.info("setup() start");
 
 		if (!parameters.keySet().contains("resourceName")) {
 			throw new ResourceInterfaceException("Missing `resourceName` parameter.");
@@ -84,10 +84,10 @@ public class I2B2TranSMARTResourceImplementation extends
 		if (!parameters.keySet().contains("domain")) {
 			throw new ResourceInterfaceException("Missing `domain` parameter.");
 		}
-		logger.log(Level.FINE, "setup() All mandatory parameters are there.");
+		logger.debug("setup() All mandatory parameters are there.");
 
 		this.transmartURL = parameters.get("transmartURL");
-		logger.log(Level.FINE, "setup() `transmartURL` is now set to:"+this.transmartURL);
+		logger.debug("setup() `transmartURL` is now set to:"+this.transmartURL);
 
 		super.setup(parameters);
 	}
@@ -96,9 +96,10 @@ public class I2B2TranSMARTResourceImplementation extends
 	public List<Entity> getPathRelationship(Entity path,
 			OntologyRelationship relationship, User user)
 			throws ResourceInterfaceException {
+		logger.debug("getPathRelationship() Starting");
+		
 		List<Entity> returns = super.getPathRelationship(path, relationship, user);
-
-		java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ");
+		
 		// Get the counts from the tranSMART server
 		try {
 			HttpClient client = createClient(user);
@@ -114,7 +115,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				basePath = pathComponents[0] + "/" + pathComponents[1] + "/"
 						+ pathComponents[2];
 
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() URL:"+this.transmartURL
+				logger.debug("getPathRelationship() URL:"+this.transmartURL
 				+ "/chart/childConceptPatientCounts");
 				HttpPost post = new HttpPost(this.transmartURL
 						+ "/chart/childConceptPatientCounts");
@@ -126,14 +127,14 @@ public class I2B2TranSMARTResourceImplementation extends
 				formParameters.add(new BasicNameValuePair("concept_level", ""));
 
 				post.setEntity(new UrlEncodedFormEntity(formParameters));
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() making call over HTTP");
+				logger.debug("getPathRelationship() making call over HTTP");
 				HttpResponse response = client.execute(post);
 
 				JsonReader jsonReader = Json.createReader(response.getEntity()
 						.getContent());
 				JsonObject responseContent = jsonReader.readObject();
 
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ResponseEntity:"
+				logger.debug("getPathRelationship() ResponseEntity:"
 						+responseContent.toString());
 
 				JsonObject counts = responseContent.getJsonObject("counts");
@@ -149,16 +150,17 @@ public class I2B2TranSMARTResourceImplementation extends
 				}
 			}
 		} catch (Exception e) {
-			java.util.logging.Logger.getGlobal().log(java.util.logging.Level.SEVERE, "getPathRelationship() Exception "+e.getMessage());
-			e.printStackTrace();
+			logger.error("getPathRelationship() Exception "+e.getMessage());
+			throw new RuntimeException(e);
 		}
-
+		logger.debug("getPathRelationship() Finished");
 		return returns;
 	}
 
 	@Override
 	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
+		logger.debug("runQuery() Starting");
 		
 		result = super.runQuery(user, query, result);
 
@@ -262,6 +264,8 @@ public class I2B2TranSMARTResourceImplementation extends
 			Map<String, String> aliasMap, String resultId)
 			throws ResultSetException, ClientProtocolException, IOException,
 			PersistableException, JsonException {
+		logger.debug("runClinicalDataQuery() Starting");
+		
 		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
@@ -271,11 +275,15 @@ public class I2B2TranSMARTResourceImplementation extends
 		// Get additional fields to grab from alias
 		List<String> additionalFields = new ArrayList<String>();
 		for (String key : aliasMap.keySet()) {
+			logger.debug("runClinicalDataQuery() additional field:"+key);
+			
 			if (!key.startsWith("\\")) {
 				additionalFields.add(key);
 			}
 		}
-
+		
+		
+		logger.debug("runClinicalDataQuery() pivot is set to PATIENT_NUM");
 		String pivot = "PATIENT_NUM";
 
 		// Setup initial fields
@@ -306,16 +314,19 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		for (String parameter : parameterList) {
 			// Call the tranSMART API to get the dataset
+			logger.debug("runClinicalDataQuery() Call the tranSMART API to get the dataset with "+parameter);
+			
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
 					+ resultId
+					+ "&gatherAllEncounterFacts=true"
 					+ "&conceptPaths="
 					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
 							"UTF-8");
 
 			HttpClient client = createClient(user);
 			HttpGet get = new HttpGet(url);
-			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
+			logger.debug("runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
 			JsonParser parser = Json.createParser(response.getEntity()
@@ -325,7 +336,10 @@ public class I2B2TranSMARTResourceImplementation extends
 					additionalFields);
 
 		}
+		logger.debug("runClinicalDataQuery() setData() called");
 		result.setData(rs);
+		
+		logger.debug("runClinicalDataQuery() Finished");
 		return result;
 	}
 
@@ -392,6 +406,12 @@ public class I2B2TranSMARTResourceImplementation extends
 
 			rs.appendColumn(newColumn);
 		}
+		// Adding mapped PATIENT_IDE
+		Column newColumn2 = new Column();
+		newColumn2.setName("PATIENT_IDE");
+		newColumn2.setDataType(PrimitiveDataType.STRING);
+		rs.appendColumn(newColumn2);
+		logger.debug("createInitialDataset() adding new column:"+newColumn2.getName());
 
 		result.setData(rs);
 		return rs;
@@ -515,9 +535,11 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 
 		} catch (URISyntaxException | JsonException | IOException e) {
-			logger.log(Level.SEVERE, "searchObservationOnly() Exception: "+e.getMessage());
+			logger.error("searchObservationOnly() Exception: "+e.getMessage());
+		} catch (Exception e) {
+			logger.error("searchObservationOnly() OtherException: "+e.getMessage());
+			throw new RuntimeException(e);
 		}
-
 		return entities;
 	}
 
@@ -532,7 +554,7 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		return singleReturnMyPath;
 	}
-	
+
 	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
 		// TODO This should be enhanced, so that the user's Resource specific token gets retrieved!!!
 		String token = user.getToken();

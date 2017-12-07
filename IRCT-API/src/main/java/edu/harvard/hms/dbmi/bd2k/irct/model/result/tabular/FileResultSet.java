@@ -30,18 +30,16 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.RowSetExeception;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
 
 /**
  * An implementation of a Result Set that is persistable to the file system
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 public class FileResultSet extends ResultSetImpl implements Persistable {
 	private long size;
@@ -63,6 +61,8 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	private Map<Long, Row> pendingData;
 	private int MAXPENDING = 100000;
 
+	private Logger logger = Logger.getLogger(this.getClass());
+
 	public FileResultSet() {
 		this.pendingData = new HashMap<Long, Row>();
 	}
@@ -72,7 +72,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 		// TODO Auto-generated method stub
 		return false;
 	}
-	
+
 	@Override
 	public void close() throws ResultSetException {
 		try {
@@ -111,7 +111,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 				Files.createFile(dataFile);
 				dataReadFC = FileChannel
 						.open(dataFile, StandardOpenOption.READ);
-				
+
 			}
 		} catch (IOException e) {
 			if (dataReadFC != null) {
@@ -130,7 +130,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	/**
 	 * Adds a new row to the file result set
-	 * 
+	 *
 	 * @throws ResultSetException
 	 *             If a ResultSetException occurs
 	 * @throws PersistableException
@@ -157,7 +157,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	/**
 	 * Sets the number of rows in the result set
-	 * 
+	 *
 	 * @param size
 	 *            Number of rows
 	 */
@@ -415,7 +415,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	/**
 	 * Sets the value of a cell at the given column at the current position
-	 * 
+	 *
 	 * @param columnIndex
 	 *            Column Index
 	 * @param value
@@ -426,7 +426,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	private void setCell(int columnIndex, Object value)
 			throws ResultSetException {
 		if (columnIndex >= getColumnSize()) {
-			throw new ResultSetException("Column not found");
+			throw new ResultSetException("Column not found. Trying to set column #"+columnIndex+" but there are only "+getColumnSize()+" column(s)");
 		}
 		this.currentRow.setColumn(columnIndex, value);
 		this.pendingData.put(this.getRowPosition(), this.currentRow);
@@ -435,7 +435,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 	/**
 	 * Returns a cell from the given column at the current position
-	 * 
+	 *
 	 * @param columnIndex
 	 *            Column Index
 	 * @return Value
@@ -444,7 +444,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	 */
 	private Object getCell(int columnIndex) throws ResultSetException {
 		if (columnIndex >= getColumnSize()) {
-			throw new ResultSetException("Column not found");
+			throw new ResultSetException("Column not found. Trying to set column #"+columnIndex+" but there are only "+getColumnSize()+" column(s)");
 		}
 		return this.currentRow.getColumn(columnIndex);
 	}
@@ -633,7 +633,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 		// Loop through columns and write the serialized data to file with
 		// delimiter between.
 		for (int columnIndex = 0; columnIndex < this.getColumnSize(); columnIndex++) {
-			
+
 			byte[] outBytes = this.getColumn(columnIndex).getDataType()
 					.toBytes(row.getColumn(columnIndex));
 
@@ -647,7 +647,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 
 		}
 	}
-	
+
 	@Override
 	public List<File> getFileList() {
 		List<File> files = new ArrayList<File>();
@@ -889,7 +889,7 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 			throws ResultSetException {
 		setCell(columnIndex, obj);
 	}
-	
+
 	@Override
 	public Row getCurrentRow() throws ResultSetException {
 		return currentRow;
@@ -902,9 +902,9 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
 	 * attributes associated with this object and not their representation.
-	 * 
+	 *
 	 * This is equivalent of toJson(1);
-	 * 
+	 *
 	 * @return JSON Representation
 	 */
 	public JsonObject toJson() {
@@ -914,8 +914,8 @@ public class FileResultSet extends ResultSetImpl implements Persistable {
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
 	 * attributes associated with this object and not their representation.
-	 * 
-	 * 
+	 *
+	 *
 	 * @param depth
 	 *            Depth to travel
 	 * @return JSON Representation

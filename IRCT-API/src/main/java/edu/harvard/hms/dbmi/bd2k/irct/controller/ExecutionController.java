@@ -5,7 +5,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
-import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
@@ -17,6 +16,8 @@ import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.UserTransaction;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.action.JoinAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.ProcessAction;
@@ -40,9 +41,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 @Stateless
 public class ExecutionController {
 
-	@Inject
-	Logger log;
-
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 
@@ -51,6 +49,8 @@ public class ExecutionController {
 
 	@Inject
 	private ResourceController rc;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Runs the process
@@ -64,10 +64,10 @@ public class ExecutionController {
 	 */
 	public Long runProcess(IRCTProcess process, User user)
 			throws PersistableException {
+		
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
 		newResult.setUser(user);
-
 		newResult.setResultStatus(ResultStatus.RUNNING);
 		entityManager.persist(newResult);
 
@@ -95,33 +95,52 @@ public class ExecutionController {
 	 * @throws PersistableException
 	 *             An error occurred
 	 */
-	public Result runQuery(Query query, User user)
+	public Result runQuery(edu.harvard.hms.dbmi.bd2k.irct.model.query.Query query, User user)
 			throws PersistableException {
+		logger.debug("runQuery() Starting");
 
 		Result newResult = new Result();
-		newResult.setJobType("EXECUTION");
+		try {
+			newResult.setResultStatus(ResultStatus.CREATED);
+			newResult.setMessage("initialized");
 
-		// Add the current user to the query.
-		newResult.setUser(user);
+			newResult.setJobType("EXECUTION");
+			logger.debug("runQuery() set jobType to `EXECUTION` on new `Result`");
 
-		newResult.setResultStatus(ResultStatus.RUNNING);
-		entityManager.persist(newResult);
+			newResult.setUser(user);
+			logger.debug("runQuery() added current user to new `Result`");
 
-		QueryAction qa = new QueryAction();
-		edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
-		if(!resource.isSetup()) {
-			resource = rc.getResource(resource.getName());
+			newResult.setResultStatus(ResultStatus.RUNNING);
+			entityManager.persist(newResult);
+			logger.debug("runQuery() set status to RUNNING on new `Result` and saved to database");
+
+			QueryAction qa = new QueryAction();
+
+			edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
+			logger.debug("runQuery() created/initialized `Resource` for `Query`");
+			if(!resource.isSetup()) {
+				resource = rc.getResource(resource.getName());
+			}
+			qa.setup(resource, query);
+			logger.debug("runQuery() call `setup` on `QueryAction`");
+
+			ExecutableLeafNode eln = new ExecutableLeafNode();
+			eln.setAction(qa);
+			logger.debug("runQuery() set `QueryAction` of `ExecutableLeafNode`");
+
+			ExecutionPlan exp = new ExecutionPlan();
+			logger.debug("runQuery() Setting up `ExecutionPlan`");
+			exp.setup(eln, user);
+			
+			logger.debug("runQuery() calling `runExecutionPlan` local method");
+			runExecutionPlan(exp, newResult);
+			
+		} catch (Exception e) {
+			logger.error("ExecutionController.runQuery() Exception:"+(e.getMessage()==null?e.toString():e.getMessage()));
+			newResult.setResultStatus(ResultStatus.ERROR);
+			newResult.setMessage((e.getMessage()==null?e.toString():e.getMessage()));
 		}
-		qa.setup(resource, query);
-
-		ExecutableLeafNode eln = new ExecutableLeafNode();
-		eln.setAction(qa);
-
-		ExecutionPlan exp = new ExecutionPlan();
-		exp.setup(eln, user);
-
-		runExecutionPlan(exp, newResult);
-
+		logger.debug("runQuery() Finished");
 		return newResult;
 	}
 
@@ -196,19 +215,17 @@ public class ExecutionController {
 						result.setResultStatus(ResultStatus.ERROR);
 						result.setMessage(finalResult.getMessage());
 					}
-
 					result.setEndTime(new Date());
+					
 					UserTransaction userTransaction = lookup();
 					userTransaction.begin();
 					entityManager.merge(result);
 					userTransaction.commit();
-				} catch (PersistableException e) {
+
+				} catch (Exception e) {
+					logger.error("call() Exception:"+e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
 					result.setMessage(e.getMessage());
-				} catch (Exception e) {
-					e.printStackTrace();
-					log.info(e.getMessage());
-					result.setResultStatus(ResultStatus.ERROR);
 				} finally {
 
 				}
