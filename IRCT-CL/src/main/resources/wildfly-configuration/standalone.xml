@@ -155,8 +155,8 @@
 					</connection-url>
 					<driver>mysql</driver>
 					<security>
-						<user-name>root</user-name>
-						<password>root</password>
+						<user-name>irct</user-name>
+						<password>A VALID PASSWORD FOR YOUR LOCAL MYSQL USER IRCT</password>
 					</security>
 					<pool>
 						<min-pool-size>5</min-pool-size>
@@ -358,8 +358,8 @@
 				<simple name="java:global/userField" value="email" />
 				<simple name="java:global/resultDataFolder"
 					value="scratch/irct" />
-				<simple name="java:global/client_secret" value=" " />
-				<simple name="java:global/client_id" value=" " />
+				<simple name="java:global/client_secret" value="<Client Secret for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
+				<simple name="java:global/client_id" value="<Client ID for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
 				<simple name="java:global/KeyTimeOutInMinutes" value="720" />
 			</bindings>
 			<remote-naming />

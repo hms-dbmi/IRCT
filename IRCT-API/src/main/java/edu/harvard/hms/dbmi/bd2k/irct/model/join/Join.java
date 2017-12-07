@@ -7,35 +7,25 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.persistence.CollectionTable;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.MapKeyColumn;
 import javax.persistence.Transient;
 
-@Entity
+//@Entity
 public class Join implements Serializable {
 
 	private static final long serialVersionUID = 4869490865776072674L;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+//	@Id
+//	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	private JoinImplementation joinImplementation;
 	
 	private IRCTJoin joinType;
 
-	@ElementCollection(fetch = FetchType.EAGER)
-	@MapKeyColumn(name = "name")
-	@Column(name = "value")
-	@CollectionTable(name = "where_values", joinColumns = @JoinColumn(name = "where_id"))
+//	@ElementCollection(fetch = FetchType.EAGER)
+//	@MapKeyColumn(name = "name")
+//	@Column(name = "value")
+//	@CollectionTable(name = "where_values", joinColumns = @JoinColumn(name = "where_id"))
 	private Map<String, String> stringValues;
 
 	@Transient

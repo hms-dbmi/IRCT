@@ -38,7 +38,7 @@ public class Query implements Serializable {
 	private static final long serialVersionUID = -407606258205399129L;
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
 
 	private String name;
