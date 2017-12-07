@@ -4,6 +4,10 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
@@ -14,6 +18,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -28,6 +34,8 @@ public class SystemService {
 
 	@Inject
 	private HttpSession session;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Returns a JSON Array of supported Data Types by the IRCT core.
@@ -76,6 +84,23 @@ public class SystemService {
 			IRCTApplication app = new IRCTApplication();
 			if (app!=null){
 				build.add(Json.createObjectBuilder().add("version", app.getVersion()));
+			}
+
+			Properties prop = new Properties();
+			InputStream in = null;
+			try {
+				in = getClass().getResourceAsStream("jenkins_build.properties");
+				prop.load(in);
+				in.close();
+				
+				for(Object propName: prop.keySet()) {
+					String pn = (String) propName;
+					logger.info("/about property:"+pn);
+				}
+			} catch ( IOException e ) {
+			    logger.error( e.getMessage(), e );
+			} finally {
+			    in.close();
 			}
 
 			// Add user details
