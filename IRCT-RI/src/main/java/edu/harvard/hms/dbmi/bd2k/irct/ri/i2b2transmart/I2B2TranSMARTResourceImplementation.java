@@ -262,6 +262,9 @@ public class I2B2TranSMARTResourceImplementation extends
 			Map<String, String> aliasMap, String resultId)
 			throws ResultSetException, ClientProtocolException, IOException,
 			PersistableException, JsonException {
+		
+		logger.debug("runClinicalDataQuery() starting");
+				
 		// Setup Resultset
 		ResultSet rs = (ResultSet) result.getData();
 		if (rs.getSize() == 0) {
@@ -283,8 +286,6 @@ public class I2B2TranSMARTResourceImplementation extends
 
 		// Loop through the columns submitting and appending to the
 		// rows every 10
-
-
 		List<String> parameterList = new ArrayList<String>();
 		int counter = 0;
 		String parameters = "";
@@ -303,8 +304,9 @@ public class I2B2TranSMARTResourceImplementation extends
 		if (!parameters.equals("")) {
 			parameterList.add(parameters);
 		}
+		logger.debug("runClinicalDataQuery() starting");
 
-		for (String parameter : parameterList) {
+		for (String parameter : parameterList.split("\\|") ) {
 			// Call the tranSMART API to get the dataset
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
@@ -319,11 +321,18 @@ public class I2B2TranSMARTResourceImplementation extends
 			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
-			JsonParser parser = Json.createParser(response.getEntity()
-					.getContent());
+			// Parse the response from i2b2/tranSMART
+			try {
+				JsonParser parser = Json.createParser(response.getEntity()
+						.getContent());
 
-			convertJsonStreamToResultSet(rs, parser, aliasMap, pivot, entryMap,
-					additionalFields);
+				convertJsonStreamToResultSet(rs, parser, aliasMap, pivot, entryMap,
+						additionalFields);
+			} catch (Exception e) {
+				logger.error("runClinicalDataQuery() Exception parsing i2b2/tranSMART response: "+e.getMessage());
+				result.setStatus(ResultStatus.ERROR);
+				result.setMessage(e.getMessage());
+			}
 
 		}
 		result.setData(rs);
