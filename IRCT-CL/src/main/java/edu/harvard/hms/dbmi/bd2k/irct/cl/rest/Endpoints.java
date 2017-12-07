@@ -1,16 +1,26 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
 import javax.json.JsonStructure;
+import javax.json.JsonValue;
+import javax.json.JsonValue.ValueType;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
+import javax.ws.rs.HEAD;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -20,13 +30,24 @@ import javax.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.services.waf.model.PredicateType;
 import com.auth0.jwt.interfaces.Claim;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SubQuery;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
@@ -46,6 +67,12 @@ public class Endpoints {
 
 	@Inject
 	private QueryController queryService;
+	
+	@Inject
+	private ResourceController rc;
+
+	@Inject
+	private ExecutionController ec;
 
 	@Inject
 	private ExecutionController executionService;
@@ -128,10 +155,11 @@ public class Endpoints {
 	 * @return ResultRecord, a JSON structure, representing the current
 	 *         status of the running or completed query.
 	 */
+	@Deprecated
 	@POST
 	@Path("/run")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response runQuery(String payload) {
+	public Response processQuery(String payload) {
 		logger.debug("POST /runQuery Starting");
 
 		JsonObjectBuilder response = Json.createObjectBuilder();
@@ -295,12 +323,12 @@ public class Endpoints {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response runQuery() {
 		JsonObjectBuilder resp = Json.createObjectBuilder();
-		List<String> messages = new List<String>;
+		ArrayList<String> messages = new ArrayList<String>();
 
 		try {
-			response.add("status", "ok");
+			resp.add("status", "ok");
 
-			List<Query> queryList = qc.getAllQueries();
+			List<Query> queryList = queryService.listQueries();
 			if (queryList.size() == 0) {
 				response.add("message", "There are no queries to list.");
 			} else {

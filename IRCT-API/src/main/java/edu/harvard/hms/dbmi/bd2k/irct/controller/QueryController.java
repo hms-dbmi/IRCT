@@ -488,7 +488,7 @@ public class QueryController {
 	}
 
 	/**
-	 * Load the query
+	 * Load a particular query, by its id.
 	 * 
 	 * @param queryId
 	 *            Query to load
@@ -504,6 +504,28 @@ public class QueryController {
 			throw new QueryException("Could not find query with id `" + queryId + "`");
 		}
 	}
+	
+	/**
+	 * List all available query objects.
+	 * 
+	 * @return List of JSON representation of all the available Query objects.
+	 */
+	public List<Query> listQueries() {
+		logger.error("listQueries() Starting.");
+		List<Query> queryList = null;
+		
+		try {
+			this.query = entityManager.find(Query.class, 1);
+			if (this.query == null) {
+				throw new QueryException("Could not find query by id.");
+			}
+		} catch (Exception e) {
+			logger.error("listQueries() Exception:"+e.getMessage());
+		}
+		logger.error("listQueries() Finished.");
+		return listOfQueries;
+	}
+
 
 	/**
 	 * Returns the given query
