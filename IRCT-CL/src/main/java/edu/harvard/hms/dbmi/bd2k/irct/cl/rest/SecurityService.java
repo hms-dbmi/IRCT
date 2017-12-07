@@ -142,6 +142,7 @@ public class SecurityService implements Serializable {
 		
 		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
+			session.setAttribute("user", sc.validateKey(key));
 			build.add("status", "success");
 			build.add("message", warning);
 		} catch (Exception e) {
