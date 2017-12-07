@@ -13,8 +13,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -36,6 +34,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -65,12 +65,13 @@ public class I2B2TranSMARTResourceImplementation extends
 		I2B2XMLResourceImplementation {
 	private String transmartURL;
 
-	final static Logger logger = Logger.getGlobal();
+	private Logger logger = Logger.getLogger(this.getClass());
+	
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException {
 
-		logger.log(java.util.logging.Level.INFO, "setup() start");
+		logger.debug("setup() start");
 
 		if (!parameters.keySet().contains("resourceName")) {
 			throw new ResourceInterfaceException("Missing `resourceName` parameter.");
@@ -84,10 +85,10 @@ public class I2B2TranSMARTResourceImplementation extends
 		if (!parameters.keySet().contains("domain")) {
 			throw new ResourceInterfaceException("Missing `domain` parameter.");
 		}
-		logger.log(Level.FINE, "setup() All mandatory parameters are there.");
+		logger.debug("setup() All mandatory parameters are there.");
 
 		this.transmartURL = parameters.get("transmartURL");
-		logger.log(Level.FINE, "setup() `transmartURL` is now set to:"+this.transmartURL);
+		logger.debug("setup() `transmartURL` is now set to:"+this.transmartURL);
 
 		super.setup(parameters);
 	}
@@ -287,9 +288,16 @@ public class I2B2TranSMARTResourceImplementation extends
 		// Loop through the columns submitting and appending to the
 		// rows every 10
 		List<String> parameterList = new ArrayList<String>();
+		
+		// The list of all the concepts that we need to query individually from tranSMART
+		List<String> conceptList = new ArrayList<String>();
+		
 		int counter = 0;
 		String parameters = "";
 		for (String param : aliasMap.keySet()) {
+			logger.debug("runClinicalDataQuery() alias:"+param+" as concept:"+aliasMap.get(param));
+			conceptList.add((String) aliasMap.get(param));
+			
 			if (counter >= 10) {
 				parameterList.add(parameters);
 				counter = 0;
@@ -306,19 +314,19 @@ public class I2B2TranSMARTResourceImplementation extends
 		}
 		logger.debug("runClinicalDataQuery() starting");
 
-		for (String parameter : parameterList.split("\\|") ) {
+		for (String conceptPath : conceptList) {
 			// Call the tranSMART API to get the dataset
 			String url = this.transmartURL
 					+ "/ClinicalData/retrieveClinicalData?rid="
 					+ resultId
 					+ "&gatherAllEncounterFacts=false"
 					+ "&conceptPaths="
-					+ URLEncoder.encode(URLDecoder.decode(parameter, "UTF-8"),
+					+ URLEncoder.encode(URLDecoder.decode(conceptPath, "UTF-8"),
 							"UTF-8");
 
 			HttpClient client = createClient(user);
 			HttpGet get = new HttpGet(url);
-			logger.log(Level.FINE, "runClinicalDataQuery() url:"+url);
+			logger.debug("runClinicalDataQuery() url:"+url);
 			HttpResponse response = client.execute(get);
 
 			// Parse the response from i2b2/tranSMART
@@ -330,12 +338,14 @@ public class I2B2TranSMARTResourceImplementation extends
 						additionalFields);
 			} catch (Exception e) {
 				logger.error("runClinicalDataQuery() Exception parsing i2b2/tranSMART response: "+e.getMessage());
-				result.setStatus(ResultStatus.ERROR);
+				result.setResultStatus(ResultStatus.ERROR);
 				result.setMessage(e.getMessage());
 			}
 
 		}
+		logger.debug("runClinicalDataQuery() Finished retrieving from source. Setting `data` field of `result` object.");
 		result.setData(rs);
+		logger.debug("runClinicalDataQuery() Finished");
 		return result;
 	}
 
@@ -497,7 +507,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			URI uri = new URI(this.transmartURL.split("://")[0],
 					this.transmartURL.split("://")[1].split("/")[0], "/"
 							+ this.transmartURL.split("://")[1].split("/")[1]
-							+ "/textSearch/findPaths", "oblyObs=" + onlObs
+							+ "/textSearch/findPaths", "onlyObs=" + onlObs
 							+ "&term=" + searchTerm, null);
 
 			HttpClient client = createClient(user);
@@ -525,7 +535,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 
 		} catch (URISyntaxException | JsonException | IOException e) {
-			logger.log(Level.SEVERE, "searchObservationOnly() Exception: "+e.getMessage());
+			logger.error("searchObservationOnly() Exception: "+e.getMessage());
 		}
 
 		return entities;
