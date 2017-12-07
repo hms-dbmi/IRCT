@@ -295,8 +295,8 @@ public class I2B2TranSMARTResourceImplementation extends
 		int counter = 0;
 		String parameters = "";
 		for (String param : aliasMap.keySet()) {
-			logger.debug("runClinicalDataQuery() alias:"+param+" as concept:"+aliasMap.get(param));
-			conceptList.add((String) aliasMap.get(param));
+			logger.debug("runClinicalDataQuery() alias:"+aliasMap.get(param)+" as concept:"+param);
+			conceptList.add(param);
 			
 			if (counter >= 10) {
 				parameterList.add(parameters);
