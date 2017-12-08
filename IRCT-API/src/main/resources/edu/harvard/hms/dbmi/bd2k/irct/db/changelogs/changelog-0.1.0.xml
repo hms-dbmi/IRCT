@@ -202,7 +202,24 @@
         		</rollback>
         </changeSet>
         
+        <!-- add auto increment to table Token -->
+        	<changeSet author="yu" id="22" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<addAutoIncrement
+	            columnDataType="BIGINT(20)"
+	            columnName="id"
+	            incrementBy="1"
+	            schemaName="irct"
+	            tableName="Token"/>
+	        <rollback>
+	        		<sql>alter table `irct`.`Token` change column `id` `id` BIGINT(20) not null</sql>
+	        </rollback>
+        </changeSet>
         
+        <!-- delete seq table tokenSeq -->
+        	<changeSet author="yu" id="23" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
+        		<dropTable tableName="tokenSeq"/>
+	        <rollback/>
+        </changeSet>
         
         
         	

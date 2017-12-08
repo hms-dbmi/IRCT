@@ -195,7 +195,7 @@ public class IRCTApplication {
 		CriteriaQuery<Resource> criteria = cb.createQuery(Resource.class);
 		Root<Resource> load = criteria.from(Resource.class);
 		criteria.select(load);
-//		criteria.where(cb.equal(load.get("ontologyType"),"TREE"));
+		criteria.where(cb.equal(load.get("ontologyType"),"TREE"));
 
 		for (Resource resource : oem.createQuery(criteria).getResultList()) {
 			try {
