@@ -34,7 +34,7 @@ public class SystemService {
 
 	@Inject
 	private HttpSession session;
-	
+
 	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
@@ -89,10 +89,10 @@ public class SystemService {
 			Properties prop = new Properties();
 			InputStream in = null;
 			try {
-				in = getClass().getResourceAsStream("jenkins_build.properties");
+				in = getClass().getResourceAsStream("build.properties");
 				prop.load(in);
 				in.close();
-				
+
 				for(Object propName: prop.keySet()) {
 					String pn = (String) propName;
 					logger.info("/about property:"+pn);
