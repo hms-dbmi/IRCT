@@ -57,7 +57,7 @@ public class IRCTApplication {
 	private String resultDataFolder = null;
 	
 	@javax.annotation.Resource(mappedName = "java:global/whitelist_config_file")
-	private String whitelistLocaion;
+	private String whitelistLocation;
 	
 	// key is the name string, value is a JsonArray for resources
 	private Map<String, JsonArray> whitelist;
@@ -390,7 +390,7 @@ public class IRCTApplication {
 	 */
 	private void loadWhiteLists() {
 		
-		if (whitelistLocaion.equals(Utilities.Naming.Whitelist.WHITELIST_FALSE)) {
+		if (whitelistLocation.equals("false")){
 			log.info("Whitelist functionality is not enabled");
 			whitelistEnabled = false;
 			return;
@@ -400,18 +400,18 @@ public class IRCTApplication {
 		}
 		
 		try (JsonReader reader = Json.createReader(
-				new FileInputStream(whitelistLocaion))) {
-			log.info("starting to read whitelist file in: " + whitelistLocaion);
+				new FileInputStream(whitelistLocation))) {
+			log.info("starting to read whitelist file in: " + whitelistLocation);
 			JsonArray jsonArray = reader.readArray();
 			for (JsonValue value : jsonArray) {
 				JsonObject valueObject = ((JsonObject)value);
 				JsonArray resources = Json.createArrayBuilder().build();
-				if (valueObject.containsKey(Utilities.Naming.Whitelist.WHITELIST_JSON_RESOURCES))
-					resources = valueObject.getJsonArray(Utilities.Naming.Whitelist.WHITELIST_JSON_RESOURCES);
+				if (valueObject.containsKey(Utilities.Naming.Whitelist.JSON_RESOURCES))
+					resources = valueObject.getJsonArray(Utilities.Naming.Whitelist.JSON_RESOURCES);
 				
-				if (valueObject.containsKey(Utilities.Naming.Whitelist.WHITELIST_JSON_NAME)) {
+				if (valueObject.containsKey(Utilities.Naming.Whitelist.JSON_NAME)) {
 					try {
-						String name = valueObject.getString(Utilities.Naming.Whitelist.WHITELIST_JSON_NAME);
+						String name = valueObject.getString(Utilities.Naming.Whitelist.JSON_NAME);
 						whitelist.put(name, resources);
 						// change to Log4j
 						// then change to debug
@@ -426,7 +426,7 @@ public class IRCTApplication {
 		
 		} catch (FileNotFoundException ex) {
 			log.info("Cannot find the whitelist file, please check your configuration file. "
-					+ "Your file location: " + whitelistLocaion);
+					+ "Your file location: " + whitelistLocation);
 		} catch (ClassCastException cce ) {
 			// change this to Log4J would be great
 			// I think another ticket is changing this to Log4j

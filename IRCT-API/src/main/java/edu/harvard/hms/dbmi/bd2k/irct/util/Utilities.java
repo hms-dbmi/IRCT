@@ -10,9 +10,8 @@ public class Utilities {
 	public static class Naming {
 		
 		public static class Whitelist{
-			public static String WHITELIST_FALSE = "false";
-			public static String WHITELIST_JSON_NAME = "name";
-			public static String WHITELIST_JSON_RESOURCES = "resources";
+			public static String JSON_NAME = "name";
+			public static String JSON_RESOURCES = "resources";
 		}
 		
 	}
