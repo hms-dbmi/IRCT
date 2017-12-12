@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +19,11 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FlushModeType;
@@ -32,6 +39,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.DataConverterImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 
 /**
  * Manages supported resources and join types for this instance of the IRCT
@@ -47,10 +55,18 @@ public class IRCTApplication {
 
 	@javax.annotation.Resource(mappedName = "java:global/resultDataFolder")
 	private String resultDataFolder = null;
+	
+	@javax.annotation.Resource(mappedName = "java:global/whitelist_config_file")
+	private String whitelistLocation;
+	
+	// key is the name string, value is a JsonArray for resources
+	private Map<String, JsonArray> whitelist;
+	private boolean whitelistEnabled;
 
 	private Map<String, Resource> resources;
 	private Map<String, IRCTJoin> supportedJoinTypes;
 	private Map<ResultDataType, List<DataConverterImplementation>> resultDataConverters;
+	
 
 	@Inject
 	Logger log;
@@ -89,7 +105,11 @@ public class IRCTApplication {
 		log.info("Loading Resources");
 		loadResources();
 		log.info("Finished Loading Resources");
-
+		
+		log.info("Loading Whitelists");
+		loadWhiteLists();
+		log.info("Finihsed loading whitelists");
+		
 		log.info("Finished Starting IRCT Application");
 	}
 
@@ -210,7 +230,7 @@ public class IRCTApplication {
 		}
 		log.info("loadResources() Loaded " + this.resources.size() + " resources");
 	}
-
+	
 	/**
 	 * Adds a given resource to the IRCT application
 	 *
@@ -363,6 +383,56 @@ public class IRCTApplication {
 	public boolean doesJoinExists(String name) {
 		return this.supportedJoinTypes.containsKey(name);
 	}
+	
+	/**
+	 *  Loads the white lists into application
+	 *  @author yuzhang
+	 */
+	private void loadWhiteLists() {
+		
+		if (whitelistLocation.equals("false")){
+			log.info("Whitelist functionality is not enabled");
+			whitelistEnabled = false;
+			return;
+		} else {
+			whitelist = new HashMap<>();
+			whitelistEnabled = true;
+		}
+		
+		try (JsonReader reader = Json.createReader(
+				new FileInputStream(whitelistLocation))) {
+			log.info("starting to read whitelist file in: " + whitelistLocation);
+			JsonArray jsonArray = reader.readArray();
+			for (JsonValue value : jsonArray) {
+				JsonObject valueObject = ((JsonObject)value);
+				JsonArray resources = Json.createArrayBuilder().build();
+				if (valueObject.containsKey(Utilities.Naming.Whitelist.JSON_RESOURCES))
+					resources = valueObject.getJsonArray(Utilities.Naming.Whitelist.JSON_RESOURCES);
+				
+				if (valueObject.containsKey(Utilities.Naming.Whitelist.JSON_NAME)) {
+					try {
+						String name = valueObject.getString(Utilities.Naming.Whitelist.JSON_NAME);
+						whitelist.put(name, resources);
+						// change to Log4j
+						// then change to debug
+						log.info("Added one email from whitelist: " + name
+								+ " with resources: " + resources.toString());
+					} catch (ClassCastException | NullPointerException npe) {
+						log.log(Level.SEVERE, "The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
+					}
+					
+				}
+			}
+		
+		} catch (FileNotFoundException ex) {
+			log.info("Cannot find the whitelist file, please check your configuration file. "
+					+ "Your file location: " + whitelistLocation);
+		} catch (ClassCastException cce ) {
+			// change this to Log4J would be great
+			// I think another ticket is changing this to Log4j
+			log.log(Level.SEVERE, "The root layer of whitelist should be an array");
+		} 
+	}
 
 	/**
 	 * Get the name of the result data folder
@@ -381,6 +451,18 @@ public class IRCTApplication {
 	 */
 	public void setResultDataFolder(String resultDataFolder) {
 		this.resultDataFolder = resultDataFolder;
+	}
+	
+	/**
+	 * Getter of the white list
+	 * @return
+	 */
+	public Map<String, JsonArray> getWhitelist() {
+		return whitelist;
+	}
+
+	public boolean isWhitelistEnabled() {
+		return whitelistEnabled;
 	}
 
 }
