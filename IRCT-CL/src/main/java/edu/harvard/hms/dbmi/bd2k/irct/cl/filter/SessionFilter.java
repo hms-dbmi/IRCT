@@ -81,9 +81,8 @@ public class SessionFilter implements Filter {
 			try {
 				User user = (User) session.getAttribute("user");
 				if (user == null)
-					sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
+					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
 				
-				user = new User("email");
 				logger.debug("doFilter() got user object.");
 				
 				//DI-994: email whitelist for authorization without a token
