@@ -1,316 +1,384 @@
 {
-	"openapi": "3.0.0",
-	"info": {
-		"termsOfService": "https://raw.githubusercontent.com/hms-dbmi/IRCT/DI-931_NoHTMLResponse/IRCT-API/termsofservice.html?token=ARJ4SRLWirZlWhUKWEBG8XqdkwbNMGpYks5aJs0kwA%3D%3D",
-		"title": "NHANES via PIC-SURE API",
-		"description": "Meta API to provide access to multiple data sources",
-		"version": "1.4",
-		"contact": {
-			 "name": "Paul Avillach",
-			"email": "paul_avillach@hms.harvard.edu",
-			"url": "https://avillach-lab.hms.harvard.edu/",
-			"x-role": "responsible developer"
-		},
-		"x-otherContacts": [
-			{
-				"name": "Isaac Kohane",
-				"email": "isaac_kohane@harvard.edu",
-				"url": "http://dbmi.hms.harvard.edu/person/faculty/zak-kohane",
-				"x-role": "responsible developer"
-			},
-			{
-				"name": "Jason Stedman",
-				"email": "Jason_Stedman@hms.harvard.edu",
-				"url": "https://avillach-lab.hms.harvard.edu/people/jason-stedman",
-				"x-role": "responsible developer"
-			},
-			{
-				"name": "Yu Zhang",
-				"email": "yu_zhang@hms.harvard.edu",
-				"url": "https://avillach-lab.hms.harvard.edu/people-display",
-				"x-role": "responsible developer"
-			},
-			{
-				"name": "Gabor Korodi",
-				"email": "gabor_korodi@hms.harvard.edu",
-				"url": "https://avillach-lab.hms.harvard.edu/people/gabor-korodi",
-				"x-role": "responsible developer"
-			}
-		]
-	},
-	"servers": [
-		{
-			"url": "https://nhanes.hms.harvard.edu/rest/v1",
-			"description": "Open access production server",
-			"x-maturity": "production"
-		},
-		{
-			"url": "https://tm-dev-app.hms.harvard.edu/rest/v1.4",
-			"description": "Open access development server",
-			"x-maturity": "development"
-		}
-	],
-	"paths": {
-		"/about": {
-			"get": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Basic endpoint to gather somem information about the deployed component",
-				"responses": {
-					"200": {
-						"description": "Returns information about the provider API",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/APIDescription"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "User is not authorized to access this endpoint",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/UnauthorizedError"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/systemService/about": {
-			"get": {
-				"tags": [
-					"v1"
-				],
-				"summary": "Old endpoint, to get some very basic, minimal information about the API",
-				"responses": {
-					"200": {
-						"description": "Returns information about the provider API",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/APIDescription"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "User is not authorized to access this endpoint",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/UnauthorizedError"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/path": {
-			"get": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Get concept path information in a hierarchical way",
-				"responses": {
-					"200": {
-						"description": "Returns a concept description and various additional information, including immediate child information",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PathRecord"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/find": {
-			"get": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Find available concepts based on metadata information",
-				"responses": {
-					"200": {
-						"description": "Returns a concept description and various additional information",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PathRecord"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/search": {
-			"get": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Execute a text search for available concepts",
-				"responses": {
-					"200": {
-						"description": "Returns a concept description and various additional information",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PathRecord"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/resource": {
-			"get": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Get information about the datasource provider connected to this server.",
-				"responses": {
-					"200": {
-						"description": "Returns a concept description and various additional information",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ResourceRecord"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/query": {
-			"get": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Generic JSON query",
-				"responses": {
-					"200": {
-						"description": "Returns a concept description and various additional information",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/QueryRecord"
-								}
-							}
-						}
-					}
-				}
-			},
-			"post": {
-				"tags": [
-					"v1.4"
-				],
-				"summary": "Create a new query and execute it.",
-				"responses": {
-					"200": {
-						"description": "Returns a concept description and various additional information",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/PathRecord"
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	},
-	"components": {
-		"schemas": {
-			"UnauthorizedError": {
-				"type": "object",
-				"required": [
-					"status",
-					"message"
-				],
-				"properties": {
-					"status": {
-						"type": "string"
-					},
-					"message": {
-						"type": "string"
-					}
-				}
-			},
-			"QueryRecord": {
-				"type": "object",
-				"required": [
-					"id",
-					"name"
-				],
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"name": {
-						"type": "string"
-					}
-				}
-			},
-			"ResourceRecord": {
-				"type": "object",
-				"required": [
-					"id",
-					"name"
-				],
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"name": {
-						"type": "string"
-					},
-					"type": {
-						"type": "string"
-					},
-					"description": {
-						"type": "string"
-					}
-				}
-			},
-			"PathRecord": {
-				"type": "object",
-				"required": [
-					"concept"
-				],
-				"properties": {
-					"concept": {
-						"type": "string"
-					},
-					"pui": {
-						"type": "string"
-					}
-				}
-			},
-			"APIDescription": {
-				"type": "object",
-				"required": [
-					"vesion"
-				],
-				"properties": {
-					"vesion": {
-						"type": "string"
-					},
-					"user": {
-						"type": "string"
-					}
-				}
-			}
-		}
-	}
+  "openapi": "3.0.0",
+  "info": {
+    "contact": {
+      "url": "https://avillach-lab.hms.harvard.edu/",
+      "name": "Paul Avillach",
+      "email": "paul_avillach@hms.harvard.edu",
+      "x-role": "responsible developer"
+    },
+    "version": "1.4",
+    "termsOfService": "https://raw.githubusercontent.com/hms-dbmi/IRCT/DI-931_NoHTMLResponse/IRCT-API/termsofservice.html?token=ARJ4SRLWirZlWhUKWEBG8XqdkwbNMGpYks5aJs0kwA%3D%3D",
+    "description": "Meta API to provide access to multiple data sources",
+    "x-otherContacts": [
+      {
+        "url": "http://dbmi.hms.harvard.edu/person/faculty/zak-kohane",
+        "name": "Isaac Kohane",
+        "email": "isaac_kohane@harvard.edu",
+        "x-role": "responsible developer"
+      },
+      {
+        "url": "https://avillach-lab.hms.harvard.edu/people/jason-stedman",
+        "name": "Jason Stedman",
+        "email": "Jason_Stedman@hms.harvard.edu",
+        "x-role": "responsible developer"
+      },
+      {
+        "url": "https://avillach-lab.hms.harvard.edu/people-display",
+        "name": "Yu Zhang",
+        "email": "yu_zhang@hms.harvard.edu",
+        "x-role": "responsible developer"
+      },
+      {
+        "url": "https://avillach-lab.hms.harvard.edu/people/gabor-korodi",
+        "name": "Gabor Korodi",
+        "email": "gabor_korodi@hms.harvard.edu",
+        "x-role": "responsible developer"
+      }
+    ],
+    "title": "NHANES via PIC-SURE API"
+  },
+  "servers": [
+    {
+      "x-maturity": "production",
+      "url": "https://nhanes.hms.harvard.edu/rest/v1",
+      "description": "Open access production server"
+    },
+    {
+      "x-maturity": "development",
+      "url": "https://tm-dev-app.hms.harvard.edu/rest/v1.4",
+      "description": "Open access development server"
+    }
+  ],
+  "paths": {
+    "/query": {
+      "get": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a concept description and various additional information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryRecord"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Generic JSON query"
+      },
+      "post": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a concept description and various additional information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRecord"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new query and execute it."
+      }
+    },
+    "/resource": {
+      "get": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a concept description and various additional information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceRecord"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get information about the datasource provider connected to this server."
+      }
+    },
+    "/path": {
+      "get": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a concept description and various additional information, including immediate child information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRecord"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get concept path information in a hierarchical way"
+      }
+    },
+    "/find": {
+      "get": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a concept description and various additional information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRecord"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find available concepts based on metadata information"
+      }
+    },
+    "/systemService/about": {
+      "get": {
+        "tags": [
+          "v1"
+        ],
+        "responses": {
+          "401": {
+            "description": "User is not authorized to access this endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Returns information about the provider API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIDescription"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Old endpoint, to get some very basic, minimal information about the API"
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a concept description and various additional information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathRecord"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Execute a text search for available concepts"
+      }
+    },
+    "/about": {
+      "get": {
+        "tags": [
+          "v1.4"
+        ],
+        "responses": {
+          "401": {
+            "description": "User is not authorized to access this endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Returns information about the provider API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIDescription"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Basic endpoint to gather somem information about the deployed component"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PathRecord": {
+        "type": "object",
+        "required": [
+          "concept"
+        ],
+        "properties": {
+          "concept": {
+            "type": "string"
+          },
+          "pui": {
+            "type": "string"
+          }
+        }
+      },
+      "QueryRespRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "QueryReqRecord": {
+        "type": "object",
+        "required": [
+          "resource",
+          "project",
+          "select",
+          "where"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "token": {
+            "type":"string"
+          },
+          "select": {
+            "type":"array",
+            "items": {
+              "$ref": "#/components/schemas/SelectClause"
+            }
+          },
+          "where": {
+            "type":"array",
+            "items": {
+              "$ref": "#/components/schemas/WhereClause"
+            }
+          }
+        }
+      },
+      "ResourceRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "UnauthorizedError": {
+        "type": "object",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WhereClause": {
+        "type": "object",
+        "required": [
+          "field",
+          "predicate"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "operator": {
+            "type": "string"
+          },
+          "predicate": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "SelectClause": {
+        "type": "object",
+        "required": [
+          "field",
+          "alias"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          }
+        }
+      },
+      "APIDescription": {
+        "type": "object",
+        "required": [
+          "vesion"
+        ],
+        "properties": {
+          "vesion": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
 }

@@ -82,8 +82,7 @@ public class SessionFilter implements Filter {
 				User user = (User) session.getAttribute("user");
 				if (user == null)
 					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
-				
-				logger.debug("doFilter() got user object.");
+				logger.debug("doFilter() got user object. userId:"+user.getUserId());
 				
 				//DI-994: email whitelist for authorization without a token
 				//currently just authorized for all if the user is in the white list
@@ -92,7 +91,7 @@ public class SessionFilter implements Filter {
 					if (irctApp.getWhitelist().containsKey(user.getUserId())) {
 						logger.info("User: " + user.getUserId() + "is in the white list");
 					} else {
-						throw new NotAuthorizedException("User not in white list", res);
+						throw new NotAuthorizedException("User `"+user.getUserId()+"` not in white list", res);
 					}
 				}
 				
