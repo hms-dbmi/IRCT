@@ -24,6 +24,10 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
+import javax.json.stream.JsonParsingException;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FlushModeType;
@@ -56,7 +60,6 @@ public class IRCTApplication {
 	@javax.annotation.Resource(mappedName = "java:global/resultDataFolder")
 	private String resultDataFolder = null;
 	
-	@javax.annotation.Resource(mappedName = "java:global/whitelist_config_file")
 	private String whitelistLocation;
 	
 	// key is the name string, value is a JsonArray for resources
@@ -389,6 +392,13 @@ public class IRCTApplication {
 	 *  @author yuzhang
 	 */
 	private void loadWhiteLists() {
+		try {
+			Context ctx = new InitialContext();
+			whitelistLocation = (String) ctx.lookup("global/whitelist_config_file");
+			ctx.close();
+		} catch (NamingException e) {
+			whitelistLocation = "false";
+		}
 		
 		if (whitelistLocation.equals("false")){
 			log.info("Whitelist functionality is not enabled");
@@ -431,7 +441,9 @@ public class IRCTApplication {
 			// change this to Log4J would be great
 			// I think another ticket is changing this to Log4j
 			log.log(Level.SEVERE, "The root layer of whitelist should be an array");
-		} 
+		} catch (JsonParsingException ex) {
+			log.log(Level.INFO, "Input whitelist file is not well formatted");
+		}
 	}
 
 	/**
