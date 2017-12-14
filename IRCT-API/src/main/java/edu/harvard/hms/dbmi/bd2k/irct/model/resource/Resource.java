@@ -44,9 +44,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConve
 /**
  * The resource class provides a way for the IRCT application to keep track of
  * which resources are available.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
 public class Resource implements Serializable {
@@ -61,11 +58,11 @@ public class Resource implements Serializable {
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;
 
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@Convert(converter = DataTypeConverter.class)
 	private List<DataType> dataTypes;
 
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@Convert(converter = OntologyRelationshipConverter.class)
 	private List<OntologyRelationship> relationships;
 
