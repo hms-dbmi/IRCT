@@ -113,6 +113,11 @@
 			<artifactId>javax.json-api</artifactId>
 			<version>1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.jaxrs</groupId>
+			<artifactId>jackson-jaxrs-json-provider</artifactId>
+			<version>2.8.9</version>
+		</dependency>
 
 		<!-- First declare the APIs we depend on and need for compilation. All
 			of them are provided by JBoss WildFly -->
