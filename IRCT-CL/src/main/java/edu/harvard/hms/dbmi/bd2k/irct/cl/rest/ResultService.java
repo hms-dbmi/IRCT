@@ -93,11 +93,14 @@ public class ResultService {
 		} else {
 			response.add("resultId", resultId);
 			response.add("status", result.getResultStatus().toString());
-			if(result.getResultStatus() == ResultStatus.ERROR) {
+			response.add("starttime", String.valueOf(result.getStartTime()));
+			response.add("endtime", String.valueOf(result.getEndTime()));
+			response.add("dataType", String.valueOf(result.getDataType()));
+
+			if (result.getResultStatus() == ResultStatus.ERROR) {
 				response.add("message", result.getMessage());
 			}
 		}
-
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
