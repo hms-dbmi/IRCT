@@ -389,6 +389,15 @@ public class IRCTApplication {
 	
 	/**
 	 *  Loads the white lists into application
+	 *  
+	 *  <p>Instead of using @javax.annotation.Resource to auto read the resource from JNDI,
+	 *  which is kind of mandatory (throw a <code>NamingException</code> never be handled and will stop the load progress), 
+	 *  here we read and handle the exception to not stop the progress, which kind of allowing optionally configure.
+	 *  
+	 *  <p>For exception handling: besides disabling the functionality - setting the field in configuration xml file 
+	 *  to false or the location field is not in the list,
+	 *  all other exceptions will end up not making any changes to the whitelist map, which means will never break 
+	 *  the load progress.
 	 *  @author yuzhang
 	 */
 	private void loadWhiteLists() {
@@ -405,7 +414,9 @@ public class IRCTApplication {
 			whitelistEnabled = false;
 			return;
 		} else {
-			whitelist = new HashMap<>();
+			// to be able to support change the configuration white list Json file at runtime
+			if (whitelist == null)
+				whitelist = new HashMap<>();
 			whitelistEnabled = true;
 		}
 		
@@ -428,7 +439,7 @@ public class IRCTApplication {
 						log.info("Added one email from whitelist: " + name
 								+ " with resources: " + resources.toString());
 					} catch (ClassCastException | NullPointerException npe) {
-						log.log(Level.SEVERE, "The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
+						log.log(Level.WARNING, "The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
 					}
 					
 				}
@@ -440,9 +451,9 @@ public class IRCTApplication {
 		} catch (ClassCastException cce ) {
 			// change this to Log4J would be great
 			// I think another ticket is changing this to Log4j
-			log.log(Level.SEVERE, "The root layer of whitelist should be an array");
+			log.log(Level.WARNING, "The root layer of whitelist should be an array");
 		} catch (JsonParsingException ex) {
-			log.log(Level.INFO, "Input whitelist file is not well formatted");
+			log.log(Level.WARNING, "Input whitelist file is not well formatted");
 		}
 	}
 
