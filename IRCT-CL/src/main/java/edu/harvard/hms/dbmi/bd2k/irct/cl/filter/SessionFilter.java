@@ -20,9 +20,13 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.NotAuthorizedException;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.services.apigateway.model.UnauthorizedException;
+
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
@@ -34,6 +38,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 public class SessionFilter implements Filter {
 
 	Logger logger = Logger.getLogger(this.getClass().getName());
+	
+	@Inject
+	private IRCTApplication irctApp;
 
 	@javax.annotation.Resource(mappedName = "java:global/client_id")
 	private String clientId;
@@ -72,10 +79,21 @@ public class SessionFilter implements Filter {
 			}
 			
 			try {
-				User user = session.getAttribute("user") == null ?
-						sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret))
-						: (User) session.getAttribute("user");
-				logger.debug("doFilter() got user object.");
+				User user = (User) session.getAttribute("user");
+				if (user == null)
+					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
+				logger.debug("doFilter() got user object. userId:"+user.getUserId());
+				
+				//DI-994: email whitelist for authorization without a token
+				//currently just authorized for all if the user is in the white list
+				//could be added for different resources in the future
+				if (user.getUserId() != null && !user.getUserId().isEmpty() && irctApp.isWhitelistEnabled()) {
+					if (irctApp.getWhitelist().containsKey(user.getUserId())) {
+						logger.info("User: " + user.getUserId() + "is in the white list");
+					} else {
+						throw new NotAuthorizedException("User `"+user.getUserId()+"` not in white list", res);
+					}
+				}
 				
 				// TODO DI-896 change. Since the user above gets created without an actual token, we need 
 				// to re-extract the token, from the header and parse it and place it inside the user object, 

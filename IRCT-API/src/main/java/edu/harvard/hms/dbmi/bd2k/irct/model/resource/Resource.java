@@ -57,6 +57,7 @@ public class Resource implements Serializable {
 	private long id;
 
 	private String name;
+	private String ontologyType;
 
 	private String ontologyType;
 
