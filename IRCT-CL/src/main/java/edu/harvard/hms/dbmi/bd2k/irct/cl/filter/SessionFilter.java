@@ -118,7 +118,7 @@ public class SessionFilter implements Filter {
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {
-				logger.error("EXCEPTION: "+e.getMessage());
+				logger.error("doFilter() "+e.getMessage());
 
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
 
