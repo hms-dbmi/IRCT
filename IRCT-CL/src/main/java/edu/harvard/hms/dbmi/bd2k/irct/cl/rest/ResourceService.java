@@ -3,14 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
-import javax.json.JsonObjectBuilder;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -26,7 +23,6 @@ import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -68,7 +64,6 @@ public class ResourceService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
 
-		JsonArrayBuilder response = Json.createArrayBuilder();
 		List<Resource> returnResources = null;
 		if (type == null || type.isEmpty()) {
 			returnResources = rc.getResources();
@@ -87,18 +82,7 @@ public class ResourceService {
 				break;
 			}
 		}
-
-		if (returnResources == null) {
-			JsonObjectBuilder build = Json.createObjectBuilder();
-			build.add("status", "Invalid type");
-			build.add("message", "The type submitted is not a supported resource type");
-			return Response.status(400).entity(build.build()).build();
-		}
-
-		for (Resource resource : returnResources) {
-			response.add(resource.toJson());
-		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON).build();
+		return  (returnResources == null?error("The type submitted is not a supported resource type"): success(returnResources));
 	}
 
 	/**
@@ -148,11 +132,6 @@ public class ResourceService {
 				return success("There are no resources available.");
 			return success(returnResources);
 		}
-	}
-
-	private Response success(String msg) {
-		return Response.status(200).type(MediaType.APPLICATION_JSON)
-				.entity(Json.createObjectBuilder().add("message", msg).build()).build();
 	}
 
 	private Response success(Object obj) {
@@ -252,17 +231,25 @@ public class ResourceService {
 			resource = rc.getResource(path.split("/")[1]);
 			resourcePath = new Entity(path);
 		}
+		
 		if (resource != null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
+			
 			try {
 				entities = pc.traversePath(resource, resourcePath, resource.getRelationshipByName(relationshipString),currentUser);
-			} catch (ResourceInterfaceException e) {
-				return error(e.toString() + "/" + e.getMessage() + " path:" + path);
+			} catch (Exception e) {
+				return error(e.getMessage());
 			}
+			
 		} else if (path == null || path.isEmpty()) {
-			entities = pc.getAllResourcePaths();
+			try {
+				entities = pc.getAllResourcePaths();
+			} catch (Exception e) {
+				logger.error("GET /path Exception:",e);
+				return error(e.getMessage());
+			}
 		} else {
 			return error("Resource is null and Path is missing.");
 		}
