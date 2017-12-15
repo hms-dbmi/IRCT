@@ -1,14 +1,12 @@
 -- Set the resource parameters
 set @resourceName = 'i2b2-nhanes';
-set @resourceURL = 'https://nhanes.hms.harvard.edu/transmart/proxy?url=http://localhost:9090/i2b2/services/';
+set @resourceURL = 'https://nhanes.hms.harvard.edu/i2b2-services/';
 set @domain = 'i2b2demo';
 set @userName = 'Demo';
 set @password = 'demouser';
-set @auth0ClientId = '...';
-set @auth0Domain = '...';
 set @ignoreCertificate = 'false';
 
-set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart.I2B2XMLResourceImplementation';
+set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation';
 set @resourceOntology = 'TREE';
 
 

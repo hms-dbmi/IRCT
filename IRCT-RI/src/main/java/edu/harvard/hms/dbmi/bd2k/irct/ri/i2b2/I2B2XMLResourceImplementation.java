@@ -279,10 +279,9 @@ public class I2B2XMLResourceImplementation
 				throw new ResourceInterfaceException(relationship.toString() + " not supported by this resource");
 			}
 		} catch (Exception e) {
-			logger.error("getPathRelationship()", e);
+			logger.error("getPathRelationship() Exception:", e);
 			throw new ResourceInterfaceException(e.getMessage());
 		}
-
 		return entities;
 	}
 

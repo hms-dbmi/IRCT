@@ -10,9 +10,9 @@ import javax.ejb.TransactionAttributeType;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
-import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -62,7 +62,7 @@ public class ResultService {
 		List<Result> availableResults = rc.getAvailableResults(user);
 
 		if (availableResults.size()<1) {
-			return successresponse("There are no results available.");
+			return success("There are no results available.");
 		}
 		
 		logger.debug("GET /available There are "+availableResults.size()+" results available.");
@@ -73,24 +73,11 @@ public class ResultService {
 			response.add(resultJSON.build());
 		}
 		logger.debug("GET /available Finished.");
-		return successresponse("There are "+availableResults.size()+" results.", response.build());
+		return success(availableResults);
 	}
 	
-	private Response respond(int status, String msg) {
-		return Response.status(status).type(MediaType.APPLICATION_JSON).encoding("UTF-8").entity(Json.createObjectBuilder().add("message", msg).build()).build();
-	}
-	
-	private Response successresponse(String msg) {
-		return Response.ok(Json.createObjectBuilder().add("status", "ok").add("message", msg).build(), MediaType.APPLICATION_JSON)
-		.build();
-	}
-	
-	private Response successresponse(String msg, JsonArray respObj) {
-		JsonObjectBuilder resp = Json.createObjectBuilder();
-		resp.add("status", "ok");
-		resp.add("message", msg);
-		resp.add("details", respObj);
-		return Response.ok(resp.build(), MediaType.APPLICATION_JSON)
+	private Response success(Object obj) {
+		return Response.ok(Json.createObjectBuilder().add("details",(JsonValue) obj).build(), MediaType.APPLICATION_JSON)
 		.build();
 	}
 
@@ -143,18 +130,18 @@ public class ResultService {
 		List<String> availableFormats = rc.getAvailableFormats(user, resultId);
 
 		if (availableFormats == null) {
-			return respond(200, "Unable to get available formats for result #"+resultId);
+			return success("Unable to get available formats for result #"+resultId);
 		}
 		
 		if (availableFormats.size()<1) {
-			return respond(200, "There are no formats available.");
+			return success("There are no formats available.");
 		}
 
 		for (String availableFormat : availableFormats) {
 			response.add(availableFormat);
 		}
 
-		return respond(200, "success");
+		return success("success");
 	}
 
 	/**
