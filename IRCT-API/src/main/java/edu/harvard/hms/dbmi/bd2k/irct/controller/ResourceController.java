@@ -129,39 +129,4 @@ public class ResourceController {
 		}
 		return pathResources;
 	}
-	
-	/**
-	 * Get all categories for searching
-	 * 
-	 * @return Search Category
-	 */
-	public List<String> getCategories() {
-		return this.categories;
-	}
-
-	/**
-	 * Returns if this is a valid category or not
-	 * 
-	 * @param categoryName Category name
-	 * @return Category Validity
-	 */
-	public boolean isValidCategory(String categoryName) {
-		if (this.categories == null) {
-			logger.log(Level.FINE, "isValidCategory(`"+categoryName+"`) missing `categories` list.");
-			return false;
-		}
-		logger.log(Level.FINE, "isValidCategory(`"+categoryName+"`) in "+this.categories.toString());
-		return this.categories.contains(categoryName);
-	}
-
-	/**
-	 * Returns a list of all resources that match the search parameters
-	 * @param searchParams Search Parameters
-	 * @return Matching Resources
-	 */
-	public List<Resource> search(Map<String, List<String>> searchParams) {
-		// TODO Implement or remove search for parameters
-		return null;
-	}
-
 }

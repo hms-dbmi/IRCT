@@ -22,6 +22,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -43,17 +45,19 @@ public class ResourceService {
 
 	@Inject
 	private PathController pc;
-	
-	//@Context
-	//private HttpServletRequest request;
+
+	// @Context
+	// private HttpServletRequest request;
 
 	@Inject
 	private HttpSession session;
 
+	private Logger logger = Logger.getLogger(this.getClass());
+
 	/**
-	 * Returns a list of all resources. If a type is chosen then only resources
-	 * of that type will be returned. Type of resources to return can also be
-	 * specified using the type field.
+	 * Returns a list of all resources. If a type is chosen then only resources of
+	 * that type will be returned. Type of resources to return can also be specified
+	 * using the type field.
 	 *
 	 * @param type
 	 *            Type
@@ -87,90 +91,92 @@ public class ResourceService {
 		if (returnResources == null) {
 			JsonObjectBuilder build = Json.createObjectBuilder();
 			build.add("status", "Invalid type");
-			build.add("message",
-					"The type submitted is not a supported resource type");
+			build.add("message", "The type submitted is not a supported resource type");
 			return Response.status(400).entity(build.build()).build();
 		}
 
 		for (Resource resource : returnResources) {
 			response.add(resource.toJson());
 		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
+		return Response.ok(response.build(), MediaType.APPLICATION_JSON).build();
 	}
 
 	/**
-	 * Returns a list of categories that can be searched for
+	 * Returns a list of all resources. If a type is chosen then only resources of
+	 * that type will be returned. If a name is chosen, then only the named
+	 * resource's information will be returned.
 	 *
-	 * @return Category list
+	 * @param name
+	 *            The name of the resource to retrieve information about
+	 * @param type
+	 *            The type of resources, currently supported values are
+	 *            process|visualization|query
+	 * @return Response
 	 */
 	@GET
-	@Path("/searchCategories")
+	@Path("/resource")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response categories() {
-		JsonArrayBuilder response = Json.createArrayBuilder();
+	public Response getResourceByArgs(@QueryParam(value = "name") String name,
+			@QueryParam(value = "type") String type) {
+		logger.debug("GET /resource Starting");
 
-		List<String> categories = rc.getCategories();
-		if (categories != null) {
-			for (String category : categories) {
-				response.add(category);
+		if (name != null && !name.isEmpty()) {
+			// Only get the named resource.
+			return success(rc.getResource(name));
+		} else {
+			List<Resource> returnResources = null;
+			if (type == null || type.isEmpty()) {
+				return success(rc.getResources());
+			} else {
+				switch (type.toLowerCase()) {
+				case "process":
+					returnResources = rc.getProcessResources();
+					break;
+				case "visualization":
+					returnResources = rc.getVisualizationResources();
+					break;
+				case "query":
+					returnResources = rc.getQueryResources();
+					break;
+				default:
+					return error("The type `" + type + "` is unsupported.");
+				}
 			}
+			if (returnResources == null)
+				return error("The type `" + type + "` is not a supported resource type");
+			if (returnResources.size() < 1)
+				return success("There are no resources available.");
+			return success(returnResources);
 		}
-
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
 	}
 
-	/**
-	 * Searches the resources for ones that match a category
-	 *
-	 * @param info
-	 *            URI information
-	 * @return List of resources that match that category
-	 */
-	@GET
-	@Path("/search")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response search(@Context UriInfo info) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
-		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
-		
-		for (String categoryName : info.getQueryParameters().keySet()) {
-			List<String> values = info.getQueryParameters().get(categoryName);
-			if (!rc.isValidCategory(categoryName)) {
-				JsonObjectBuilder build = Json.createObjectBuilder();
-				build.add("status", "Invalid resource category");
-				build.add("message", categoryName
-						+ " is not a supported resource category");
-				return Response.status(400).entity(build.build()).build();
-			}
-			searchParams.put(categoryName, values);
-		}
+	private Response success(String msg) {
+		return Response.status(200).type(MediaType.APPLICATION_JSON)
+				.entity(Json.createObjectBuilder().add("message", msg).build()).build();
+	}
 
-		List<Resource> returnResources = rc.search(searchParams);
-		if (returnResources != null) {
-			for (Resource resource : returnResources) {
-				response.add(resource.toJson());
-			}
-		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
+	private Response success(Object obj) {
+		return Response.status(200).type(MediaType.APPLICATION_JSON).entity(obj).build();
+	}
+
+	private Response error(Object obj) {
+		return Response.status(400).type(MediaType.APPLICATION_JSON).entity(obj).build();
 	}
 
 	@GET
 	@Path("/find{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response find(@PathParam("path") String path, @Context UriInfo info) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
-		List<Entity> entities = null;
+		
+		
 		FindInformationInterface findInformation;
-
-		if(info.getQueryParameters().containsKey("term")) {
+		if (info.getQueryParameters().containsKey("term")) {
 			findInformation = new FindByPath();
-		} else if(info.getQueryParameters().containsKey("ontologyTerm") && info.getQueryParameters().containsKey("ontologyType")) {
+		} else if (info.getQueryParameters().containsKey("ontologyTerm")
+				&& info.getQueryParameters().containsKey("ontologyType")) {
 			findInformation = new FindByOntology();
 		} else {
-			return invalidRequest("Find is missing parameters");
+			return error("Find is missing parameters. Use `term` or `ontologyTerm` and `ontologyType`");
 		}
 
 		// Set up path information
@@ -186,11 +192,11 @@ public class ResourceService {
 		}
 
 		// Load all values into find information object
-		for(String key : info.getQueryParameters().keySet()) {
+		for (String key : info.getQueryParameters().keySet()) {
 			findInformation.setValue(key, info.getQueryParameters().getFirst(key));
 		}
 
-		if(findInformation instanceof FindByPath) {
+		if (findInformation instanceof FindByPath) {
 			String searchTerm = info.getQueryParameters().getFirst("term");
 			String strategy = "exact";
 			if (searchTerm.charAt(0) == '%') {
@@ -208,21 +214,14 @@ public class ResourceService {
 			findInformation.setValue("term", searchTerm);
 			findInformation.setValue("strategy", strategy);
 		}
+		logger.debug("GET /find "+findInformation.toString());
 
-		// Run find
 		try {
-			entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
-		} catch (ResourceInterfaceException e) {
-			return invalidRequest(e.getMessage());
+			List<Entity> entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
+			return success(entities);
+		} catch (Exception e) {
+			return error(e);
 		}
-
-		if (entities != null) {
-			for (Entity entity : entities) {
-				response.add(entity.toJson());
-			}
-		}
-
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON).build();
 	}
 
 	/**
@@ -239,7 +238,9 @@ public class ResourceService {
 	@Path("/path{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response path(@PathParam("path") String path, @QueryParam("relationship") String relationshipString) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
+		logger.debug("GET /path Starting");
+		User currentUser = (User) session.getAttribute("user");
+		
 		List<Entity> entities = null;
 
 		Resource resource = null;
@@ -249,44 +250,27 @@ public class ResourceService {
 			path = "/" + path;
 			path = path.substring(1);
 			resource = rc.getResource(path.split("/")[1]);
-			resourcePath = new Entity(path);		
+			resourcePath = new Entity(path);
 		}
 		if (resource != null) {
 			if (relationshipString == null) {
 				relationshipString = "child";
 			}
 			try {
-				entities = pc.traversePath(resource, resourcePath,
-						resource.getRelationshipByName(relationshipString),
-						(User) session.getAttribute("user"));
+				entities = pc.traversePath(resource, resourcePath, resource.getRelationshipByName(relationshipString),currentUser);
 			} catch (ResourceInterfaceException e) {
-				return invalidRequest(e.toString()+"/"+e.getMessage()+" path:"+path);
+				return error(e.toString() + "/" + e.getMessage() + " path:" + path);
 			}
 		} else if (path == null || path.isEmpty()) {
 			entities = pc.getAllResourcePaths();
 		} else {
-			return invalidRequest("Resource is null and Path is missing.");
+			return error("Resource is null and Path is missing.");
 		}
 
 		if (entities != null) {
-			for (Entity entity : entities) {
-				response.add(entity.toJson());
-			}
-		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
-
-	}
-
-	private Response invalidRequest(String message) {
-		JsonObjectBuilder build = Json.createObjectBuilder();
-		build.add("status", "Invalid Request");
-		if (message == null) {
-			build.add("message", "The request submitted returned an error");
+			return success(entities);
 		} else {
-			build.add("message", "The request submitted returned an error: "
-					+ message);
+			return error("Could not find any entities.");
 		}
-		return Response.status(400).entity(build.build()).build();
 	}
 }

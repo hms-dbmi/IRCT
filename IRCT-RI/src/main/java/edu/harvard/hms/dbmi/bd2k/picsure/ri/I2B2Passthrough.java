@@ -136,7 +136,7 @@ public class I2B2Passthrough
 
 	@Override
 	public String getType() {
-		return "i2b2XML";
+		return "i2b2passthrough";
 	}
 
 	@Override
