@@ -59,8 +59,6 @@ public class Resource implements Serializable {
 	private String name;
 	private String ontologyType;
 
-	private String ontologyType;
-
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;
 

@@ -104,13 +104,13 @@ public class IRCTApplication {
 
 		logger.info("Loading Resources");
 		loadResources();
-		log.info("Finished Loading Resources");
+		logger.info("Finished Loading Resources");
 		
-		log.info("Loading Whitelists");
+		logger.info("Loading Whitelists");
 		loadWhiteLists();
-		log.info("Finihsed loading whitelists");
+		logger.info("Finihsed loading whitelists");
 		
-		log.info("Finished Starting IRCT Application");
+		logger.info("Finished Starting IRCT Application");
 	}
 
 	public String getVersion() {
@@ -404,7 +404,7 @@ public class IRCTApplication {
 		}
 		
 		if (whitelistLocation.equals("false")){
-			log.info("Whitelist functionality is not enabled");
+			logger.info("Whitelist functionality is not enabled");
 			whitelistEnabled = false;
 			return;
 		} else {
@@ -416,7 +416,7 @@ public class IRCTApplication {
 		
 		try (JsonReader reader = Json.createReader(
 				new FileInputStream(whitelistLocation))) {
-			log.info("starting to read whitelist file in: " + whitelistLocation);
+			logger.debug("starting to read whitelist file in: " + whitelistLocation);
 			JsonArray jsonArray = reader.readArray();
 			for (JsonValue value : jsonArray) {
 				JsonObject valueObject = ((JsonObject)value);
@@ -430,24 +430,24 @@ public class IRCTApplication {
 						whitelist.put(name, resources);
 						// change to Log4j
 						// then change to debug
-						log.info("Added one email from whitelist: " + name
+						logger.debug("Added one email from whitelist: " + name
 								+ " with resources: " + resources.toString());
 					} catch (ClassCastException | NullPointerException npe) {
-						log.log(Level.WARNING, "The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
+						logger.error("The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
 					}
 					
 				}
 			}
 		
 		} catch (FileNotFoundException ex) {
-			log.info("Cannot find the whitelist file, please check your configuration file. "
+			logger.error("Cannot find the whitelist file, please check your configuration file. "
 					+ "Your file location: " + whitelistLocation);
 		} catch (ClassCastException cce ) {
 			// change this to Log4J would be great
 			// I think another ticket is changing this to Log4j
-			log.log(Level.WARNING, "The root layer of whitelist should be an array");
+			logger.error("The root layer of whitelist should be an array");
 		} catch (JsonParsingException ex) {
-			log.log(Level.WARNING, "Input whitelist file is not well formatted");
+			logger.error("Input whitelist file is not well formatted");
 		}
 	}
 
