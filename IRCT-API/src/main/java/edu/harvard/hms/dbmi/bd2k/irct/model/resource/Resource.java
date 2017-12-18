@@ -8,10 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.Convert;
@@ -39,7 +35,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
@@ -63,6 +58,7 @@ public class Resource implements Serializable {
 
 	private String name;
 
+	// TODO : This field is unused, see if we can figure out if it should be used
 	private String ontologyType;
 
 	@Convert(converter = ResourceImplementationConverter.class)
@@ -140,136 +136,6 @@ public class Resource implements Serializable {
 		this.setSetup(isDoneSettingUp);
 	}
 
-	/**
-	 * Returns a JSONObject representation of the object. This returns only the
-	 * attributes associated with this object and not their representation.
-	 *
-	 * This is equivalent of toJson(1);
-	 *
-	 * @return JSON Representation
-	 */
-	public JsonObject toJson() {
-		return toJson(1);
-	}
-
-	/**
-	 * Returns a JSONObject representation of the object. This returns only the
-	 * attributes associated with this object and not their representation.
-	 *
-	 *
-	 * @param depth
-	 *            Depth to travel
-	 * @return JSON Representation
-	 */
-	public JsonObject toJson(int depth) {
-		depth--;
-		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
-		jsonBuilder.add("id", this.id);
-		jsonBuilder.add("name", this.name);
-
-		if (this.implementingInterface != null) {
-			jsonBuilder.add("implementation", implementingInterface.getType());
-
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// RELATIONSHIPS (PATH Interface)
-				JsonArrayBuilder relationshipArray = Json.createArrayBuilder();
-				if (this.getRelationships() != null) {
-					for (OntologyRelationship rel : this.relationships) {
-						relationshipArray.add(rel.toString());
-					}
-				}
-				jsonBuilder.add("relationships", relationshipArray.build());
-
-			}
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// LOGICALOPERATORS (Query Interface)
-				JsonArrayBuilder logicalArray = Json.createArrayBuilder();
-				if (this.logicalOperators != null) {
-					for (LogicalOperator lo : this.logicalOperators) {
-						logicalArray.add(lo.toString());
-					}
-				}
-				jsonBuilder.add("logicaloperators", logicalArray.build());
-
-				// PREDICATES (Query Interface)
-				JsonArrayBuilder predicateArray = Json.createArrayBuilder();
-				if (this.supportedPredicates != null) {
-					for (PredicateType pt : this.supportedPredicates) {
-						predicateArray.add(pt.toJson());
-					}
-				}
-				jsonBuilder.add("predicates", predicateArray.build());
-
-				// Supported Select Operations (Query Interface)
-				JsonArrayBuilder selectArray = Json.createArrayBuilder();
-				if (this.supportedPredicates != null) {
-					for (SelectOperationType pt : this.supportedSelectOperations) {
-						selectArray.add(pt.toJson());
-					}
-				}
-				jsonBuilder.add("selectOperations", selectArray.build());
-
-				// Supported Select Fields (Query Interface)
-				JsonArrayBuilder selectFieldsArray = Json.createArrayBuilder();
-				if (this.supportedPredicates != null) {
-					for (Field field : this.supportedSelectFields) {
-						selectFieldsArray.add(field.toJson());
-					}
-				}
-				jsonBuilder.add("selectFields", selectFieldsArray.build());
-
-				// JOINS (Query Interface)
-				JsonArrayBuilder joinArray = Json.createArrayBuilder();
-				if (this.supportedJoins != null) {
-					for (JoinType jt : this.supportedJoins) {
-						joinArray.add(jt.toJson());
-					}
-				}
-				jsonBuilder.add("joins", joinArray.build());
-
-				// SORTS (Query Interface)
-				JsonArrayBuilder sortArray = Json.createArrayBuilder();
-				if (this.supportedSortOperations != null) {
-					for (SortOperationType st : this.supportedSortOperations) {
-						sortArray.add(st.toJson());
-					}
-				}
-				jsonBuilder.add("sorts", sortArray.build());
-			}
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// PROCESSES (Process Interface)
-				JsonArrayBuilder processArray = Json.createArrayBuilder();
-				if (this.supportedProcesses != null) {
-					for (ProcessType pt : this.supportedProcesses) {
-						processArray.add(pt.toJson());
-					}
-				}
-				jsonBuilder.add("processes", processArray.build());
-			}
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// VISUALIZATIONS (Visualization Interface)
-				JsonArrayBuilder visualizationArray = Json.createArrayBuilder();
-				if (this.supportedVisualizations != null) {
-					for (VisualizationType vt : this.supportedVisualizations) {
-						visualizationArray.add(vt.toJson());
-					}
-				}
-				jsonBuilder.add("visualization", visualizationArray.build());
-
-			}
-		}
-
-		// DATATYPES
-		JsonArrayBuilder dataTypeArray = Json.createArrayBuilder();
-		if (this.getDataTypes() != null) {
-			for (DataType dataType : this.dataTypes) {
-				dataTypeArray.add(dataType.toJson());
-			}
-		}
-		jsonBuilder.add("dataTypes", dataTypeArray.build());
-
-		return jsonBuilder.build();
-	}
 
 	/**
 	 * Returns a relationship from its name. It will return null if it does not exist.
