@@ -27,8 +27,13 @@ import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataTypeJsonConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
@@ -61,10 +66,13 @@ public class Resource implements Serializable {
 	private String ontologyType;
 
 	@Convert(converter = ResourceImplementationConverter.class)
+	@JsonProperty("implementation")
+	@JsonSerialize(converter = ResourceImplementationInterfaceConverter.class)
 	private ResourceImplementationInterface implementingInterface;
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@Convert(converter = DataTypeConverter.class)
+	@JsonSerialize(contentConverter = DataTypeJsonConverter.class)
 	private List<DataType> dataTypes;
 
 	@ElementCollection(fetch = FetchType.EAGER)
@@ -78,33 +86,42 @@ public class Resource implements Serializable {
 	private List<LogicalOperator> logicalOperators;
 
 	@OneToMany
+	@JsonProperty("predicates")
 	private List<PredicateType> supportedPredicates;
 
 	@OneToMany
+	@JsonProperty("selectOperations")
 	private List<SelectOperationType> supportedSelectOperations;
 
 	@OneToMany
+	@JsonProperty("selectFields")
 	private List<Field> supportedSelectFields;
 
 	@OneToMany
+	@JsonProperty("sorts")
 	private List<SortOperationType> supportedSortOperations;
 
 	@OneToMany
+	@JsonProperty("joins")
 	private List<JoinType> supportedJoins;
 
 	@OneToMany
+	@JsonProperty("processes")
 	private List<ProcessType> supportedProcesses;
 
 	@OneToMany
+	@JsonProperty("visualizations")
 	private List<VisualizationType> supportedVisualizations;
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@MapKeyColumn(name = "name")
 	@Column(name = "value")
 	@CollectionTable(name = "resource_parameters", joinColumns = @JoinColumn(name = "id"))
+	@JsonIgnore
 	private Map<String, String> parameters;
 
 	@Transient
+	@JsonIgnore
 	private boolean setup = false;
 
 	/**

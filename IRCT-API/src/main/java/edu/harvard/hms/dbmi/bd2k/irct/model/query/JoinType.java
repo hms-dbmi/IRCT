@@ -18,7 +18,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataTypeJsonConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 
@@ -39,6 +42,7 @@ public class JoinType implements Serializable {
 
 	@ElementCollection
 	@Convert(converter = DataTypeConverter.class)
+	@JsonSerialize(contentConverter = DataTypeJsonConverter.class)
 	private List<DataType> dataTypes;
 	
 	/**
