@@ -80,31 +80,28 @@ public class SystemService {
 	public JsonStructure about() {
 
 		JsonArrayBuilder build = Json.createArrayBuilder();
-		try {
+		try (InputStream in = getClass().getResourceAsStream("build.properties")) {
 			IRCTApplication app = new IRCTApplication();
 			if (app!=null){
 				build.add(Json.createObjectBuilder().add("version", app.getVersion()));
 			}
 
-			Properties prop = new Properties();
-			InputStream in = null;
-			try {
-				in = getClass().getResourceAsStream("build.properties");
-				prop.load(in);
-				in.close();
-
-				for(Object propName: prop.keySet()) {
-					String pn = (String) propName;
-					logger.info("/about property:"+pn);
-				}
-			} catch ( IOException e ) {
-			    logger.error( e.getMessage(), e );
-			} finally {
-			    in.close();
-			}
-
 			// Add user details
 			User user = (User) session.getAttribute("user");
+			
+			//load the user details from property file
+			if (in != null) {
+				Properties prop = new Properties();
+				prop.load(in);
+				
+				if (prop.containsKey("userid")
+						&& prop.containsKey("username")
+						&& prop.getProperty("userid") != null
+						&& prop.getProperty("username") != null) {
+					
+				}
+				
+			}
 			if (user!=null) {
 				build.add(
 						Json.createObjectBuilder()
@@ -112,6 +109,8 @@ public class SystemService {
 						.add("username", user.getName())
 					);
 			}
+		} catch ( IOException | IllegalArgumentException e) {
+		    logger.error( "Reading property file erro: " + e.getMessage());
 		} catch (Exception e) {
 			build.add(Json.createObjectBuilder().add("status", "error").add("message", e.getMessage()));
 		}
