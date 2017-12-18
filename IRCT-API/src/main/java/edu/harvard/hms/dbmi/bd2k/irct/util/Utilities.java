@@ -7,6 +7,15 @@ import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 
 public class Utilities {
 	
+	public final static class Naming {
+		
+		public final static class Whitelist{
+			public static String JSON_NAME = "userid";
+			public static String JSON_RESOURCES = "resources";
+		}
+		
+	}
+	
 	public static IRCTEventListener getIRCTEventListener() {
 		try {
 			InitialContext ic = new InitialContext();
