@@ -22,6 +22,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.collect.ImmutableMap;
+
+import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -39,10 +42,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 public class ResourceService {
 
 	@Inject
-	private ResourceController rc;
+	ResourceController rc;
 
 	@Inject
-	private PathController pc;
+	PathController pc;
 	
 	//@Context
 	//private HttpServletRequest request;
@@ -60,42 +63,11 @@ public class ResourceService {
 	 * @return Response
 	 */
 	@GET
+	@JacksonSerialized
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
-
-		JsonArrayBuilder response = Json.createArrayBuilder();
-		List<Resource> returnResources = null;
-		if (type == null || type.isEmpty()) {
-			returnResources = rc.getResources();
-		} else {
-			switch (type.toLowerCase()) {
-			case "process":
-				returnResources = rc.getProcessResources();
-				break;
-			case "visualization":
-				returnResources = rc.getVisualizationResources();
-				break;
-			case "query":
-				returnResources = rc.getQueryResources();
-				break;
-			default:
-				break;
-			}
-		}
-
-		if (returnResources == null) {
-			JsonObjectBuilder build = Json.createObjectBuilder();
-			build.add("status", "Invalid type");
-			build.add("message",
-					"The type submitted is not a supported resource type");
-			return Response.status(400).entity(build.build()).build();
-		}
-
-		for (Resource resource : returnResources) {
-			response.add(resource.toJson());
-		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+		return Response.ok(rc.getResources(), MediaType.APPLICATION_JSON)
 				.build();
 	}
 
