@@ -1,7 +1,7 @@
 -- SET THE RESOURCE PARAMETERS
-set @resourceName = 'scidbafl';
+set @resourceName = 'SciDBAFL';
 set @resourceInterfaceClass = 'edu.harvard.hms.dbmi.bd2k.irct.ri.scidb.SciDBAFLResourceImplementation';
-set @resourceURL = 'https://ec2-54-209-207-47.compute-1.amazonaws.com:8083');
+set @resourceURL = 'https://ec2-54-209-207-47.compute-1.amazonaws.com:8083';
 set @resourceUsername = 'scidbuser';
 set @resourcePassword = 'UserPassword1';
 
