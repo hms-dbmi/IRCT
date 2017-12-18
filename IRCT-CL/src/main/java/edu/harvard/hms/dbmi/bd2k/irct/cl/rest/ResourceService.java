@@ -68,7 +68,7 @@ public class ResourceService {
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
-		return Response.ok(rc.getResources(), MediaType.APPLICATION_JSON)
+		return Response.ok(rc.getResourcesOfType(type), MediaType.APPLICATION_JSON)
 				.build();
 	}
 
@@ -106,7 +106,6 @@ public class ResourceService {
 	@JacksonSerialized
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response search(@Context UriInfo info) {
-		List<Resource> resources = new ArrayList<Resource>();
 		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
@@ -121,13 +120,7 @@ public class ResourceService {
 			searchParams.put(categoryName, values);
 		}
 
-		List<Resource> returnResources = rc.search(searchParams);
-		if (returnResources != null) {
-			for (Resource resource : returnResources) {
-				resources.add(resource);
-			}
-		}
-		return Response.ok(resources, MediaType.APPLICATION_JSON)
+		return Response.ok(rc.search(searchParams), MediaType.APPLICATION_JSON)
 				.build();
 	}
 
