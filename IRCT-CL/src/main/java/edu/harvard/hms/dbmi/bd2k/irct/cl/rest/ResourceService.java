@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,9 +103,10 @@ public class ResourceService {
 	 */
 	@GET
 	@Path("/search")
+	@JacksonSerialized
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response search(@Context UriInfo info) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
+		List<Resource> resources = new ArrayList<Resource>();
 		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
@@ -122,10 +124,10 @@ public class ResourceService {
 		List<Resource> returnResources = rc.search(searchParams);
 		if (returnResources != null) {
 			for (Resource resource : returnResources) {
-				response.add(resource.toJson());
+				resources.add(resource);
 			}
 		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+		return Response.ok(resources, MediaType.APPLICATION_JSON)
 				.build();
 	}
 
