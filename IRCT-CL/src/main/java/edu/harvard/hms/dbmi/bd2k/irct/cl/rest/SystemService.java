@@ -6,12 +6,14 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Enumeration;
 import java.util.Properties;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
@@ -80,28 +82,32 @@ public class SystemService {
 	public JsonStructure about() {
 
 		JsonArrayBuilder build = Json.createArrayBuilder();
-		try (InputStream in = getClass().getResourceAsStream("build.properties")) {
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream("build.properties")) {
 			IRCTApplication app = new IRCTApplication();
 			if (app!=null){
 				build.add(Json.createObjectBuilder().add("version", app.getVersion()));
 			}
 
-			// Add user details
-			User user = (User) session.getAttribute("user");
-			
-			//load the user details from property file
+			//load the build details from property file if it exists
 			if (in != null) {
 				Properties prop = new Properties();
 				prop.load(in);
 				
-				if (prop.containsKey("userid")
-						&& prop.containsKey("username")
-						&& prop.getProperty("userid") != null
-						&& prop.getProperty("username") != null) {
-					
-				}
+				JsonObjectBuilder job = Json.createObjectBuilder();
 				
+				Enumeration<?> e = prop.propertyNames();
+				while (e.hasMoreElements()) {
+					String key = (String) e.nextElement();
+					String value = prop.getProperty(key, "null");
+					job.add(key, value);
+				}
+				build.add(
+						job.build());
 			}
+			
+
+			// Add user details
+			User user = (User) session.getAttribute("user");
 			if (user!=null) {
 				build.add(
 						Json.createObjectBuilder()
