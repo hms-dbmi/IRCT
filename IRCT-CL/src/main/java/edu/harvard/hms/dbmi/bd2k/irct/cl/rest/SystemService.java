@@ -6,12 +6,14 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Enumeration;
 import java.util.Properties;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
@@ -80,28 +82,29 @@ public class SystemService {
 	public JsonStructure about() {
 
 		JsonArrayBuilder build = Json.createArrayBuilder();
-		try {
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream("build.properties")) {
 			IRCTApplication app = new IRCTApplication();
 			if (app!=null){
 				build.add(Json.createObjectBuilder().add("version", app.getVersion()));
 			}
 
-			Properties prop = new Properties();
-			InputStream in = null;
-			try {
-				in = getClass().getResourceAsStream("build.properties");
+			//load the build details from property file if it exists
+			if (in != null) {
+				Properties prop = new Properties();
 				prop.load(in);
-				in.close();
-
-				for(Object propName: prop.keySet()) {
-					String pn = (String) propName;
-					logger.info("/about property:"+pn);
+				
+				JsonObjectBuilder job = Json.createObjectBuilder();
+				
+				Enumeration<?> e = prop.propertyNames();
+				while (e.hasMoreElements()) {
+					String key = (String) e.nextElement();
+					String value = prop.getProperty(key, "null");
+					job.add(key, value);
 				}
-			} catch ( IOException e ) {
-			    logger.error( e.getMessage(), e );
-			} finally {
-			    in.close();
+				build.add(
+						job.build());
 			}
+			
 
 			// Add user details
 			User user = (User) session.getAttribute("user");
@@ -112,6 +115,8 @@ public class SystemService {
 						.add("username", user.getName())
 					);
 			}
+		} catch ( IOException | IllegalArgumentException e) {
+		    logger.error( "Reading property file erro: " + e.getMessage());
 		} catch (Exception e) {
 			build.add(Json.createObjectBuilder().add("status", "error").add("message", e.getMessage()));
 		}
