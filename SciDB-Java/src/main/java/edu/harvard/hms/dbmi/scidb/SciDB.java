@@ -43,13 +43,6 @@ public class SciDB {
 		this.password = password;
 	}
 	
-	public SciDB() {
-		logger.debug("SciDB() UnSecure mode is turned");
-		
-		this.username = "test";
-		this.password = "test";
-	}
-	
 	/**
 	 * Connect to a local SciDB instance running on port 8080. This command is
 	 * the same as connect("http://localhost:8080");

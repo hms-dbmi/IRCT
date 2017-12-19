@@ -62,11 +62,11 @@ public class Resource implements Serializable {
 	@Convert(converter = ResourceImplementationConverter.class)
 	private ResourceImplementationInterface implementingInterface;
 
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@Convert(converter = DataTypeConverter.class)
 	private List<DataType> dataTypes;
 
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@Convert(converter = OntologyRelationshipConverter.class)
 	private List<OntologyRelationship> relationships;
 

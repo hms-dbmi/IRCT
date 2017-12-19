@@ -143,6 +143,7 @@ public class QueryService implements Serializable {
 		try {
 			Result r = ec.runQuery(query, (User) session.getAttribute("user"));
 			response.add("resultId", r.getId());
+			response.add("status",String.valueOf(r.getResultStatus()));
 		} catch (PersistableException e) {
 			response.add("status", "Error running request");
 			response.add("message", "An error occurred running this request");

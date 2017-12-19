@@ -38,6 +38,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -82,12 +83,14 @@ public class SciDBResourceImplementation implements
 		ProcessResourceImplementationInterface {
 
 	private String resourceName;
-	private String clientId;
-	private String namespace;
 	private boolean ignoreCertificate;
 	private String resourceURL;
+	private String username;
+	private String password;
 
 	private ResourceState resourceState;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/*
 	 * (non-Javadoc)
@@ -105,8 +108,13 @@ public class SciDBResourceImplementation implements
 
 		this.resourceName = parameters.get("resourceName");
 		this.resourceURL = parameters.get("resourceURL");
-		this.clientId = parameters.get("clientId");
-		this.namespace = parameters.get("namespace");
+		this.username = parameters.get("username");
+		this.password = parameters.get("password");
+		
+		if (this.username == null || this.password != null) {
+			throw new RuntimeException("username/password is mandatory");
+		}
+		
 		String certificateString = parameters.get("ignoreCertificate");
 
 		if (certificateString != null && certificateString.equals("true")) {
@@ -139,7 +147,7 @@ public class SciDBResourceImplementation implements
 		String[] pathComponents = basePath.split("/");
 		CSVParser parser = null;
 
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 
 		try {
@@ -237,7 +245,7 @@ public class SciDBResourceImplementation implements
 	public Result runQuery(User user, Query query, Result result)
 			throws ResourceInterfaceException {
 		HttpClient client = createClient(user);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		result.setResultStatus(ResultStatus.CREATED);
 
@@ -255,6 +263,7 @@ public class SciDBResourceImplementation implements
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			logger.error("runQuery() Exception:"+String.valueOf(e.getMessage()));
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(e.getMessage().split("\n")[0]);
 			sciDB.close();
@@ -506,7 +515,7 @@ public class SciDBResourceImplementation implements
 		}
 
 		HttpClient client = createClient(user);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 		try {
 			BufferedReader in = new BufferedReader(
@@ -580,7 +589,7 @@ public class SciDBResourceImplementation implements
 	public Result runProcess(User user, IRCTProcess process,
 			Result result) throws ResourceInterfaceException {
 		HttpClient client = createClient(user);
-		SciDB sciDB = new SciDB();
+		SciDB sciDB = new SciDB(this.username, this.password);
 		sciDB.connect(client, this.resourceURL);
 
 		sciDB.close();

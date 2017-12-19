@@ -118,7 +118,7 @@ public class SystemService {
 		} catch ( IOException | IllegalArgumentException e) {
 		    logger.error( "Reading property file erro: " + e.getMessage());
 		} catch (Exception e) {
-			build.add(Json.createObjectBuilder().add("status", "error").add("message", e.getMessage()));
+			build.add(Json.createObjectBuilder().add("status", "error").add("message", String.valueOf(e.getMessage())));
 		}
 		return build.build();
 	}
