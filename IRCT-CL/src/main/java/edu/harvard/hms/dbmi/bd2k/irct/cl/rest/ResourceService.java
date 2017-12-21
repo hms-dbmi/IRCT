@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.collect.ImmutableMap;
+
+import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -39,10 +43,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 public class ResourceService {
 
 	@Inject
-	private ResourceController rc;
+	ResourceController rc;
 
 	@Inject
-	private PathController pc;
+	PathController pc;
 	
 	//@Context
 	//private HttpServletRequest request;
@@ -60,42 +64,11 @@ public class ResourceService {
 	 * @return Response
 	 */
 	@GET
+	@JacksonSerialized
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
-
-		JsonArrayBuilder response = Json.createArrayBuilder();
-		List<Resource> returnResources = null;
-		if (type == null || type.isEmpty()) {
-			returnResources = rc.getResources();
-		} else {
-			switch (type.toLowerCase()) {
-			case "process":
-				returnResources = rc.getProcessResources();
-				break;
-			case "visualization":
-				returnResources = rc.getVisualizationResources();
-				break;
-			case "query":
-				returnResources = rc.getQueryResources();
-				break;
-			default:
-				break;
-			}
-		}
-
-		if (returnResources == null) {
-			JsonObjectBuilder build = Json.createObjectBuilder();
-			build.add("status", "Invalid type");
-			build.add("message",
-					"The type submitted is not a supported resource type");
-			return Response.status(400).entity(build.build()).build();
-		}
-
-		for (Resource resource : returnResources) {
-			response.add(resource.toJson());
-		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+		return Response.ok(rc.getResourcesOfType(type), MediaType.APPLICATION_JSON)
 				.build();
 	}
 
@@ -130,9 +103,9 @@ public class ResourceService {
 	 */
 	@GET
 	@Path("/search")
+	@JacksonSerialized
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response search(@Context UriInfo info) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
 		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
@@ -147,13 +120,7 @@ public class ResourceService {
 			searchParams.put(categoryName, values);
 		}
 
-		List<Resource> returnResources = rc.search(searchParams);
-		if (returnResources != null) {
-			for (Resource resource : returnResources) {
-				response.add(resource.toJson());
-			}
-		}
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
+		return Response.ok(rc.search(searchParams), MediaType.APPLICATION_JSON)
 				.build();
 	}
 
