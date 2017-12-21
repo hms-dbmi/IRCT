@@ -246,8 +246,10 @@ public class ResourceService {
 		Entity resourcePath = null;
 
 		if (path != null && !path.isEmpty()) {
+			// is this two lines code duplicated?
 			path = "/" + path;
 			path = path.substring(1);
+			
 			resource = rc.getResource(path.split("/")[1]);
 			resourcePath = new Entity(path);		
 		}

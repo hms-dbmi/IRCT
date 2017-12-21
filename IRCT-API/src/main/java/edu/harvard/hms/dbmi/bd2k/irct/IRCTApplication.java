@@ -212,14 +212,18 @@ public class IRCTApplication {
 
 		// Run JPQL to load the resources
 		Query query = oem.createQuery("SELECT res FROM Resource res WHERE res.ontologyType=:arg1").setParameter("arg1", "TREE");
+		@SuppressWarnings("unchecked")
 		List<Resource> resourceList = query.getResultList();
 
 		for (Resource resource : resourceList) {
 			try {
-				logger.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());
+				logger.info("loadResources() Setting up resource:"
+									+ resource.getName()
+									+" with id: "+resource.getId()
+									+", "+resource.getClass().toString());
 				resource.setup();
-				logger.info("loadResources() resource `"+resource.getName()+"` has been loaded");
 				this.resources.put(resource.getName(), resource);
+				logger.info("loadResources() resource `"+resource.getName()+"` has been loaded");
 			} catch (ResourceInterfaceException e) {
 				logger.warn("loadResources() Exception: "+e.getMessage());
 				e.printStackTrace();
