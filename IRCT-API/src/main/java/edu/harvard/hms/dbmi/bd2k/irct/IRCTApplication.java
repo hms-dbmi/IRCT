@@ -3,25 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
+import edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation;
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.DataConverterImplementation;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
+import org.apache.log4j.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import javax.json.JsonValue;
+import javax.json.*;
 import javax.json.stream.JsonParsingException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -33,18 +31,10 @@ import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
-import edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation;
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
-import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.DataConverterImplementation;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.util.*;
 
 /**
  * Manages supported resources and join types for this instance of the IRCT
@@ -226,7 +216,6 @@ public class IRCTApplication {
 				logger.info("loadResources() resource `"+resource.getName()+"` has been loaded");
 			} catch (ResourceInterfaceException e) {
 				logger.warn("loadResources() Exception: "+e.getMessage());
-				e.printStackTrace();
 			}
 		}
 		logger.info("loadResources() Loaded " + this.resources.size() + " resources");

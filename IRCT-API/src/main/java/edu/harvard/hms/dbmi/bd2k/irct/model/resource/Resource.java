@@ -40,6 +40,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.OntologyRelationshipConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConverter;
+import org.apache.commons.logging.impl.Log4JLogger;
 
 /**
  * The resource class provides a way for the IRCT application to keep track of
@@ -127,11 +128,14 @@ public class Resource implements Serializable {
 	public void setup() throws ResourceInterfaceException {
 		boolean isDoneSettingUp = false;
 		try {
-			implementingInterface.setup(this.parameters);
+			if (implementingInterface != null)
+				implementingInterface.setup(this.parameters);
+			else
+				org.apache.log4j.Logger.getLogger(this.getClass()).warn("Resource.setup() resource implementation is null, resource name:  " +
+						this.name);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
-			e.printStackTrace();
+			org.apache.log4j.Logger.getLogger(this.getClass()).error("Resource.setup() Exception: "+e.getMessage());
 		}
 		this.setSetup(isDoneSettingUp);
 	}
