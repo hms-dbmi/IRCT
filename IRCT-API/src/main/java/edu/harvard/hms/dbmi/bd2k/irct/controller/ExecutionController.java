@@ -101,7 +101,6 @@ public class ExecutionController {
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
 
-		// Add the current user to the query.
 		newResult.setUser(user);
 
 		newResult.setResultStatus(ResultStatus.RUNNING);

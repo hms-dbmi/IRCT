@@ -4,8 +4,6 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -14,6 +12,7 @@ import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -23,6 +22,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.log4j.Logger;
+
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -31,9 +32,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
 /**
  * Creates a REST interface for the result service
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Path("/resultService")
 @RequestScoped
@@ -46,8 +44,7 @@ public class ResultService {
 	@Inject
 	private HttpSession session;
 	
-	@Inject
-	private Logger logger;
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	/**
 	 * Returns a list of available results for that user
@@ -58,19 +55,30 @@ public class ResultService {
 	@Path("/available")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response availableResults() {
+		logger.debug("GET /available ");
+		
 		JsonArrayBuilder response = Json.createArrayBuilder();
 		User user = (User) session.getAttribute("user");
 		List<Result> availableResults = rc.getAvailableResults(user);
 
+		if (availableResults.size()<1) {
+			return success("There are no results available.");
+		}
+		
+		logger.debug("GET /available There are "+availableResults.size()+" results available.");
 		for (Result result : availableResults) {
 			JsonObjectBuilder resultJSON = Json.createObjectBuilder();
 			resultJSON.add("resultId", result.getId());
 			resultJSON.add("status", result.getResultStatus().toString());
 			response.add(resultJSON.build());
 		}
-
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
+		logger.debug("GET /available Finished.");
+		return success(availableResults);
+	}
+	
+	private Response success(Object obj) {
+		return Response.ok(Json.createObjectBuilder().add("details",(JsonValue) obj).build(), MediaType.APPLICATION_JSON)
+		.build();
 	}
 
 	/**
@@ -93,11 +101,14 @@ public class ResultService {
 		} else {
 			response.add("resultId", resultId);
 			response.add("status", result.getResultStatus().toString());
-			if(result.getResultStatus() == ResultStatus.ERROR) {
+			response.add("starttime", String.valueOf(result.getStartTime()));
+			response.add("endtime", String.valueOf(result.getEndTime()));
+			response.add("dataType", String.valueOf(result.getDataType()));
+
+			if (result.getResultStatus() == ResultStatus.ERROR) {
 				response.add("message", result.getMessage());
 			}
 		}
-
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -119,19 +130,18 @@ public class ResultService {
 		List<String> availableFormats = rc.getAvailableFormats(user, resultId);
 
 		if (availableFormats == null) {
-			JsonObjectBuilder notFoundResponse = Json.createObjectBuilder();
-			notFoundResponse.add("message",
-					"Unable to get available formats for that id");
-			return Response.ok(notFoundResponse.build(),
-					MediaType.APPLICATION_JSON).build();
+			return success("Unable to get available formats for result #"+resultId);
+		}
+		
+		if (availableFormats.size()<1) {
+			return success("There are no formats available.");
 		}
 
 		for (String availableFormat : availableFormats) {
 			response.add(availableFormat);
 		}
 
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
+		return success("success");
 	}
 
 	/**
@@ -153,13 +163,13 @@ public class ResultService {
 			@PathParam("format") String format,
 			@QueryParam("download") String download) {
 		
-		logger.log(Level.FINE, "/result format:"+(format==null?"null":format)+" download:"+(download==null?"null":download));
+		logger.debug("GET /result format:"+(format==null?"null":format)+" download:"+(download==null?"null":download));
 		User user = (User) session.getAttribute("user");
 
 		ResultDataStream rds = rc.getResultDataStream(user, resultId, format);
 		
 		if ((rds == null) || (rds.getMediaType() == null)) {
-			logger.log(Level.FINE, "/result rds or mediaType is null");
+			logger.debug("GET /result rds or mediaType is null");
 			
 			JsonObjectBuilder jsonResponse = Json.createObjectBuilder();
 			jsonResponse.add("message", "Unable to retrieve result.");
@@ -169,14 +179,14 @@ public class ResultService {
 		}
 
 		if ((download != null) && (download.equalsIgnoreCase("Yes"))) {
-			logger.log(Level.FINE, "/result initiate download with mediaType:"+rds.getMediaType().toString());
+			logger.debug("GET /result initiate download with mediaType:"+rds.getMediaType().toString());
 			return Response
 					.ok(rds.getResult(), rds.getMediaType())
 					.header("Content-Disposition",
 							"attachment; filename=IRCT-" + resultId
 									+ rds.getFileExtension()).build();
 		}
-		logger.log(Level.FINE, "/result returning");
+		logger.debug("GET /result returning");
 		return Response.ok(rds.getResult(), rds.getMediaType()).build();
 	}
 }

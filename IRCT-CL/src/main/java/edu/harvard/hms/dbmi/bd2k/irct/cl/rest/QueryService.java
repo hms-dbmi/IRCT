@@ -27,7 +27,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
+import org.apache.log4j.Logger;
+
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -57,19 +59,21 @@ public class QueryService implements Serializable {
 	private static final long serialVersionUID = -3951500710489406681L;
 
 	@Inject
+	private IRCTApplication picsureAPI;
+
+	@Inject
 	private QueryController qc;
 
 	@Inject
 	private ResourceController rc;
 
 	@Inject
-	private AdminBean admin;
-
-	@Inject
 	private ExecutionController ec;
 
 	@Inject
 	private HttpSession session;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	// TODO For future generations
 	// qc.createQuery();
@@ -131,24 +135,73 @@ public class QueryService implements Serializable {
 		JsonReader jsonReader = Json.createReader(new StringReader(payload));
 		JsonObject jsonQuery = jsonReader.readObject();
 		jsonReader.close();
-		Query query = null;
-		try {
-			query = convertJsonToQuery(jsonQuery);
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
+		
+		// If the queryrequest contains a "source" field, for now, we consider
+		// this as a passthrough type RI, so we just get the referenced resource
+		//
+		if (jsonQuery.containsKey("source")) {
+			String resourceName = jsonQuery.get("source").toString().replace("\"", "");
+			
+			try {
+				//edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
+				if (picsureAPI.getResources() == null || picsureAPI.getResources().size() < 1) {
+					return Response.status(400).entity(
+							response
+								.add("status","error")
+								.add("message", "There are no sources defined.")
+								.build()							
+					).build();
+					// return ErrorResponse("There are no sources defined.");
+				}
+				
+				Resource source = picsureAPI.getResources().get(resourceName);
+				if (source == null) {
+					return Response.status(400).entity(
+							response
+								.add("status","error")
+								.add("message", "Source `"+resourceName+"` is not defined.")
+								.build()							
+					).build();
+				}
+				if(!source.isSetup()) {
+					source = rc.getResource(source.getName());
+				}
+				
+				JsonArray queryRequest = jsonQuery.getJsonArray("request");
+				response.add("status", "ok so far");
+				response.add("status", "got something "+queryRequest.toString());
+				
+			} catch (Exception e) {
+				return Response.status(400).entity(
+						response
+							.add("status","error")
+							.add("message", "Could not run passthrough query."+(e.getMessage()==null?e:e.getMessage()))
+							.build()							
+				).build();
+			}
+			
+		} else {
+			// This is the original logic, where the query is parsed by the CL module
+			// and NOT by the RI
+			Query query = null;
+			try {
+				query = convertJsonToQuery(jsonQuery);
+			} catch (Exception e) {
+				response.add("status", "error");
+				response.add("message", e.getMessage());
+				return Response.status(400).entity(response.build()).build();
+			}
 
-		try {
-			Result r = ec.runQuery(query, (User) session.getAttribute("user"));
-			response.add("resultId", r.getId());
-		} catch (PersistableException e) {
-			response.add("status", "Error running request");
-			response.add("message", "An error occurred running this request");
-			return Response.status(400).entity(response.build()).build();
+			try {
+				Result r = ec.runQuery(query, (User) session.getAttribute("user"));
+				response.add("resultId", r.getId());
+			} catch (Exception e) {
+				response.add("status", "error");
+				response.add("message", e.getMessage());
+				return Response.status(400).entity(response.build()).build();
+			}
 		}
-
+		
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -171,7 +224,6 @@ public class QueryService implements Serializable {
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
