@@ -62,6 +62,23 @@ public class ResourceController {
 		return irctApp.getResources().get(resource);
 	}
 
+	public List<Resource> getResourcesOfType(String resourceType) {
+		if (resourceType == null || resourceType.isEmpty()) {
+			return getResources();
+		} else {
+			switch (resourceType.toLowerCase()) {
+			case "process":
+				return getProcessResources();
+			case "visualization":
+				return getVisualizationResources();
+			case "query":
+				return getQueryResources();
+			default :
+				return new ArrayList<Resource>();
+			}
+		}
+	}
+
 	/**
 	 * Returns a list of all resources that implement the
 	 * QueryResourceImplementationInterface and there for can have queries run

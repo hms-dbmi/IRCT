@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
@@ -31,9 +29,12 @@ import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.FlushModeType;
+import javax.persistence.Query;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
+
+import org.apache.log4j.Logger;
 
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation;
@@ -48,9 +49,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 /**
  * Manages supported resources and join types for this instance of the IRCT
  * application
- *
- * @author Jeremy R. Easton-Marks
- *
  */
 @Startup
 @Singleton
@@ -71,8 +69,7 @@ public class IRCTApplication {
 	private Map<ResultDataType, List<DataConverterImplementation>> resultDataConverters;
 	
 
-	@Inject
-	Logger log;
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	@Inject
 	private EntityManagerFactory objectEntityManager;
@@ -89,31 +86,31 @@ public class IRCTApplication {
 	 */
 	@PostConstruct
 	public void init() {
-		log.info("Starting IRCT Application");
+		logger.info("Starting IRCT Application");
 		this.oem = objectEntityManager.createEntityManager();
 		this.oem.setFlushMode(FlushModeType.COMMIT);
 
-		log.info("Loading Data Converters");
+		logger.info("Loading Data Converters");
 		loadDataConverters();
-		log.info("Finished Data Converters");
+		logger.info("Finished Data Converters");
 
-		log.info("Loading Event Listeners");
+		logger.info("Loading Event Listeners");
 		loadIRCTEventListeners();
-		log.info("Finished Loading Event Listeners");
+		logger.info("Finished Loading Event Listeners");
 
-		log.info("Loading Join Types");
+		logger.info("Loading Join Types");
 		loadJoins();
-		log.info("Finished Loading Join Types");
+		logger.info("Finished Loading Join Types");
 
-		log.info("Loading Resources");
+		logger.info("Loading Resources");
 		loadResources();
-		log.info("Finished Loading Resources");
+		logger.info("Finished Loading Resources");
 		
-		log.info("Loading Whitelists");
+		logger.info("Loading Whitelists");
 		loadWhiteLists();
-		log.info("Finihsed loading whitelists");
+		logger.info("Finihsed loading whitelists");
 		
-		log.info("Finished Starting IRCT Application");
+		logger.info("Finished Starting IRCT Application");
 	}
 
 	public String getVersion() {
@@ -132,7 +129,7 @@ public class IRCTApplication {
 				version = p.getProperty("version", "");
 			}
 		} catch (Exception e) {
-			log.log(Level.INFO, "getVersion() ERROR:" + e.getMessage());
+			logger.error("getVersion() Exception:" + e.getMessage());
 		}
 
 		if (version == null) {
@@ -159,7 +156,7 @@ public class IRCTApplication {
 			irctEventListener.registerListener(irctEvent);
 		}
 
-		log.info("Loaded " + allEventListeners.size() + " IRCT Event listeners");
+		logger.info("Loaded " + allEventListeners.size() + " IRCT Event listeners");
 	}
 
 	/**
@@ -184,7 +181,7 @@ public class IRCTApplication {
 
 		}
 
-		log.info("Loaded " + allDCI.size() + " result data converters");
+		logger.info("Loaded " + allDCI.size() + " result data converters");
 	}
 
 	/**
@@ -201,7 +198,7 @@ public class IRCTApplication {
 		for (IRCTJoin jt : oem.createQuery(criteria).getResultList()) {
 			this.supportedJoinTypes.put(jt.getName(), jt);
 		}
-		log.info("Loaded " + this.supportedJoinTypes.size() + " joins");
+		logger.info("Loaded " + this.supportedJoinTypes.size() + " joins");
 	}
 
 	/**
@@ -210,28 +207,25 @@ public class IRCTApplication {
 	 *
 	 */
 	private void loadResources() {
-		log.info("loadResources() Starting");
+		logger.info("loadResources() Starting");
 		setResources(new HashMap<String, Resource>());
 
-		// Run JPA Query to load the resources
-		CriteriaBuilder cb = oem.getCriteriaBuilder();
-		CriteriaQuery<Resource> criteria = cb.createQuery(Resource.class);
-		Root<Resource> load = criteria.from(Resource.class);
-		criteria.select(load);
-		criteria.where(cb.equal(load.get("ontologyType"),"TREE"));
+		// Run JPQL to load the resources
+		Query query = oem.createQuery("SELECT res FROM Resource res WHERE res.ontologyType=:arg1").setParameter("arg1", "TREE");
+		List<Resource> resourceList = query.getResultList();
 
-		for (Resource resource : oem.createQuery(criteria).getResultList()) {
+		for (Resource resource : resourceList) {
 			try {
-				log.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());
+				logger.info("loadResources() Setting up resource:"+resource.toString()+" "+resource.getId()+" "+resource.getClass().toString());
 				resource.setup();
-				log.info("loadResources() resource `"+resource.getName()+"` has been loaded");
+				logger.info("loadResources() resource `"+resource.getName()+"` has been loaded");
 				this.resources.put(resource.getName(), resource);
 			} catch (ResourceInterfaceException e) {
-				log.warning("loadResources() Exception: "+e.getMessage());
+				logger.warn("loadResources() Exception: "+e.getMessage());
 				e.printStackTrace();
 			}
 		}
-		log.info("loadResources() Loaded " + this.resources.size() + " resources");
+		logger.info("loadResources() Loaded " + this.resources.size() + " resources");
 	}
 	
 	/**
@@ -389,6 +383,15 @@ public class IRCTApplication {
 	
 	/**
 	 *  Loads the white lists into application
+	 *  
+	 *  <p>Instead of using @javax.annotation.Resource to auto read the resource from JNDI,
+	 *  which is kind of mandatory (throw a <code>NamingException</code> never be handled and will stop the load progress), 
+	 *  here we read and handle the exception to not stop the progress, which kind of allowing optionally configure.
+	 *  
+	 *  <p>For exception handling: besides disabling the functionality - setting the field in configuration xml file 
+	 *  to false or the location field is not in the list,
+	 *  all other exceptions will end up not making any changes to the whitelist map, which means will never break 
+	 *  the load progress.
 	 *  @author yuzhang
 	 */
 	private void loadWhiteLists() {
@@ -401,17 +404,19 @@ public class IRCTApplication {
 		}
 		
 		if (whitelistLocation.equals("false")){
-			log.info("Whitelist functionality is not enabled");
+			logger.info("Whitelist functionality is not enabled");
 			whitelistEnabled = false;
 			return;
 		} else {
-			whitelist = new HashMap<>();
+			// to be able to support change the configuration white list Json file at runtime
+			if (whitelist == null)
+				whitelist = new HashMap<>();
 			whitelistEnabled = true;
 		}
 		
 		try (JsonReader reader = Json.createReader(
 				new FileInputStream(whitelistLocation))) {
-			log.info("starting to read whitelist file in: " + whitelistLocation);
+			logger.debug("starting to read whitelist file in: " + whitelistLocation);
 			JsonArray jsonArray = reader.readArray();
 			for (JsonValue value : jsonArray) {
 				JsonObject valueObject = ((JsonObject)value);
@@ -425,24 +430,24 @@ public class IRCTApplication {
 						whitelist.put(name, resources);
 						// change to Log4j
 						// then change to debug
-						log.info("Added one email from whitelist: " + name
+						logger.debug("Added one email from whitelist: " + name
 								+ " with resources: " + resources.toString());
 					} catch (ClassCastException | NullPointerException npe) {
-						log.log(Level.SEVERE, "The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
+						logger.error("The format of each object in whitelist array is not right. Please take a look into the sample whitelist json");
 					}
 					
 				}
 			}
 		
 		} catch (FileNotFoundException ex) {
-			log.info("Cannot find the whitelist file, please check your configuration file. "
+			logger.error("Cannot find the whitelist file, please check your configuration file. "
 					+ "Your file location: " + whitelistLocation);
 		} catch (ClassCastException cce ) {
 			// change this to Log4J would be great
 			// I think another ticket is changing this to Log4j
-			log.log(Level.SEVERE, "The root layer of whitelist should be an array");
+			logger.error("The root layer of whitelist should be an array");
 		} catch (JsonParsingException ex) {
-			log.log(Level.INFO, "Input whitelist file is not well formatted");
+			logger.error("Input whitelist file is not well formatted");
 		}
 	}
 

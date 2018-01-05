@@ -7,9 +7,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 
 public class Utilities {
 	
-	public static class Naming {
+	public final static class Naming {
 		
-		public static class Whitelist{
+		public final static class Whitelist{
 			public static String JSON_NAME = "userid";
 			public static String JSON_RESOURCES = "resources";
 		}

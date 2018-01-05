@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -18,9 +20,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-
+import com.google.common.collect.ImmutableMap;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
 import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
@@ -37,14 +39,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 public class ResourceService {
 
 	@Inject
-	private ResourceController rc;
+	ResourceController rc;
 
 	@Inject
-	private PathController pc;
-
-	// @Context
-	// private HttpServletRequest request;
-
+	PathController pc;
+	
 	@Inject
 	private HttpSession session;
 
@@ -60,29 +59,13 @@ public class ResourceService {
 	 * @return Response
 	 */
 	@GET
+	@JacksonSerialized
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resources(@QueryParam(value = "type") String type) {
 
-		List<Resource> returnResources = null;
-		if (type == null || type.isEmpty()) {
-			returnResources = rc.getResources();
-		} else {
-			switch (type.toLowerCase()) {
-			case "process":
-				returnResources = rc.getProcessResources();
-				break;
-			case "visualization":
-				returnResources = rc.getVisualizationResources();
-				break;
-			case "query":
-				returnResources = rc.getQueryResources();
-				break;
-			default:
-				break;
-			}
-		}
-		return  (returnResources == null?error("The type submitted is not a supported resource type"): success(returnResources));
+		return Response.ok(rc.getResourcesOfType(type), MediaType.APPLICATION_JSON)
+				.build();
 	}
 
 	/**
@@ -134,12 +117,34 @@ public class ResourceService {
 		}
 	}
 
-	private Response success(Object obj) {
-		return Response.status(200).type(MediaType.APPLICATION_JSON).entity(obj).build();
-	}
+	/**
+	 * Searches the resources for ones that match a category
+	 *
+	 * @param info
+	 *            URI information
+	 * @return List of resources that match that category
+	 */
+	@GET
+	@Path("/search")
+	@JacksonSerialized
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response search(@Context UriInfo info) {
+		Map<String, List<String>> searchParams = new HashMap<String, List<String>>();
+		
+		for (String categoryName : info.getQueryParameters().keySet()) {
+			List<String> values = info.getQueryParameters().get(categoryName);
+			if (!rc.isValidCategory(categoryName)) {
+				JsonObjectBuilder build = Json.createObjectBuilder();
+				build.add("status", "Invalid resource category");
+				build.add("message", categoryName
+						+ " is not a supported resource category");
+				return Response.status(400).entity(build.build()).build();
+			}
+			searchParams.put(categoryName, values);
+		}
 
-	private Response error(Object obj) {
-		return Response.status(400).type(MediaType.APPLICATION_JSON).entity(obj).build();
+		return Response.ok(rc.search(searchParams), MediaType.APPLICATION_JSON)
+				.build();
 	}
 
 	@GET

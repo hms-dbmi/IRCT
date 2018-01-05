@@ -67,11 +67,11 @@ public class VisualizationType implements Serializable {
 	public JsonObject toJson(int depth) {
 		depth--;
 		
-		JsonObjectBuilder processTypeJSON = Json.createObjectBuilder();
+		JsonObjectBuilder visualizationTypeJSON = Json.createObjectBuilder();
 		
-		processTypeJSON.add("name", name);
-		processTypeJSON.add("displayName", displayName);
-		processTypeJSON.add("description", description);
+		visualizationTypeJSON.add("name", name);
+		visualizationTypeJSON.add("displayName", displayName);
+		visualizationTypeJSON.add("description", description);
 		
 		JsonArrayBuilder fieldType = Json.createArrayBuilder();
 		if (this.fields != null) {
@@ -79,11 +79,11 @@ public class VisualizationType implements Serializable {
 				fieldType.add(value.toJson());
 			}
 		}
-		processTypeJSON.add("fields", fieldType);
+		visualizationTypeJSON.add("fields", fieldType);
 		
-		processTypeJSON.add("returns", returns.toString());
+		visualizationTypeJSON.add("returns", returns.toString());
 		
-		return processTypeJSON.build();
+		return visualizationTypeJSON.build();
 	}
 
 	/**

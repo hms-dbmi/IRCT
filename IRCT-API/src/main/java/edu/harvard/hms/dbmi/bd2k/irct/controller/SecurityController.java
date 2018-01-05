@@ -125,6 +125,7 @@ public class SecurityController {
 			
 		} catch(NoResultException e){
 			logger.error("validateKey() The key is not in the database. Cannot authenticate the user.");
+			throw new RuntimeException("The key is not in the database. Cannot authenticate the user");
 		} catch(Exception e){
 			logger.error("validateKey() Exception:" + e.getMessage());
 			throw new RuntimeException("User cannot be validated based on the key", e);
