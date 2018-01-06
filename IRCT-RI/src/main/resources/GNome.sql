@@ -7,7 +7,7 @@ set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.irct.ri.gnome.GN
 set @resourceOntology = 'TREE';
 
 -- SET THE RESOURCE VARIABLE
-set @resourceId = (select IF(id is NULL,0,max(id)) from Resource) + 1;
+set @resourceId = (select NULLIF(max(id), 0) from Resource) + 1;
 
 -- INSERT THE RESOURCE
 insert into `Resource`(`id`, `implementingInterface`, `name`, `ontologyType`) values(@resourceId, @resourceImplementingInterface, @resourceName, @resourceOntology);

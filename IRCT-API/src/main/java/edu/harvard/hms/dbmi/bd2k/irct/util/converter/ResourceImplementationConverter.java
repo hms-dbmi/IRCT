@@ -47,7 +47,7 @@ public class ResourceImplementationConverter implements
 						return (ResourceImplementationInterface) Class.forName(latestClassPath)
 								.newInstance();
 					else
-						logger.warn("Resource Implementation: cannot find the latest classpath mapping");
+						logger.error("Resource Implementation: cannot find the latest classpath mapping");
 				} catch (ClassNotFoundException e) {
 					logger.error("Resource Implementation: class not found: " + className);
 				} catch (InstantiationException | IllegalAccessException e) {
