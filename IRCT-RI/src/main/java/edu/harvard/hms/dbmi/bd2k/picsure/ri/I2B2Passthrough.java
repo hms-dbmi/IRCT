@@ -1,7 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
+package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -60,6 +57,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
@@ -89,10 +87,10 @@ import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
 
 /**
- * A resource implementation of a resource that communicates with the i2b2
- * servers via XML
+ * A resource implementation of a data source that communicates with the i2b2
+ * servers via encoded XML
  */
-public class I2B2XMLResourceImplementation
+public class I2B2Passthrough
 		implements QueryResourceImplementationInterface, PathResourceImplementationInterface {
 
 	Logger logger = Logger.getLogger(this.getClass());
@@ -100,13 +98,14 @@ public class I2B2XMLResourceImplementation
 	protected String resourceName;
 	protected String resourceURL;
 	protected String domain;
-	protected String clientId;
+	
 	protected String namespace;
 	protected boolean useProxy;
 	protected boolean ignoreCertificate;
 	protected String proxyURL;
 	protected String userName;
 	protected String password;
+	
 	protected CRCCell crcCell;
 	protected PMCell pmCell;
 	protected ONTCell ontCell;
@@ -117,55 +116,12 @@ public class I2B2XMLResourceImplementation
 	public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
 
 		if (!parameters.keySet().contains("resourceName")) {
-			throw new ResourceInterfaceException("Missing ```resourceName``` parameter. It is mandatory");
+			throw new ResourceInterfaceException("Missing mandatory `resourceName` parameter.");
 		}
 
 		if (!parameters.keySet().contains("resourceURL")) {
-			throw new ResourceInterfaceException("Missing ```resourceURL``` parameter. It is mandatory.");
+			throw new ResourceInterfaceException("Missing mandatory `resourceURL` parameter.");
 		}
-
-		if (!parameters.keySet().contains("domain")) {
-			throw new ResourceInterfaceException("Missing ```domain``` parameter. It is mandatory");
-		}
-
-		this.resourceName = parameters.get("resourceName");
-		logger.debug("setup() resourceName:" + (this.resourceName != null ? this.resourceName : "NULL"));
-
-		this.resourceURL = parameters.get("resourceURL");
-		logger.debug("setup() resourceURL:" + (this.resourceName != null ? this.resourceURL : "NULL"));
-
-		this.domain = parameters.get("domain");
-		logger.debug("setup() domain:" + (this.resourceName != null ? this.domain : "NULL"));
-
-		this.clientId = parameters.get("clientId");
-		logger.debug("setup() clientId:" + (this.clientId != null ? this.clientId : "NULL"));
-
-		this.namespace = parameters.get("namespace");
-		logger.debug("setup() namespace:" + (this.namespace != null ? this.namespace : "NULL"));
-
-		this.proxyURL = parameters.get("proxyURL");
-		logger.debug("setup() proxyURL:" + (this.proxyURL != null ? this.proxyURL : "NULL"));
-
-		String certificateString = parameters.get("ignoreCertificate");
-		logger.debug("certificateString:" + (certificateString != null ? certificateString : "NULL"));
-
-		if (this.proxyURL == null) {
-			this.useProxy = false;
-			this.userName = parameters.get("username");
-			this.password = parameters.get("password");
-			logger.debug("setup() Since no proxyURL has been specified. using username/password [" + this.userName + "/"
-					+ this.password + "]");
-		} else {
-			logger.debug("setup() Using proxyURL to connect to i2b2??? We shall see ;)");
-			this.useProxy = true;
-		}
-
-		if (certificateString != null && certificateString.equals("true")) {
-			this.ignoreCertificate = true;
-		} else {
-			this.ignoreCertificate = false;
-		}
-		logger.debug("setup() ```ignoreCeriticate``` is "+ (this.ignoreCertificate ? "TRUE" : "FALSE"));
 
 		// Setup Cells
 		logger.debug("setup() Setting up CRCCell");
@@ -180,7 +136,7 @@ public class I2B2XMLResourceImplementation
 
 	@Override
 	public String getType() {
-		return "i2b2XML";
+		return "i2b2passthrough";
 	}
 
 	@Override
@@ -279,9 +235,10 @@ public class I2B2XMLResourceImplementation
 				throw new ResourceInterfaceException(relationship.toString() + " not supported by this resource");
 			}
 		} catch (Exception e) {
-			logger.error("getPathRelationship() Exception:", e);
+			logger.error("getPathRelationship()", e);
 			throw new ResourceInterfaceException(e.getMessage());
 		}
+
 		return entities;
 	}
 
