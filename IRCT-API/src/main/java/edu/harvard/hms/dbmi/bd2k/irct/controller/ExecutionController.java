@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
@@ -38,7 +39,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
  * execution plan and running it.
  */
 @Stateless
-public class ExecutionController {
+public class ExecutionController implements Serializable{
 
 	@Inject
 	Logger log;
