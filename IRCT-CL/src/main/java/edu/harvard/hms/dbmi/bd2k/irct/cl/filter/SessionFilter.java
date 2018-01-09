@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import org.apache.log4j.Logger;
@@ -71,9 +72,8 @@ public class SessionFilter implements Filter {
 			
 			try {
 				User user = (User) session.getAttribute("user");
-				user = new User("test");
-//				if (user == null)
-//					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
+				if (user == null)
+					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
 				logger.debug("doFilter() got user object. userId:"+user.getUserId());
 				
 				//DI-994: email whitelist for authorization without a token
