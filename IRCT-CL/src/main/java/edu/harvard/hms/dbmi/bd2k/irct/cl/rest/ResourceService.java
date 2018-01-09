@@ -3,26 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import com.google.common.collect.ImmutableMap;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
-import org.apache.log4j.Logger;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
@@ -31,6 +13,18 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Creates a REST interface for the resource service
@@ -89,11 +83,11 @@ public class ResourceService {
 
 		if (name != null && !name.isEmpty()) {
 			// Only get the named resource.
-			return success(rc.getResource(name));
+			return IRCTResponse.success(rc.getResource(name));
 		} else {
 			List<Resource> returnResources = null;
 			if (type == null || type.isEmpty()) {
-				return success(rc.getResources());
+				return IRCTResponse.success(rc.getResources());
 			} else {
 				switch (type.toLowerCase()) {
 				case "process":
@@ -106,14 +100,14 @@ public class ResourceService {
 					returnResources = rc.getQueryResources();
 					break;
 				default:
-					return error("The type `" + type + "` is unsupported.");
+					return IRCTResponse.error("The type `" + type + "` is unsupported.");
 				}
 			}
 			if (returnResources == null)
-				return error("The type `" + type + "` is not a supported resource type");
+				return IRCTResponse.error("The type `" + type + "` is not a supported resource type");
 			if (returnResources.size() < 1)
-				return success("There are no resources available.");
-			return success(returnResources);
+				return IRCTResponse.success("There are no resources available.");
+			return IRCTResponse.success(returnResources);
 		}
 	}
 
@@ -133,18 +127,10 @@ public class ResourceService {
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
 			List<String> values = info.getQueryParameters().get(categoryName);
-			if (!rc.isValidCategory(categoryName)) {
-				JsonObjectBuilder build = Json.createObjectBuilder();
-				build.add("status", "Invalid resource category");
-				build.add("message", categoryName
-						+ " is not a supported resource category");
-				return Response.status(400).entity(build.build()).build();
-			}
 			searchParams.put(categoryName, values);
 		}
 
-		return Response.ok(rc.search(searchParams), MediaType.APPLICATION_JSON)
-				.build();
+		return IRCTResponse.applicationError("This feature is not yet implemented.");
 	}
 
 	@GET
@@ -160,7 +146,7 @@ public class ResourceService {
 				&& info.getQueryParameters().containsKey("ontologyType")) {
 			findInformation = new FindByOntology();
 		} else {
-			return error("Find is missing parameters. Use `term` or `ontologyTerm` and `ontologyType`");
+			return IRCTResponse.error("Find is missing parameters. Use `term` or `ontologyTerm` and `ontologyType`");
 		}
 
 		// Set up path information
@@ -202,9 +188,9 @@ public class ResourceService {
 
 		try {
 			List<Entity> entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
-			return success(entities);
+			return IRCTResponse.success(entities);
 		} catch (Exception e) {
-			return error(e);
+			return IRCTResponse.error(e);
 		}
 	}
 
@@ -247,7 +233,7 @@ public class ResourceService {
 			try {
 				entities = pc.traversePath(resource, resourcePath, resource.getRelationshipByName(relationshipString),currentUser);
 			} catch (Exception e) {
-				return error(e.getMessage());
+				return IRCTResponse.error(e.getMessage());
 			}
 			
 		} else if (path == null || path.isEmpty()) {
@@ -255,16 +241,16 @@ public class ResourceService {
 				entities = pc.getAllResourcePaths();
 			} catch (Exception e) {
 				logger.error("GET /path Exception:",e);
-				return error(e.getMessage());
+				return IRCTResponse.error(e.getMessage());
 			}
 		} else {
-			return error("Resource is null and Path is missing.");
+			return IRCTResponse.error("Resource is null and Path is missing.");
 		}
 
 		if (entities != null) {
-			return success(entities);
+			return IRCTResponse.success(entities);
 		} else {
-			return error("Could not find any entities.");
+			return IRCTResponse.error("Could not find any entities.");
 		}
 	}
 }

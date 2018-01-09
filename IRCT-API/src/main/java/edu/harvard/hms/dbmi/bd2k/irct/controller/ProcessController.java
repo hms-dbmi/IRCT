@@ -3,21 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
-
-import javax.ejb.Stateful;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ProcessException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+
+import javax.ejb.Stateful;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * A stateless controller for creating a process
@@ -26,7 +26,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
  *
  */
 @Stateful
-public class ProcessController {
+public class ProcessController implements Serializable{
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 

@@ -25,6 +25,7 @@ import java.util.Map;
 @Stateful
 public class QueryController implements Serializable{
 
+
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
 

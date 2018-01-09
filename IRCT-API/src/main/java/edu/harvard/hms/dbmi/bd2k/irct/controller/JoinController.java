@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import javax.ejb.Stateful;
-import javax.inject.Inject;
-
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.JoinException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.IRCTJoin;
 import edu.harvard.hms.dbmi.bd2k.irct.model.join.Join;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
+
+import javax.ejb.Stateful;
+import javax.inject.Inject;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A stateful controller for creating joins.
@@ -25,7 +25,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
  *
  */
 @Stateful
-public class JoinController {
+public class JoinController implements Serializable{
 
 	@Inject
 	private IRCTApplication irctApp;

@@ -4,10 +4,10 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Enumeration;
-import java.util.Properties;
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -20,12 +20,10 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * Creates a REST interface for the systems service.
@@ -101,16 +99,16 @@ public class SystemService {
 					String value = prop.getProperty(key, "null");
 					job.add(key, value);
 				}
-				build.add(
-						job.build());
+				build.add(job
+						.build());
 			}
 			
 
 			// Add user details
 			User user = (User) session.getAttribute("user");
 			if (user!=null) {
-				build.add(
-						Json.createObjectBuilder()
+				build.add(Json
+						.createObjectBuilder()
 						.add("userid", user.getUserId())
 						.add("username", user.getName())
 					);
