@@ -1,25 +1,46 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
-public class IRCTResponseError {
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    private String status = "error";
+import java.io.Serializable;
+
+@JsonSerialize
+public class IRCTResponseError implements Serializable {
+
+    private String errorType = "error";
 
     private Object message;
 
     public IRCTResponseError() {
     }
 
-    public IRCTResponseError(String status) {
-        this.status = status;
+    public IRCTResponseError(String errorType) {
+        this.errorType = errorType;
     }
 
     public IRCTResponseError(Object message) {
         this.message = message;
     }
 
-    public IRCTResponseError(String status, Object message) {
-        if (status != null && !status.isEmpty())
-            this.status = status;
+    public IRCTResponseError(String errorType, Object message) {
+        if (errorType != null && !errorType.isEmpty())
+            this.errorType = errorType;
+        this.message = message;
+    }
+
+    public String getErrorType() {
+        return errorType;
+    }
+
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
+    }
+
+    public Object getMessage() {
+        return message;
+    }
+
+    public void setMessage(Object message) {
         this.message = message;
     }
 }

@@ -16,8 +16,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonObjectBuilder;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -129,18 +127,10 @@ public class ResourceService {
 		
 		for (String categoryName : info.getQueryParameters().keySet()) {
 			List<String> values = info.getQueryParameters().get(categoryName);
-			if (!rc.isValidCategory(categoryName)) {
-				JsonObjectBuilder build = Json.createObjectBuilder();
-				build.add("status", "Invalid resource category");
-				build.add("message", categoryName
-						+ " is not a supported resource category");
-				return Response.status(400).entity(build.build()).build();
-			}
 			searchParams.put(categoryName, values);
 		}
 
-		return Response.ok(rc.search(searchParams), MediaType.APPLICATION_JSON)
-				.build();
+		return IRCTResponse.applicationError("This feature is not yet implemented.");
 	}
 
 	@GET

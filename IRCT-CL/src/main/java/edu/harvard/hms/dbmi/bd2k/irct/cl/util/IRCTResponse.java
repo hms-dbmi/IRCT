@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+/**
+ *
+ */
 public class IRCTResponse {
 
     private static final MediaType DEFAULT_MEDIA_TYPE = MediaType.APPLICATION_JSON_TYPE;
@@ -34,11 +37,37 @@ public class IRCTResponse {
         return error(DEFAULT_RESPONSE_ERROR_CODE, content, type);
     }
 
+    public static Response error(Response.Status status, Object content){
+        return error(status, content, MediaType.APPLICATION_JSON_TYPE);
+    }
+
+    public static Response protocolError(Response.Status status, Object content){
+        return error(status, content, MediaType.APPLICATION_JSON_TYPE);
+    }
+
     public static Response error(Response.Status status, Object content, MediaType type){
         return Response.status(status)
                 .entity(new IRCTResponseError(content))
                 .type(type)
                 .build();
+    }
+
+    /**
+     *
+     * @param content
+     * @return
+     */
+    public static Response applicationError(Object content){
+        return success(new IRCTResponseError(content));
+    }
+
+    /**
+     *
+     * @param content
+     * @return
+     */
+    public static Response riError(Object content){
+        return success(new IRCTResponseError("ri_error", content));
     }
 
 }
