@@ -100,8 +100,7 @@ public class Utilities {
 				logger.debug("extractEmailFromJWT() validation is successful.");
 			} catch (Exception e) {
 				logger.debug("extractEmailFromJWT() Second validation has failed as well."+e.getMessage());
-				throw new NotAuthorizedException(Response.status(401)
-						.entity("Could not validate with a plain, not-encoded client secret. "+e.getMessage()));
+				throw new RuntimeException("Could not validate with a plain, not-encoded client secret. "+e.getMessage());
 			}
 		}
 		

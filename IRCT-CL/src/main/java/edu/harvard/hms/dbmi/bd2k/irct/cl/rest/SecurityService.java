@@ -5,6 +5,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
@@ -20,10 +21,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.log4j.Logger;
 
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
@@ -71,59 +74,31 @@ public class SecurityService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createKey(@Context HttpServletRequest req) {
 		logger.debug("/createKey Starting");
-
-		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
 			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
 			logger.debug("/createKey user exists");
 			userObject.setToken(Utilities.extractToken(req));
-			
-			/*
-			Enumeration<String> keys = req.getAttributeNames();
-			while(keys.hasMoreElements()) {
-				String element = keys.nextElement();
-				logger.debug("Element:"+element);
-			}
-			*/
 			
 			String key = sc.createKey(userObject);
 			// IF USER IS LOGGED IN
 			if (key != null) {
 				userObject.setAccessKey(key);
 				sc.updateUserRecord(userObject);
-				build.add("status", "ok");
-				build.add("key", key);
+				logger.debug("/createKey user updated. key:"+key);				
+				return IRCTResponse.success(userObject);
 			} else {
-				build.add("status", "error");
-				build.add("message", "Unable to generate key for user:"+userObject.getName()+" and token:"+session.getAttribute("token"));
-				return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-						.entity(build.build()).build();
+				return IRCTResponse.protocolError(Status.UNAUTHORIZED, "Unable to generate key for user:"+userObject.getName()+" and token:"+session.getAttribute("token"));		
 			}	
 		} catch (IllegalArgumentException e) {
 			logger.error("/createKey IllegalArgumentException");
-			
-			build.add("status", "error");
-			build.add("message", "JWT token is not a token."+e.getMessage());
-			return Response.status(Response.Status.FORBIDDEN)
-					.entity(build.build()).build();
-			
+			return IRCTResponse.protocolError(Status.UNAUTHORIZED, "JWT token is not a token."+e.getMessage());			
 		} catch (UnsupportedEncodingException e) {
 			logger.error("/createKey UnsupportedEncodingException");
-			
-			build.add("status", "error");
-			build.add("message", "Invalid encoding for JWT token handling");
-			return Response.status(Response.Status.FORBIDDEN)
-					.entity(build.build()).build();
+			return IRCTResponse.protocolError(Status.UNAUTHORIZED, "Invalid encoding for JWT token handling");
 		} catch (Exception e) {
 			logger.error("/createKey Exception:"+e.getMessage());
-			
-			build.add("status", "error");
-			build.add("message", "Unknown exception, while creating key:"+e.getMessage());
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-					.entity(build.build()).build();
+			return IRCTResponse.applicationError(e.getMessage());
 		}
-		logger.debug("/createKey Success. Finished");
-		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 	
 	/**
