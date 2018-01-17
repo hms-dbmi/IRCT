@@ -1,8 +1,6 @@
 package edu.harvard.hms.dbmi.bd2k.irct.model.result.json;
 
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
 
 /**
@@ -27,14 +25,9 @@ public interface JSONResultImpl extends Data {
 	/**
 	 * Set the json object to save
 	 * 
-	 * @param jsonObject JSON Object
+	 * @param jsonNode Jackson JSON Node
 	 */
-	void setObject(JsonObject jsonObject);
+	JSONResultImpl setJsonNode(JsonNode jsonNode);
 
-	/**
-	 * Sets the json array to save
-	 * @param jsonArray JSON Array
-	 */
-	void setArray(JsonArray jsonArray);
 
 }

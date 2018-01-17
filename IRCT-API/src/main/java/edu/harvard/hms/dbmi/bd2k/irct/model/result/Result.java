@@ -3,31 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.result;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
+import org.apache.log4j.Logger;
 
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.persistence.CascadeType;
-import javax.persistence.Convert;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
-import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
+import javax.persistence.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * The result class is created for each execution that is run on the IRCT
@@ -74,6 +61,10 @@ public class Result {
 	private String message;
 
 	private String jobType;
+
+	public Result() {
+		message = "No message was provided";
+	}
 
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
@@ -315,25 +306,20 @@ public class Result {
 	}
 
 	/**
-	 * Sets the mesage associated with the result
+	 * Sets the message associated with the result
 	 * @param message Message
 	 */
 	public void setMessage(String message) {
-		logger.debug("setMessage() "+(message!=null?message:"null"));
-		
-		if (message == null) {
-			logger.debug("setMessage() null passed in");
-			this.message = "No message was provided";
-		} else {
-		
+		logger.debug("setMessage() ");
+
 		if (message.length() > 255) {
 			logger.debug("setMessage() message is too long. chopping off");
 			this.message = message.substring(0, 252) + "...";
 		} else {
 			this.message = message;
 		}
-		}
-		}
+
+	}
 
 
 	/**

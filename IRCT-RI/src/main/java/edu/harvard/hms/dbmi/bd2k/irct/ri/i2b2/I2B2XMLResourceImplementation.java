@@ -509,8 +509,6 @@ public class I2B2XMLResourceImplementation
 	/**
 	 * Checks to see if the result is available
 	 *
-	 * @param session
-	 *            Current Session
 	 * @param result
 	 *            Result
 	 * @return Result

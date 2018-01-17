@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular;
 
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
+
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 
 /**
  * Describes a column of a Result Set
@@ -18,6 +18,14 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 public class Column {
 	private String name;
 	private PrimitiveDataType dataType;
+
+	public Column() {
+	}
+
+	public Column(String name, PrimitiveDataType dataType) {
+		this.name = name;
+		this.dataType = dataType;
+	}
 
 	/**
 	 * Returns the name of the column
