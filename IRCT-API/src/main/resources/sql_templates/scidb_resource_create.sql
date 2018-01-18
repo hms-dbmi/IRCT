@@ -1,16 +1,20 @@
+
 set @resourceName = 'scidb';
+
 set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.irct.ri.scidb.SciDBResourceImplementation';
-set @resourceURL = 'https://ec2-54-209-207-47.compute-1.amazonaws.com:8083');
+set @resourceURL = 'https://ec2-54-209-207-47.compute-1.amazonaws.com:8083';
+
 set @resourceUsername = 'scidbuser';
 set @resourcePassword = 'UserPassword1';
 
 -- SET THE RESOURCE VARIABLE
 set @resourceId = (select NULLIF(max(id), 1) from Resource) + 1;
-insert into Resource(id, implementingInterface, name, ontologyType) values(@resourceId, @resourceInterfaceClass, @resourceName, 'TREE');
+insert into Resource(id, implementingInterface, name, ontologyType) VALUES
+  (@resourceId, @resourceInterfaceClass, @resourceName, 'TREE');
 
 -- INSERT THE RESOURCE PARAMERTERS
 insert into resource_parameters(id, name, value) values(@resourceId, 'resourceName', @resourceName);
-insert into resource_parameters(id, name, value) values(@resourceId, 'resourceURL', @resourceURL;
+insert into resource_parameters(id, name, value) values(@resourceId, 'resourceURL', @resourceURL);
 insert into resource_parameters(id, name, value) values(@resourceId, 'username', @resourceUsername);
 insert into resource_parameters(id, name, value) values(@resourceId, 'password', @resourcePassword);
 	

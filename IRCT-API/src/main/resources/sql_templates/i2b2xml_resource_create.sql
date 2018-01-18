@@ -11,16 +11,16 @@ set @resourceOntology = 'TREE';
 
 
 -- Set the resource variables
-set @resourceId = (select IF(id is NULL,0,max(id)) from Resource) + 1;
+set @resourceId = (select IFNULL(max(id), 0) from Resource) + 1;
 
 -- Set the resource predicates
-set @containsId = (select IF(id is NULL,0,max(id)) from PredicateType) + 1;
+set @containsId = (select IFNULL(max(id), 0) from PredicateType) + 1;
 set @constrainModifierId = @containsId + 1;
 set @constrainValueId = @containsId + 2;
 set @constrainDateId = @containsId + 3;
 
 -- Set the Fields
-set @encounter_ContainsId = (select IF(id is NULL,0,max(id)) from Field) + 1;
+set @encounter_ContainsId = (select IFNULL(max(id), 0) from Field) + 1;
 
 set @modifier_FieldId = @encounter_ContainsId + 1;
 set @encounter_ModifierId = @modifier_FieldId + 1;
