@@ -1,27 +1,26 @@
 set @resourceName = 'hail-dev';
 
-set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.picsure.ri.HAIL';
 set @resourceURL = 'https://hail-dev.hms.harvard.edu:10001';
 
 -- SET THE RESOURCE VARIABLE
-set @resourceId = (select NULLIF(max(id), 1) from Resource) + 1;
+set @resourceId = (select IFNULL(max(id), 1) from Resource) + 1;
 insert into Resource(id, implementingInterface, name, ontologyType) VALUES
-  (@resourceId, @resourceImplementingInterface, @resourceName, 'TREE');
+  (@resourceId, 'edu.harvard.hms.dbmi.bd2k.picsure.ri.HAIL', @resourceName, 'TREE');
 
 -- INSERT THE RESOURCE PARAMERTERS
 insert into resource_parameters(id, name, value) values(@resourceId, 'resourceName', @resourceName);
 insert into resource_parameters(id, name, value) values(@resourceId, 'resourceURL', @resourceURL);
 	
 -- SET THE RESOURCE PREDICATES
-set @predicatetype_SUMMARY = (select max(id) from PredicateType) + 1;
+set @predicatetype_SUMMARY = (select IFNULL(max(id), 1) from PredicateType) + 1;
 insert into PredicateType(id, defaultPredicate, description, displayName, name) VALUES
   (@predicatetype_SUMMARY, 0, 'Summarize function', 'summary', 'SUMMARY');
 	
 -- SET THE FIELDS
-set @field_STUDY = (select max(id) from Field) + 1;
+set @field_STUDY = (select IFNULL(max(id), 1) from Field) + 1;
 insert into Field(id, description, name, path, required, relationship) VALUES
   (@field_STUDY, 'study to get data from', 'STUDY', 'study',0,NULL );
-set @field_TABLE = (select max(id) from Field) + 1;
+set @field_TABLE = (select IFNULL(max(id), 1) from Field) + 1;
 insert into Field(id, description, name, path, required, relationship) VALUES
   (@field_TABLE, 'table name to import it to', 'TABLE', 'table',0,NULL );
 
