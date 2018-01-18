@@ -3,13 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.action;
 
-import java.util.Date;
-import java.util.Map;
-
-import javax.naming.NamingException;
-
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
@@ -22,6 +15,11 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
+import org.apache.log4j.Logger;
+
+import javax.naming.NamingException;
+import java.util.Date;
+import java.util.Map;
 
 /**
  * Implements the Action interface to run a query on a specific instance
@@ -99,11 +97,13 @@ public class QueryAction implements Action {
 	}
 
 	@Override
-	public Result getResults(User user)
-			throws ResourceInterfaceException {
+	public Result getResults(User user){
 		try {
 			this.result = ((QueryResourceImplementationInterface) resource
 					.getImplementingInterface()).getResults(user, result);
+
+			if (this.result == null)
+				throw new ResourceInterfaceException("QueryAction - getResults(user): after retrieving result, result is null");
 
 			while ((this.result.getResultStatus() != ResultStatus.ERROR)
 					&& (this.result.getResultStatus() != ResultStatus.COMPLETE)) {
