@@ -3,21 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.ejb.Stateless;
-import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
@@ -29,6 +14,20 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+
+import javax.ejb.Stateless;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A stateless controller for retrieving the status of a result as well as the
@@ -144,7 +143,8 @@ public class ResultController {
 		List<Result> results = getResults(user, resultId);
 
 		if (results == null || results.size() == 0) {
-			rds.setMessage("Unable to find result");
+			rds.setMessage("Unable to find result with current user: " + user.getName() +
+					" and resultId: " + resultId);
 			return rds;
 		} else {
 			logger.log(Level.FINE, "getResultDataStream() there are ```"+results.size()+"``` results found.");
@@ -169,6 +169,7 @@ public class ResultController {
 		rds.setMediaType(rdc.getMediaType());
 		rds.setResult(rdc.createStream(result));
 		rds.setFileExtension(rdc.getFileExtension());
+		rds.setMessage(result.getMessage());
 
 		return rds;
 	}
@@ -247,7 +248,7 @@ public class ResultController {
 					+ "/" + result.getId());
 			result.setData(frs);
 		} else if (resultDataType == ResultDataType.JSON) {
-			logger.log(Level.FINE, "createResult() JSON DataType is NOT persisted!!!");
+			throw new PersistableException("ResultDataType JSON is not implemented");
 		} else {
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage("Unknown Result Data Type");

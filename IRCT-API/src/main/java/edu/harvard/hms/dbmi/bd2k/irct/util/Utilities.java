@@ -1,19 +1,18 @@
 package edu.harvard.hms.dbmi.bd2k.irct.util;
 
+import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
-
 public class Utilities {
 	
-	public final static class Naming {
+	public static final class Naming {
 		
-		public final static class Whitelist{
+		public static final class Whitelist{
 			public static String JSON_NAME = "userid";
 			public static String JSON_RESOURCES = "resources";
 		}
-		
 	}
 	
 	public static IRCTEventListener getIRCTEventListener() {

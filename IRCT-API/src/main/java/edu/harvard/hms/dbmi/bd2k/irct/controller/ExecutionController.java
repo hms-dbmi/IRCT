@@ -3,22 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.io.Serializable;
-import java.util.Date;
-import java.util.concurrent.Callable;
-import java.util.logging.Logger;
-
-import javax.annotation.Resource;
-import javax.ejb.Asynchronous;
-import javax.ejb.Stateless;
-import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.inject.Inject;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.UserTransaction;
-
 import edu.harvard.hms.dbmi.bd2k.irct.action.JoinAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.ProcessAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.QueryAction;
@@ -32,6 +16,21 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+
+import javax.annotation.Resource;
+import javax.ejb.Asynchronous;
+import javax.ejb.Stateless;
+import javax.enterprise.concurrent.ManagedExecutorService;
+import javax.inject.Inject;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.transaction.UserTransaction;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.concurrent.Callable;
+import java.util.logging.Logger;
 
 /**
  * The execution controller is a stateless controller that manages the
@@ -91,7 +90,6 @@ public class ExecutionController implements Serializable{
 	 *
 	 * @param query
 	 *            Query
-	 * @param secureSession Session to run it in
 	 * @return Result Id
 	 * @throws PersistableException
 	 *             An error occurred
@@ -130,7 +128,6 @@ public class ExecutionController implements Serializable{
 	 *
 	 * @param join
 	 *            Join to run
-	 * @param secureSession Session to run it in
 	 * @return Result Id
 	 * @throws PersistableException
 	 *             An error occurred
