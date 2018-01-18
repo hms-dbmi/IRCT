@@ -1,25 +1,29 @@
+
 set @resourceName = 'scidb';
+
 set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.irct.ri.scidb.SciDBResourceImplementation';
-set @resourceURL = 'https://ec2-54-209-207-47.compute-1.amazonaws.com:8083');
+set @resourceURL = 'https://ec2-54-209-207-47.compute-1.amazonaws.com:8083';
+
 set @resourceUsername = 'scidbuser';
 set @resourcePassword = 'UserPassword1';
 
 -- SET THE RESOURCE VARIABLE
-set @resourceId = (select NULLIF(max(id), 1) from Resource) + 1;
-insert into Resource(id, implementingInterface, name, ontologyType) values(@resourceId, @resourceInterfaceClass, @resourceName, 'TREE');
+set @resourceId = (select IFNULL(max(id), 1) from Resource) + 1;
+insert into Resource(id, implementingInterface, name, ontologyType) VALUES
+  (@resourceId, @resourceInterfaceClass, @resourceName, 'TREE');
 
 -- INSERT THE RESOURCE PARAMERTERS
 insert into resource_parameters(id, name, value) values(@resourceId, 'resourceName', @resourceName);
-insert into resource_parameters(id, name, value) values(@resourceId, 'resourceURL', @resourceURL;
+insert into resource_parameters(id, name, value) values(@resourceId, 'resourceURL', @resourceURL);
 insert into resource_parameters(id, name, value) values(@resourceId, 'username', @resourceUsername);
 insert into resource_parameters(id, name, value) values(@resourceId, 'password', @resourcePassword);
 	
 -- SET THE RESOURCE PREDICATES
-set @predicatetype_AFL = (select max(id) from PredicateType) + 1;
+set @predicatetype_AFL = (select IFNULL(max(id), 1) from PredicateType) + 1;
 insert into PredicateType(id, defaultPredicate, description, displayName, name) values(@predicatetype_AFL, 0, 'iQuery', 'AFL Query', 'AFL');
 	
 -- SET THE FIELDS
-set @field_IQUERY = (select max(id) from Field) + 1;
+set @field_IQUERY = (select IFNULL(max(id), 1) from Field) + 1;
 insert into Field(id, description, name, path, relationship, required) values(@field_IQUERY, 'iQuery', 'iQuery query string', 'IQUERY', null, 1);
 
 -- Add the field to the PREDICATE

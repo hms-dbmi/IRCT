@@ -60,6 +60,7 @@ public class PathController {
 		}
 		
 		if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
+			logger.debug("traversePath() resource `"+resource.getName()+"` processing PathRelationship for `"+resourcePath.getPui()+"` path.");
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(
 					resourcePath, relationship, user);

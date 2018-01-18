@@ -97,6 +97,7 @@ public class Result {
 		DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		jsonBuilder.add("runTime", formatter.format(new Date()));
 		logger.debug("toJson("+depth+") build");
+
 		return jsonBuilder.build();
 	}
 
@@ -297,29 +298,29 @@ public class Result {
 	 * @return Message
 	 */
 	public String getMessage() {
-		logger.debug("getMessage()");
 		if (this.message.length() > 255) {
 			this.message = this.message.substring(0, 252) + "...";
 		}
-		logger.debug("getMessage() returning "+this.message);
+		logger.debug("getMessage() returning "+String.valueOf(this.message));
+
 		return this.message;
 	}
 
-	/**
-	 * Sets the message associated with the result
-	 * @param message Message
-	 */
-	public void setMessage(String message) {
-		logger.debug("setMessage() ");
+    /**
+     * Sets the mesage associated with the result
+     *
+     * @param message Message
+     */
+    public void setMessage(String message) {
+        logger.debug("setMessage() " + String.valueOf(message));
 
-		if (message.length() > 255) {
-			logger.debug("setMessage() message is too long. chopping off");
-			this.message = message.substring(0, 252) + "...";
-		} else {
-			this.message = message;
-		}
-
-	}
+        if (message.length() > 255) {
+            logger.debug("setMessage() message is too long. chopping off");
+            this.message = message.substring(0, 252) + "...";
+        } else {
+            this.message = String.valueOf(message);
+        }
+    }
 
 
 	/**

@@ -64,24 +64,18 @@ public class SessionFilter implements Filter {
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
 			
-			Enumeration<String> keys = session.getAttributeNames();
-			while(keys.hasMoreElements()) {
-				String element = keys.nextElement();
-				logger.debug("doFilter() Element:"+element);
-			}
-			
 			try {
 				User user = (User) session.getAttribute("user");
 				if (user == null)
 					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
-				logger.debug("doFilter() got user object. userId:"+user.getUserId());
+				logger.debug("doFilter() User(userId:"+user.getUserId()+")");
 				
 				//DI-994: email whitelist for authorization without a token
 				//currently just authorized for all if the user is in the white list
 				//could be added for different resources in the future
 				if (user.getUserId() != null && !user.getUserId().isEmpty() && irctApp.isWhitelistEnabled()) {
 					if (irctApp.getWhitelist().containsKey(user.getUserId())) {
-						logger.info("User: " + user.getUserId() + "is in the white list");
+						logger.debug("doFilter() User(userId:" + user.getUserId() + ") is in whitelist.");
 					} else {
 						throw new NotAuthorizedException("User `"+user.getUserId()+"` not in white list", res);
 					}
@@ -103,10 +97,11 @@ public class SessionFilter implements Filter {
 						user.setToken(tokenString);
 					}
 				}
-				logger.debug("doFilter() Token in `user` object is "+user.getToken());
+				logger.debug("doFilter() User(token:"+user.getToken()+")");
 				
 				session.setAttribute("user", user);
 				req.setAttribute("user", user);
+
 				logger.debug("doFilter() set session attributes.");
 
 			} catch (Exception e) {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
@@ -12,6 +13,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import org.apache.log4j.Logger;
 
@@ -37,6 +39,9 @@ public class ResourceService {
 
 	@Inject
 	PathController pc;
+
+	@Inject
+    IRCTApplication picsureAPI;
 	
 	@Inject
 	private HttpSession session;
@@ -56,8 +61,11 @@ public class ResourceService {
 	@JacksonSerialized
 	@Path("/resources")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response resources(@QueryParam(value = "type") String type) {
-
+	public Response resources(@QueryParam(value = "type") String type, @QueryParam(value = "name") String resourceName) {
+		if (resourceName != null) {
+			return IRCTResponse.success(rc.getResource(resourceName));
+		}
+		
 		return Response.ok(rc.getResourcesOfType(type), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -138,7 +146,6 @@ public class ResourceService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response find(@PathParam("path") String path, @Context UriInfo info) {
 		
-		
 		FindInformationInterface findInformation;
 		if (info.getQueryParameters().containsKey("term")) {
 			findInformation = new FindByPath();
@@ -184,11 +191,21 @@ public class ResourceService {
 			findInformation.setValue("term", searchTerm);
 			findInformation.setValue("strategy", strategy);
 		}
-		logger.debug("GET /find "+findInformation.toString());
+		logger.debug("GET /find type:"+findInformation.getType());
 
 		try {
+			logger.debug("GET /find params  :"+findInformation.getRequiredParameters());
+			logger.debug("GET /find resource:"+resource.getName());
+			logger.debug("GET /find path    :"+resourcePath.getName());
+			
 			List<Entity> entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
-			return IRCTResponse.success(entities);
+			if (entities == null || entities.size() == 0) {
+				return IRCTResponse.applicationError("No entities were found in `"+resource.getName()+"`");
+			} else {
+				logger.debug("GET /find There were `"+entities.size()+"` entities found.");
+				return IRCTResponse.success(entities);
+			}
+			
 		} catch (Exception e) {
 			return IRCTResponse.error(e);
 		}
@@ -253,4 +270,65 @@ public class ResourceService {
 			return IRCTResponse.error("Could not find any entities.");
 		}
 	}
+
+	/**
+	 * Returns a list of entities. This could be from traversing the paths, or
+	 * through searching for a term or an ontology.
+	 *
+	 * @param path
+	 *            Path
+	 * @param relationshipString
+	 *            Relationship
+	 * @return List of entities
+	 */
+	@GET
+	@Path("/objects")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response path2(
+            @DefaultValue("child") @QueryParam("relationship") String relationshipString,
+	        @DefaultValue("*") @QueryParam("path") String path,
+            @QueryParam("source") String datasource
+    ) {
+		logger.debug("GET /objects Starting");
+        logger.debug("GET /objects source      :"+datasource);
+        logger.debug("GET /objects path        :"+path);
+        logger.debug("GET /objects relationship:"+relationshipString);
+
+		List<Entity> entities = null;
+		try {
+
+		    if (path.equals("*")) {
+                try {
+                    entities = pc.getAllResourcePaths();
+                } catch (Exception e) {
+                    return IRCTResponse.error(e.getMessage());
+                }
+
+            } else {
+                Resource resource = picsureAPI.getResources().get(datasource);
+                Entity resourcePath = new Entity(path);
+
+                if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
+                    entities = ((PathResourceImplementationInterface) resource
+                            .getImplementingInterface()).getPathRelationship(
+                            resourcePath, resource.getRelationshipByName(relationshipString), (User) session.getAttribute("user"));
+                } else
+                    return IRCTResponse.applicationError(String.format("traversePath() resource `%s` does not implement PathResource", resource.getName()));
+
+            }
+
+        } catch (Exception e) {
+            return IRCTResponse.error(String.format("Exception `%s` with message `%s`.", e.toString(), e.getMessage()));
+        }
+        logger.debug("GET /objects Finished.");
+
+        if (entities != null) {
+            if (entities.size() < 1) {
+                return IRCTResponse.success(String.format("No objects were found."));
+            } else
+                return IRCTResponse.success(entities);
+        } else
+            return IRCTResponse.error("Could not find any entities.");
+	}
+
 }
