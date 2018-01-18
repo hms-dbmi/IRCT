@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.filter;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import org.apache.log4j.Logger;
@@ -71,9 +72,8 @@ public class SessionFilter implements Filter {
 			
 			try {
 				User user = (User) session.getAttribute("user");
-				user = (User)entityManager.createQuery("select u from User u where u.id = 2507").getResultList().get(0);
-//				if (user == null)
-//					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
+				if (user == null)
+					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
 				logger.debug("doFilter() got user object. userId:"+user.getUserId());
 				
 				//DI-994: email whitelist for authorization without a token
@@ -90,19 +90,19 @@ public class SessionFilter implements Filter {
 				// TODO DI-896 change. Since the user above gets created without an actual token, we need 
 				// to re-extract the token, from the header and parse it and place it inside the user object, 
 				// for future playtime.
-//				if (user.getToken() == null) {
-//					logger.debug("doFilter() No token in user object, so let's add one.");
-//					String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
-//					if (headerValue == null || headerValue.isEmpty()) {
-//						logger.debug("doFilter() No token in user object, so let's add one.");
-//						throw new RuntimeException("No `Authorization` header was provided");
-//					} else {
-//						logger.debug("doFilter() Found a token in the HTTP header.");
-//						// TODO Check if this split produces two element list, actually.
-//						String tokenString = headerValue.split(" ")[1];
-//						user.setToken(tokenString);
-//					}
-//				}
+				if (user.getToken() == null) {
+					logger.debug("doFilter() No token in user object, so let's add one.");
+					String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
+					if (headerValue == null || headerValue.isEmpty()) {
+						logger.debug("doFilter() No token in user object, so let's add one.");
+						throw new RuntimeException("No `Authorization` header was provided");
+					} else {
+						logger.debug("doFilter() Found a token in the HTTP header.");
+						// TODO Check if this split produces two element list, actually.
+						String tokenString = headerValue.split(" ")[1];
+						user.setToken(tokenString);
+					}
+				}
 				logger.debug("doFilter() Token in `user` object is "+user.getToken());
 				
 				session.setAttribute("user", user);
