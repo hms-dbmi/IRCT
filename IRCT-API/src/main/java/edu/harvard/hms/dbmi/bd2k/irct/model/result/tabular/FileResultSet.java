@@ -30,7 +30,7 @@ import java.util.*;
  */
 public class FileResultSet extends ResultSetImpl implements Persistable {
 	private long size;
-	private int maxReadSize = 400000;
+	private int maxReadSize = 40000;
 	private char DELIMITER = '\t';
 	private char QUOTE = '"';
 
