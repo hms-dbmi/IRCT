@@ -1,6 +1,6 @@
 set @resourceName = 'hail-dev';
 
-set @resourceURL = 'https://hail-dev.hms.harvard.edu:10001';
+set @resourceURL = 'http://ec2-54-84-78-84.compute-1.amazonaws.com:10001/';
 
 -- SET THE RESOURCE VARIABLE
 set @resourceId = (select IFNULL(max(id), 1) from Resource) + 1;

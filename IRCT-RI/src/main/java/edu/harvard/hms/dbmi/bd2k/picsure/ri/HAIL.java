@@ -1,11 +1,14 @@
 package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
@@ -13,10 +16,24 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourc
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +71,10 @@ public class HAIL
     @Override
     public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) {
         logger.debug("getPathRelationship() Starting");
+
+        logger.debug("getPathRelationship() path:"+path.getName());
+        logger.debug("getPathRelationship() path:"+relationship.getName());
+
         List<Entity> entities = new ArrayList<Entity>();
         logger.debug("getPathRelationship() Finished");
         return entities;
@@ -84,6 +105,10 @@ public class HAIL
             // TODO: What the heck is THIS for?
             result.setResourceActionId("resourceactionid");
             result.setResultStatus(ResultStatus.RUNNING);
+
+            restCall(this.resourceURL+"/spark", result);
+
+            logger.debug("runQuery() made the HTTP call. ");
 
         } catch (Exception e) {
             logger.error(String.format("runQuery() Exception: %s", e.getMessage()));
@@ -148,4 +173,73 @@ public class HAIL
         logger.debug("runProcess() starting");
         return result;
     }
+
+    private void restCall(String urlString, Result result) {
+        logger.debug("restCall() starting "+urlString);
+
+        CloseableHttpClient restClient = HttpClientBuilder.create().build();
+        HttpGet get = new HttpGet(urlString);
+        CloseableHttpResponse restResponse = null;
+
+        try {
+            result.setResultStatus(ResultStatus.RUNNING);
+
+            restResponse = restClient.execute(get);
+            HttpEntity restEntity = restResponse.getEntity();
+
+            // Stream processing of the response body
+            String inputLine ;
+            StringBuilder content = new StringBuilder();
+            BufferedReader br = new BufferedReader(new InputStreamReader(restEntity.getContent()));
+            try {
+                while ((inputLine = br.readLine()) != null) content.append(inputLine);
+                br.close();
+            } catch (Exception e) {
+                logger.error("restCall() Exception reading HTTP response. "+String.valueOf(e.getMessage()));
+            }
+            logger.debug("restClient() Converted responseBody to String.");
+
+            FileResultSet frs = (FileResultSet) result.getData();
+            frs.appendColumn(newStringColumn("status"));
+            frs.appendColumn(newStringColumn("message"));
+            frs.appendColumn(newStringColumn("content"));
+
+            frs.appendRow();
+            frs.updateString("status", "OK");
+            //responseJsonNode.get("message").textValue()
+            frs.updateString("message", "message received");
+            frs.updateString("content", content.toString());
+
+            result.setData(frs);
+            logger.debug("restClient() wrote data to `result` object.");
+            result.setResultStatus(ResultStatus.COMPLETE);
+
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("restClient() released entity resource.");
+
+        } catch (Exception ex ){
+            logger.error("restCall() Exception:"+ex.getMessage());
+
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage(String.valueOf(ex.getMessage()));
+
+        } finally {
+            try {
+                if (restResponse != null)
+                    restResponse.close();
+            } catch (Exception ex) {
+                logger.error("restCall() finallyException: " + ex.getMessage());
+            }
+        }
+        logger.debug("restClient() finished.");
+    }
+
+    private Column newStringColumn(String columnLabel) {
+        Column c = new Column();
+        c.setName(columnLabel);
+        c.setDataType(PrimitiveDataType.STRING);
+        return c;
+    }
+
 }
