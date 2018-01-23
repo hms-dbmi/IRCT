@@ -8,20 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.persistence.CollectionTable;
-import javax.persistence.Column;
-import javax.persistence.Convert;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.MapKeyColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.Transient;
+import javax.persistence.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -40,6 +27,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.OntologyRelationshipConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConverter;
+import org.apache.commons.logging.impl.Log4JLogger;
 
 /**
  * The resource class provides a way for the IRCT application to keep track of
@@ -53,6 +41,7 @@ public class Resource implements Serializable {
 	@GeneratedValue
 	private long id;
 
+	@Column(unique = true)
 	private String name;
 
 	// TODO : This field is unused, see if we can figure out if it should be used
@@ -124,11 +113,14 @@ public class Resource implements Serializable {
 	public void setup() throws ResourceInterfaceException {
 		boolean isDoneSettingUp = false;
 		try {
-			implementingInterface.setup(this.parameters);
+			if (implementingInterface != null)
+				implementingInterface.setup(this.parameters);
+			else
+				org.apache.log4j.Logger.getLogger(this.getClass()).warn("Resource.setup() resource implementation is null, resource name:  " +
+						this.name);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
-			e.printStackTrace();
+			org.apache.log4j.Logger.getLogger(this.getClass()).error("Resource.setup() Exception: "+e.getMessage());
 		}
 		this.setSetup(isDoneSettingUp);
 	}

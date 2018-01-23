@@ -3,10 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.ontology;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -16,8 +14,10 @@ import javax.persistence.Convert;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Transient;
-
-import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The Entity class represents a path, and object in a resource. Entities can be linked to other
@@ -26,6 +26,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
  * @author Jeremy R. Easton-Marks
  */
 @javax.persistence.Entity
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Entity {
 	
 	
@@ -73,6 +74,11 @@ public class Entity {
 		this.relationships = new ArrayList<OntologyRelationship>();
 		this.counts = new HashMap<String, Integer>();
 		this.attributes = new HashMap<String, String>();
+	}
+
+	public Entity(String pui, String description) {
+		this.pui = pui;
+		this.description = description;
 	}
 
 	/**

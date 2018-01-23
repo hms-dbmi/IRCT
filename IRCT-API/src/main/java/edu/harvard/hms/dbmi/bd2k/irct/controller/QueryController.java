@@ -23,7 +23,8 @@ import java.util.Map;
  * A stateful controller for creating a query
  */
 @Stateful
-public class QueryController implements Serializable {
+public class QueryController implements Serializable{
+
 
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;

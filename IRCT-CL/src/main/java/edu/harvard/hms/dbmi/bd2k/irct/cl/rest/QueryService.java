@@ -3,45 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import java.io.Serializable;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import javax.enterprise.context.ConversationScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.*;
-
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SubQuery;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.*;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -49,6 +17,25 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
+
+import javax.enterprise.context.ConversationScoped;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.json.*;
+import javax.json.JsonValue.ValueType;
+import javax.servlet.http.HttpSession;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.io.Serializable;
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Creates a REST interface for the query service
@@ -150,7 +137,8 @@ public class QueryService implements Serializable {
 			
 			try {
 				//edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
-				if (picsureAPI.getResources() == null || picsureAPI.getResources().size() < 1) {
+
+				if (picsureAPI.getResources() == null || picsureAPI.getResources().isEmpty()) {
 					return IRCTResponse.applicationError("There are no sources defined.");
 				}
 				

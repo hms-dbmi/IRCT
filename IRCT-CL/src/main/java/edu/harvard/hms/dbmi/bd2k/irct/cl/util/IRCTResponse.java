@@ -42,6 +42,11 @@ public class IRCTResponse {
                 .build();
     }
 
+    public static Response success(Object content, String type){
+        return Response.ok(content, type)
+                .build();
+    }
+
     public static Response error(Object content) {
         return error(content, MediaType.APPLICATION_JSON_TYPE);
     }

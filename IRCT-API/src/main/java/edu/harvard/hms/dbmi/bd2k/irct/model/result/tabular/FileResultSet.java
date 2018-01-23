@@ -3,39 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular;
 
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.RowSetExeception;
+
+import javax.json.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.RowSetExeception;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
+import java.util.*;
 
 /**
  * An implementation of a Result Set that is persistable to the file system
@@ -45,7 +30,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Row;
  */
 public class FileResultSet extends ResultSetImpl implements Persistable {
 	private long size;
-	private int maxReadSize = 4096;
+	private int maxReadSize = 40000;
 	private char DELIMITER = '\t';
 	private char QUOTE = '"';
 

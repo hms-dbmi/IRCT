@@ -3,7 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import java.util.List;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
+import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
 
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -12,23 +18,11 @@ import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
-import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import java.util.List;
 
 /**
  * Creates a REST interface for the result service
@@ -62,7 +56,7 @@ public class ResultService {
 		List<Result> availableResults = rc.getAvailableResults(user);
 
 		if (availableResults.size()<1) {
-			return success("There are no results available.");
+			return IRCTResponse.success("There are no results available.");
 		}
 		
 		logger.debug("GET /available There are "+availableResults.size()+" results available.");
@@ -73,12 +67,7 @@ public class ResultService {
 			response.add(resultJSON.build());
 		}
 		logger.debug("GET /available Finished.");
-		return success(availableResults);
-	}
-	
-	private Response success(Object obj) {
-		return Response.ok(Json.createObjectBuilder().add("details",(JsonValue) obj).build(), MediaType.APPLICATION_JSON)
-		.build();
+		return IRCTResponse.success(availableResults);
 	}
 
 	/**
@@ -124,24 +113,19 @@ public class ResultService {
 	@Path("/availableFormats/{resultId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response availableFormats(@PathParam("resultId") Long resultId) {
-		JsonArrayBuilder response = Json.createArrayBuilder();
 		User user = (User) session.getAttribute("user");
 
 		List<String> availableFormats = rc.getAvailableFormats(user, resultId);
 
 		if (availableFormats == null) {
-			return success("Unable to get available formats for result #"+resultId);
+			return IRCTResponse.success("Unable to get available formats for result #"+resultId);
 		}
 		
 		if (availableFormats.size()<1) {
-			return success("There are no formats available.");
+			return IRCTResponse.success("There are no formats available.");
 		}
 
-		for (String availableFormat : availableFormats) {
-			response.add(availableFormat);
-		}
-
-		return success("success");
+		return IRCTResponse.success(availableFormats);
 	}
 
 	/**
@@ -167,18 +151,17 @@ public class ResultService {
 		User user = (User) session.getAttribute("user");
 
 		ResultDataStream rds = rc.getResultDataStream(user, resultId, format);
-		
-		if ((rds == null) || (rds.getMediaType() == null)) {
-			logger.debug("GET /result rds or mediaType is null");
-			
-			JsonObjectBuilder jsonResponse = Json.createObjectBuilder();
-			jsonResponse.add("message", "Unable to retrieve result.");
-			return Response
-					.ok(jsonResponse.build(), MediaType.APPLICATION_JSON)
-					.build();
+
+		if (rds == null) {
+			return IRCTResponse.riError("Unable to retrieve result.");
 		}
 
-		if ((download != null) && (download.equalsIgnoreCase("Yes"))) {
+		if ( (rds.getMediaType() == null)) {
+			logger.debug("GET /result rds or mediaType is null");
+			return IRCTResponse.riError(rds.getMessage());
+		}
+
+ 		if ((download != null) && (download.equalsIgnoreCase("Yes"))) {
 			logger.debug("GET /result initiate download with mediaType:"+rds.getMediaType().toString());
 			return Response
 					.ok(rds.getResult(), rds.getMediaType())
@@ -187,6 +170,6 @@ public class ResultService {
 									+ rds.getFileExtension()).build();
 		}
 		logger.debug("GET /result returning");
-		return Response.ok(rds.getResult(), rds.getMediaType()).build();
+		return IRCTResponse.success(rds.getResult(), rds.getMediaType());
 	}
 }
