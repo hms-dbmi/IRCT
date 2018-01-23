@@ -10,10 +10,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
@@ -33,14 +37,16 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class GNomeResourceImplementation implements
-		QueryResourceImplementationInterface {
+		QueryResourceImplementationInterface, PathResourceImplementationInterface{
 
 	Logger logger = Logger.getLogger(getClass());
 
@@ -64,7 +70,8 @@ public class GNomeResourceImplementation implements
 	@Override
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException{
-		logger.debug("setup for " + resourceName +
+		if (logger.isDebugEnabled())
+			logger.debug("setup for " + resourceName +
 				" Starting...");
 
 		String errorString = "";
@@ -96,7 +103,7 @@ public class GNomeResourceImplementation implements
 			throw new ResourceInterfaceException("GNome Interface setup() is missing:" + errorString);
 		}
 
-		retrieveToken();
+//		retrieveToken();
 
 
 		logger.debug( "setup for " + resourceName +
@@ -160,14 +167,11 @@ public class GNomeResourceImplementation implements
 	@Override
 	public Result runQuery(User user, Query query, Result result) {
 
+		retrieveToken();
 		if (!isTokenExists()) {
-			retrieveToken();
-			if (!isTokenExists()) {
-				result.setResultStatus(ResultStatus.ERROR);
-				result.setMessage("Cannot retrieve a token from gNome");
-				return result;
-			}
-
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("Cannot retrieve a token from gNome");
+			return result;
 		}
 
 		List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
@@ -318,5 +322,28 @@ public class GNomeResourceImplementation implements
 	@Override
 	public ResultDataType getQueryDataType(Query query) {
 		return ResultDataType.TABULAR;
+	}
+
+	@Override
+	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) throws ResourceInterfaceException {
+
+		if (!path.getPui().equals("/gnome")
+                && !path.getPui().equals("gnome")
+				&& !path.getPui().equals("/gnome/")){
+			return null;
+		}
+
+		List<Entity> entities = new ArrayList<>();
+		entities.add(
+				new Entity("/gnome/analyze_genes_rest.cgi", "For genes analyze"));
+		entities.add(
+				new Entity("/gnome/analyze_variants_rest.cgi", "For variants analyze"));
+
+		return entities;
+	}
+
+	@Override
+	public List<Entity> find(Entity path, FindInformationInterface findInformation, User user) {
+		throw new NotImplementedException();
 	}
 }
