@@ -155,7 +155,7 @@ public class ResourceService {
 
 		if (path != null && !path.isEmpty()) {
 			if (!path.startsWith("/"))
-				path += "/";
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			resourcePath = new Entity(path);
 		}
@@ -217,7 +217,7 @@ public class ResourceService {
 
 		if (path != null && !path.isEmpty()) {
 			if (!path.startsWith("/"))
-				path += "/";
+				path = "/" + path;
 
 			resource = rc.getResource(path.split("/")[1]);
 			resourcePath = new Entity(path);

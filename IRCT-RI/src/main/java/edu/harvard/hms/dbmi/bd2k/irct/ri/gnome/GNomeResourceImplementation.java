@@ -37,9 +37,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -324,11 +326,24 @@ public class GNomeResourceImplementation implements
 
 	@Override
 	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) throws ResourceInterfaceException {
-		return null;
+
+		if (!path.getPui().equals("/gnome")
+                && !path.getPui().equals("gnome")
+				&& !path.getPui().equals("/gnome/")){
+			return null;
+		}
+
+		List<Entity> entities = new ArrayList<>();
+		entities.add(
+				new Entity("/gnome/analyze_genes_rest.cgi", "For genes analyze"));
+		entities.add(
+				new Entity("/gnome/analyze_variants_rest.cgi", "For variants analyze"));
+
+		return entities;
 	}
 
 	@Override
-	public List<Entity> find(Entity path, FindInformationInterface findInformation, User user) throws ResourceInterfaceException {
-		return null;
+	public List<Entity> find(Entity path, FindInformationInterface findInformation, User user) {
+		throw new NotImplementedException();
 	}
 }
