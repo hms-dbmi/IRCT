@@ -1,32 +1,39 @@
 package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
-import edu.harvard.hms.dbmi.bd2k.irct.model.process.IRCTProcess;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ProcessResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.util.Utility;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +41,8 @@ import java.util.Map;
 /**
  * A resource implementation of a data source that communicates with a HAIL proxy via HTTP
  */
-public class HAIL
-        implements QueryResourceImplementationInterface, PathResourceImplementationInterface, ProcessResourceImplementationInterface {
+public class HAIL implements QueryResourceImplementationInterface,
+        PathResourceImplementationInterface {
 
     Logger logger = Logger.getLogger(this.getClass());
 
@@ -47,14 +54,36 @@ public class HAIL
     @Override
     public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
 
-        if (!parameters.keySet().contains("resourceName"))
-            throw new ResourceInterfaceException("Missing mandatory `resourceName` parameter.");
+        if (logger.isDebugEnabled())
+            logger.debug("setup for Hail" +
+                    " Starting...");
 
-        if (!parameters.keySet().contains("resourceURL"))
-            throw new ResourceInterfaceException("Missing mandatory `resourceURL` parameter.");
+        String errorString = "";
+        this.resourceName = parameters.get("resourceName");
+        if (this.resourceName == null) {
+            logger.error( "setup() `resourceName` parameter is missing.");
+            errorString += " resourceName";
+        }
 
-        logger.debug("setup() finished setting up everything. Zoom-zoom...");
+        String tempResourceURL = parameters.get("resourceURL");
+        if (tempResourceURL == null) {
+            logger.error( "setup() `resourceURL` parameter is missing.");
+            errorString += " resourceURL";
+        } else {
+            resourceURL = (tempResourceURL.endsWith("/"))?tempResourceURL.substring(0, tempResourceURL.length()-1):tempResourceURL;
+        }
+
+
+        if (!errorString.isEmpty()) {
+            throw new ResourceInterfaceException("Hail Interface setup() is missing:" + errorString);
+        }
+
+//		retrieveToken();
+
         resourceState = ResourceState.READY;
+        logger.debug( "setup() for " + resourceName +
+                " Finished. " + resourceName +
+                " is in READY state.");
     }
 
     @Override
@@ -66,8 +95,7 @@ public class HAIL
     public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) {
         logger.debug("getPathRelationship() Starting");
 
-        logger.debug("getPathRelationship() path:"+path.getName());
-        logger.debug("getPathRelationship() path:"+relationship.getName());
+        logger.debug("getPathRelationship() path:"+ path);
 
         List<Entity> entities = new ArrayList<Entity>();
         logger.debug("getPathRelationship() Finished");
@@ -88,19 +116,21 @@ public class HAIL
 
         if (result == null)
             logger.debug("runQuery() `result` object is null, still.");
-        result.setResultStatus(ResultStatus.CREATED);
-        result.setMessage("Started running the query.");
+
 
         try {
-            // TODO: Make a remote HTTP call to the resource endpoint (HAIL master cluster IP address)
-            String resultId = "stringResultId";
-            String queryId = "stringQqueryId";
 
-            // TODO: What the heck is THIS for?
-            result.setResourceActionId("resourceactionid");
-            result.setResultStatus(ResultStatus.RUNNING);
+            List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
+            result.setResultStatus(ResultStatus.CREATED);
+            result.setMessage("Started running the query.");
 
-            restCall(this.resourceURL+"/spark", result);
+
+            for (WhereClause whereClause : whereClauses) {
+                restCall(resourceURL + Utility.getURLFromPui(whereClause
+                        .getField()
+                        .getPui(),resourceName), result);
+            }
+
 
             logger.debug("runQuery() made the HTTP call. ");
 
@@ -118,23 +148,6 @@ public class HAIL
     @Override
     public Result getResults(User user, Result result) {
         logger.debug("getResults() starting");
-
-        try {
-            if (result == null) {
-                logger.debug("getResults() result is null!");
-            }
-
-            result.setMessage("No result from HAIL, yet.");
-            result.setResultStatus(ResultStatus.COMPLETE);
-
-        } catch (Exception e) {
-            logger.error(String.format("getResults() Exception:%s", e.getMessage()));
-
-            result.setMessage(String.valueOf(e.getMessage()));
-            result.setResultStatus(ResultStatus.ERROR);
-        }
-
-        logger.debug("getResults() finished");
         return result;
     }
 
@@ -142,37 +155,20 @@ public class HAIL
     public ResourceState getState() {
         return resourceState;
     }
-    @Override
-    public ResultDataType getProcessDataType(IRCTProcess pep) {
-        return ResultDataType.JSON;
-    }
 
     @Override
     public ResultDataType getQueryDataType(Query query) {
-        return ResultDataType.JSON;
-    }
-
-    @Override
-    public Result runProcess(User user, IRCTProcess process,
-                             Result result) throws ResourceInterfaceException {
-        logger.debug("runProcess() starting");
-
-        try {
-
-        } catch (Exception e) {
-            logger.error(String.format("runProcess() Exception:%s", e.getMessage()));
-            result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage(e.getMessage());
-        }
-        logger.debug("runProcess() starting");
-        return result;
+        return ResultDataType.TABULAR;
     }
 
     private void restCall(String urlString, Result result) {
-        logger.debug("restCall() starting "+urlString);
+
+        ObjectMapper objectMapper = IRCTApplication.objectMapper;
 
         CloseableHttpClient restClient = HttpClientBuilder.create().build();
         HttpGet get = new HttpGet(urlString);
+        get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
+
         CloseableHttpResponse restResponse = null;
 
         try {
@@ -181,42 +177,31 @@ public class HAIL
             restResponse = restClient.execute(get);
             HttpEntity restEntity = restResponse.getEntity();
 
-            // Stream processing of the response body
-            String inputLine ;
-            StringBuilder content = new StringBuilder();
+            // parsing data
+            parseData(result, objectMapper
+                    .readTree(restEntity
+                            .getContent()));
 
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(restEntity.getContent()))) {
-                while ((inputLine = br.readLine()) != null) content.append(inputLine);
-            } catch (Exception e) {
-                logger.error("restCall() Exception reading HTTP response. "+String.valueOf(e.getMessage()));
-            }
-            logger.debug("restClient() Converted responseBody to String.");
-
-            FileResultSet frs = (FileResultSet) result.getData();
-            frs.appendColumn(newStringColumn("status"));
-            frs.appendColumn(newStringColumn("message"));
-            frs.appendColumn(newStringColumn("content"));
-
-            frs.appendRow();
-            frs.updateString("status", "OK");
-            //responseJsonNode.get("message").textValue()
-            frs.updateString("message", "message received");
-            frs.updateString("content", content.toString());
-
-            result.setData(frs);
-            logger.debug("restClient() wrote data to `result` object.");
             result.setResultStatus(ResultStatus.COMPLETE);
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
             EntityUtils.consume(restEntity);
             logger.debug("restClient() released entity resource.");
 
-        } catch (Exception ex ){
-            logger.error("restCall() Exception:"+ex.getMessage());
-
+        } catch (PersistableException ex) {
             result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage(String.valueOf(ex.getMessage()));
-
+            logger.error("Persistable error: " + ex.getMessage() );
+        } catch (ResultSetException ex) {
+            result.setResultStatus(ResultStatus.ERROR);
+            logger.error("Cannot append row: " + ex.getMessage());
+        } catch (JsonParseException ex){
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage("Cannot parse gnome response as a JsonNode");
+            logger.error("Cannot parse response as a JsonNode: " + ex.getMessage());
+        } catch (IOException ex ){
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage("Cannot execute Post request to gnome");
+            logger.error("IOException: Cannot cannot execute POST with URL: " + urlString);
         } finally {
             try {
                 if (restResponse != null)
@@ -228,11 +213,62 @@ public class HAIL
         logger.debug("restClient() finished.");
     }
 
-    private Column newStringColumn(String columnLabel) {
-        Column c = new Column();
-        c.setName(columnLabel);
-        c.setDataType(PrimitiveDataType.STRING);
-        return c;
-    }
+    private void parseData(Result result, JsonNode responseJsonNode)
+            throws PersistableException, ResultSetException{
+        FileResultSet frs = (FileResultSet) result.getData();
 
+        String responseStatus = responseJsonNode.get("status").textValue();
+
+        JsonNode matrixNode = responseJsonNode.get("matrix");
+        if (responseStatus.equalsIgnoreCase("ok")){
+            if (!matrixNode.getNodeType().equals(JsonNodeType.ARRAY)
+                    || !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
+                String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
+                result.setMessage(errorMessage);
+                throw new PersistableException(errorMessage);
+            }
+
+            // append columns
+            for (JsonNode innerJsonNode : matrixNode.get(0)){
+                if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
+                    String errorMessage = "Cannot parse response JSON from gnome: expecting a String in header array";
+                    result.setMessage(errorMessage);
+                    throw new PersistableException(errorMessage);
+                }
+
+                // how can I know what datatype it is for now?... just set it primitive string...
+                frs.appendColumn(new Column(innerJsonNode.textValue(), PrimitiveDataType.STRING));
+            }
+
+            // append rows
+            for (int i = 1; i < matrixNode.size(); i++){
+                JsonNode jsonNode = matrixNode.get(i);
+                if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
+                    String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
+                    result.setMessage(errorMessage);
+                    throw new PersistableException(errorMessage);
+                }
+
+                frs.appendRow();
+
+                for (int j = 0; j<jsonNode.size(); j++){
+                    // column datatype could be reset here by checking the json NodeType,
+                    // but no PrimitiveDataType.NUMBER implemented yet, can't efficiently separate
+                    // integer, double, just store everything as STRING for now
+                    frs.updateString(frs.getColumn(j).getName(),
+                            jsonNode.get(j).asText());
+                }
+
+            }
+        } else {
+            frs.appendColumn(new Column("status", PrimitiveDataType.STRING));
+            frs.appendColumn(new Column("message", PrimitiveDataType.STRING));
+
+            frs.appendRow();
+            frs.updateString("status", responseStatus);
+            frs.updateString("message", responseJsonNode.get("message").textValue());
+        }
+
+        result.setData(frs);
+    }
 }

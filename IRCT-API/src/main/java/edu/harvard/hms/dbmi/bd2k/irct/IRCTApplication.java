@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.event.EventConverterImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
@@ -57,7 +58,9 @@ public class IRCTApplication {
 	private Map<String, Resource> resources;
 	private Map<String, IRCTJoin> supportedJoinTypes;
 	private Map<ResultDataType, List<DataConverterImplementation>> resultDataConverters;
-	
+
+	// keep objectMapper final
+	public static final ObjectMapper objectMapper = new ObjectMapper();
 
 	private Logger logger = Logger.getLogger(this.getClass());
 
