@@ -115,7 +115,7 @@ public class SecurityController implements Serializable{
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<User> cq = cb.createQuery(User.class);
 		Root<User> userRoot = cq.from(User.class);
-		cq.where(cb.equal(userRoot.get("accessKey"), key));
+		cq.where(cb.equal(userRoot.get("key"), key));
 		cq.select(userRoot);
 		User user = null;
 		try{

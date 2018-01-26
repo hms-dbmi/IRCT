@@ -6,12 +6,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.security;
 import java.io.Serializable;
 import java.security.Principal;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.SequenceGenerator;
+import javax.persistence.*;
 
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
@@ -30,7 +25,8 @@ public class User implements Principal, Serializable {
 	private String userId;
 
 	private String token;
-	
+
+	@Column(name = "accessKey")
 	private String key;
 	
 	/**
@@ -102,19 +98,5 @@ public class User implements Principal, Serializable {
 	 */
 	public void setToken(String token) {
 		this.token = token;
-	}
-
-	/**
-	 * @return the access key
-	 */
-	public String getKey() {
-		return key;
-	}
-
-	/**
-	 * @param access Key the access Key to set
-	 */
-	public void setKey(String key) {
-		this.key = key;
 	}
 }
