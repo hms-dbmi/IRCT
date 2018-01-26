@@ -82,7 +82,7 @@ public class SecurityService implements Serializable {
 			String key = sc.createKey(userObject);
 			// IF USER IS LOGGED IN
 			if (key != null) {
-				userObject.setAccessKey(key);
+				userObject.setKey(key);
 				sc.updateUserRecord(userObject);
 				logger.debug("/createKey user updated. key:"+key);				
 				return IRCTResponse.success(userObject);

@@ -31,7 +31,7 @@ public class User implements Principal, Serializable {
 
 	private String token;
 	
-	private String accessKey;
+	private String key;
 	
 	/**
 	 * Creates a new user
@@ -105,16 +105,16 @@ public class User implements Principal, Serializable {
 	}
 
 	/**
-	 * @return the accessKey
+	 * @return the access key
 	 */
-	public String getAccessKey() {
-		return accessKey;
+	public String getKey() {
+		return key;
 	}
 
 	/**
-	 * @param accessKey the accessKey to set
+	 * @param access Key the access Key to set
 	 */
-	public void setAccessKey(String accessKey) {
-		this.accessKey = accessKey;
+	public void setKey(String key) {
+		this.key = key;
 	}
 }

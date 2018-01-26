@@ -79,7 +79,7 @@ public class SecurityController implements Serializable{
 		
 		try {
 			// TODO, for now, just use the TOKEN column
-			user.setAccessKey(key);
+			user.setKey(key);
 			if (user.getId() == null) {
 				entityManager.persist(user);
 			} else {
