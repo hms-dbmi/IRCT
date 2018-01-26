@@ -36,6 +36,10 @@ public class User implements Principal, Serializable {
 		
 	}
 
+	public void setKey(String k) {
+		this.key = k;
+	}
+
 	/**
 	 * Creates a new user with the given User Id
 	 * 
