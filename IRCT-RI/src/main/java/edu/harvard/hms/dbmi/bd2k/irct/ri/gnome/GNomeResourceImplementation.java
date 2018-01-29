@@ -124,7 +124,7 @@ public class GNomeResourceImplementation implements
 	private void retrieveToken(){
 		String urlString = resourceRootURL + AUTH_URL;
 
-		CloseableHttpClient httpClient = IRCTApplication.getCloseableHttpClient();
+		CloseableHttpClient httpClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 		HttpGet httpGet = new HttpGet(urlString);
 		httpGet.addHeader("Authorization", "Basic " +
 				DatatypeConverter.printBase64Binary((gnomeUserName+":"+gnomePassword)
@@ -192,7 +192,7 @@ public class GNomeResourceImplementation implements
 				objectNode.put(key, queries.get(key));
 			}
 
-			CloseableHttpClient client = IRCTApplication.getCloseableHttpClient();
+			CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 			HttpPost post = new HttpPost(urlString);
 			try {
 				post.setEntity(new StringEntity(objectMapper

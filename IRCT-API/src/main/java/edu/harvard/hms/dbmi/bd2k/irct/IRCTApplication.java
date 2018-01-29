@@ -74,26 +74,16 @@ public class IRCTApplication {
 
 	// check the example from Apache HttpClient official website:
 	// http://hc.apache.org/httpcomponents-client-4.5.x/httpclient/examples/org/apache/http/examples/client/ClientMultiThreadedExecution.java
-	private static PoolingHttpClientConnectionManager httpClientConnectionManager;
-	private static CloseableHttpClient closeableHttpClient;
-
-	public static CloseableHttpClient getCloseableHttpClient(){
-		if (closeableHttpClient == null) {
-			closeableHttpClient = HttpClients.custom()
-					.setConnectionManager(getHttpClientConnectionManager())
-					.build();
-		}
-		return closeableHttpClient;
+	public static final PoolingHttpClientConnectionManager HTTP_CLIENT_CONNECTION_MANAGER;
+	public static final CloseableHttpClient CLOSEABLE_HTTP_CLIENT;
+	static {
+		HTTP_CLIENT_CONNECTION_MANAGER = new PoolingHttpClientConnectionManager();
+		HTTP_CLIENT_CONNECTION_MANAGER.setMaxTotal(100);
+		CLOSEABLE_HTTP_CLIENT = HttpClients.custom().setConnectionManager(HTTP_CLIENT_CONNECTION_MANAGER)
+				.build();
 	}
 
 
-	public static PoolingHttpClientConnectionManager getHttpClientConnectionManager() {
-		if (httpClientConnectionManager == null) {
-			httpClientConnectionManager = new PoolingHttpClientConnectionManager();
-			httpClientConnectionManager.setMaxTotal(100);
-		}
-		return httpClientConnectionManager;
-	}
 
 	/**
 	 * Initiates the IRCT Application and loading of the joins, resources, and
