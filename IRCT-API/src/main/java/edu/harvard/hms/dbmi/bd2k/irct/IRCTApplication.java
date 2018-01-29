@@ -78,22 +78,20 @@ public class IRCTApplication {
 	private static CloseableHttpClient closeableHttpClient;
 
 	public static CloseableHttpClient getCloseableHttpClient(){
-		if (closeableHttpClient != null)
-			return closeableHttpClient;
-
-		closeableHttpClient = HttpClients.custom()
-				.setConnectionManager(getHttpClientConnectionManager())
-				.build();
+		if (closeableHttpClient == null) {
+			closeableHttpClient = HttpClients.custom()
+					.setConnectionManager(getHttpClientConnectionManager())
+					.build();
+		}
 		return closeableHttpClient;
 	}
 
 
 	public static PoolingHttpClientConnectionManager getHttpClientConnectionManager() {
-		if (httpClientConnectionManager != null)
-			return httpClientConnectionManager;
-
-		httpClientConnectionManager = new PoolingHttpClientConnectionManager();
-		httpClientConnectionManager.setMaxTotal(100);
+		if (httpClientConnectionManager == null) {
+			httpClientConnectionManager = new PoolingHttpClientConnectionManager();
+			httpClientConnectionManager.setMaxTotal(100);
+		}
 		return httpClientConnectionManager;
 	}
 
