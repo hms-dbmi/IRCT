@@ -79,7 +79,7 @@ public class SecurityController implements Serializable{
 		
 		try {
 			// TODO, for now, just use the TOKEN column
-			user.setKey(key);
+			user.setAccessKey(key);
 			if (user.getId() == null) {
 				entityManager.persist(user);
 			} else {
@@ -115,7 +115,7 @@ public class SecurityController implements Serializable{
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 		CriteriaQuery<User> cq = cb.createQuery(User.class);
 		Root<User> userRoot = cq.from(User.class);
-		cq.where(cb.equal(userRoot.get("key"), key));
+		cq.where(cb.equal(userRoot.get("accessKey"), key));
 		cq.select(userRoot);
 		User user = null;
 		try{
