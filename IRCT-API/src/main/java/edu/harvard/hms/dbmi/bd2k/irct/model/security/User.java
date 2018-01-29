@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.security;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.security.Principal;
 
@@ -26,8 +28,8 @@ public class User implements Principal, Serializable {
 
 	private String token;
 
-	@Column(name = "accessKey")
-	private String key;
+	@JsonProperty("key")
+	private String accessKey;
 	
 	/**
 	 * Creates a new user
@@ -36,8 +38,12 @@ public class User implements Principal, Serializable {
 		
 	}
 
-	public void setKey(String k) {
-		this.key = k;
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	public void setAccessKey(String accessKey) {
+		this.accessKey = accessKey;
 	}
 
 	/**
