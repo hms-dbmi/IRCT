@@ -12,6 +12,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.DataConverterImplementation;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.log4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -68,6 +71,31 @@ public class IRCTApplication {
 	private IRCTEventListener irctEventListener;
 
 	private EntityManager oem;
+
+	// check the example from Apache HttpClient official website:
+	// http://hc.apache.org/httpcomponents-client-4.5.x/httpclient/examples/org/apache/http/examples/client/ClientMultiThreadedExecution.java
+	private static PoolingHttpClientConnectionManager httpClientConnectionManager;
+	private static CloseableHttpClient closeableHttpClient;
+
+	public static CloseableHttpClient getCloseableHttpClient(){
+		if (closeableHttpClient != null)
+			return closeableHttpClient;
+
+		closeableHttpClient = HttpClients.custom()
+				.setConnectionManager(getHttpClientConnectionManager())
+				.build();
+		return closeableHttpClient;
+	}
+
+
+	public static PoolingHttpClientConnectionManager getHttpClientConnectionManager() {
+		if (httpClientConnectionManager != null)
+			return httpClientConnectionManager;
+
+		httpClientConnectionManager = new PoolingHttpClientConnectionManager();
+		httpClientConnectionManager.setMaxTotal(100);
+		return httpClientConnectionManager;
+	}
 
 	/**
 	 * Initiates the IRCT Application and loading of the joins, resources, and
