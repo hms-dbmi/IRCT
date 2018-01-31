@@ -37,19 +37,24 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A resource implementation of a data source that communicates with a HAIL proxy via HTTP
  */
 public class HAIL implements QueryResourceImplementationInterface,
         PathResourceImplementationInterface {
-
     Logger logger = Logger.getLogger(this.getClass());
+
+
+    private static final String PATH_NAME = "pui";
 
     protected String resourceName;
     protected String resourceURL;
 
     protected ResourceState resourceState;
+
+//    Map<Entity> allPathEntities;
 
     @Override
     public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
@@ -73,12 +78,9 @@ public class HAIL implements QueryResourceImplementationInterface,
             resourceURL = (tempResourceURL.endsWith("/"))?tempResourceURL.substring(0, tempResourceURL.length()-1):tempResourceURL;
         }
 
-
         if (!errorString.isEmpty()) {
             throw new ResourceInterfaceException("Hail Interface setup() is missing:" + errorString);
         }
-
-//		retrieveToken();
 
         resourceState = ResourceState.READY;
         logger.debug( "setup() for " + resourceName +
@@ -93,13 +95,68 @@ public class HAIL implements QueryResourceImplementationInterface,
 
     @Override
     public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) {
-        logger.debug("getPathRelationship() Starting");
+        logger.debug("getPathRelationship() Starting process path: " + path.getPui());
+        List<Entity> entities = null;
+//
+//        if (allPathEntities == null || allPathEntities.isEmpty()) {
+//            retrieveAllPathTree();
+//            if (allPathEntities == null || allPathEntities.isEmpty())
+//                return null;
+//        }
 
-        logger.debug("getPathRelationship() path:"+ path);
 
-        List<Entity> entities = new ArrayList<Entity>();
+
         logger.debug("getPathRelationship() Finished");
         return entities;
+    }
+
+
+    private List<Entity> retrieveAllPathTree(){
+        String urlString = resourceURL + "/tree";
+
+        CloseableHttpClient httpClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
+        HttpGet httpGet = new HttpGet(urlString);
+
+        CloseableHttpResponse response = null;
+
+        List<Entity> entities = null;
+
+        try {
+            response = httpClient.execute(httpGet);
+            HttpEntity entity = response.getEntity();
+
+//            entities = parseAllHailPathJsonNode(IRCTApplication.objectMapper
+//                    .readTree(entity
+//                            .getContent()));
+
+            EntityUtils.consume(entity);
+        } catch (IOException ex ){
+            logger.error("IOException when retrieving all path from Hail API:" + urlString +
+                    " with exception message: " + ex.getMessage());
+        } finally {
+            try {
+                if (response != null)
+                    response.close();
+            } catch (IOException ex) {
+                logger.error("GNOME - IOExcpetion when closing http response: " + ex.getMessage());
+            }
+        }
+
+        return entities;
+    }
+
+    /**
+     *
+     * @param pathNode
+     * @return null if nothing
+     */
+    private TreeMap<String, JsonNode> parseAllHailPathJsonNode(JsonNode pathNode){
+
+
+
+        TreeMap<String, JsonNode> entityTreeMap = null;
+
+        return entityTreeMap;
     }
 
     @Override
@@ -270,5 +327,11 @@ public class HAIL implements QueryResourceImplementationInterface,
         }
 
         result.setData(frs);
+    }
+
+
+    class PathElement {
+        String pui;
+
     }
 }
