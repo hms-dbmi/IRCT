@@ -3,40 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.xml.bind.JAXBException;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-
-import org.apache.http.Header;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.message.BasicHeader;
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -61,23 +27,15 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientSet;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateTimeType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainOperatorType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainValueType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InclusiveType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InstanceResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryResultInstanceType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
@@ -87,6 +45,34 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
+import org.apache.http.Header;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeader;
+import org.apache.log4j.Logger;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.xml.bind.JAXBException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 /**
  * A resource implementation of a resource that communicates with the i2b2
@@ -445,14 +431,9 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
-
+			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
-		} catch (Exception e) {
-			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
-
-			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
 		return result;
 	}
@@ -529,10 +510,11 @@ public class I2B2XMLResourceImplementation
 		}
 		logger.debug("checkForResult() resultInstanceId:"+(resultInstanceId!=null?resultInstanceId:"NULL"));
 
-		String projectId = resultInstanceId.split("\\|")[0];
+		String[] resultInstanceIdArray = resultInstanceId.split("\\|");
+		String projectId = resultInstanceIdArray[0];
 		logger.debug("checkForResult() projectId:"+(projectId!=null?projectId:"NULL"));
 
-		String queryId = resultInstanceId.split("\\|")[1];
+		String queryId = resultInstanceIdArray[1];
 		logger.debug("checkForResult() queryId:"+(queryId!=null?queryId:"NULL"));
 
 		try {
@@ -948,7 +930,7 @@ public class I2B2XMLResourceImplementation
 	/**
 	 * CREATES A CLIENT
 	 *
-	 * @param token
+	 * @param user
 	 * @return
 	 */
 	protected HttpClient createClient(User user) {
