@@ -2,25 +2,17 @@
  *
  */
 package edu.harvard.hms.dbmi.bd2k.irct;
-import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author gabor
  *
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(IRCTApplication.class) 
 public class IRCTApplicationTest {
-	private IRCTApplication app = null;
+
+	private static IRCTApplication app = null;
 
 	/**
 	 * @throws java.lang.Exception
