@@ -360,10 +360,10 @@ public class ResourceService {
                     fetchedResources = pc.getAllResourcePaths();
                 } catch (Exception e) {
                     logger.error("GET /path_json Exception: ", e);
-                    return IRCTResponse.error(e.getMessage());
+                    return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, e.getMessage());
                 }
             } else {
-                return IRCTResponse.error("Resource is null and Path is incorrect, nonexistent or malformed");
+                return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, "Resource is null and Path is incorrect, nonexistent or malformed");
             }
 
             //If any resources were successfully fetched, add to the list
@@ -374,13 +374,8 @@ public class ResourceService {
 
         }
 
-
-        //If no resources were found for any of the paths, return an error
-            if (allResources.isEmpty()){
-            return IRCTResponse.error("Could not find any entities.");
-        } else {
-            return IRCTResponse.success(allResources);
-        }
+        //If it reaches here empty, presumably the paths were leaf nodes, so we do want to send back the empty list
+		return IRCTResponse.success(allResources);
     }
 
 }
