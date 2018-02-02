@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.result;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
@@ -15,6 +17,8 @@ import javax.persistence.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The result class is created for each execution that is run on the IRCT
@@ -29,6 +33,7 @@ public class Result {
 	@Id
 	@GeneratedValue(generator = "resultSequencer")
 	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
+	@JsonProperty("resultId")
 	private Long id;
 
 	@Transient
@@ -36,6 +41,10 @@ public class Result {
 
 	@Transient
 	private Executable executable;
+
+	@Transient
+	@JsonIgnore
+	private Map<String, String> metaData;
 
 	@ManyToOne(cascade = CascadeType.MERGE)
 	private User user;
@@ -339,5 +348,28 @@ public class Result {
 	 */
 	public void setJobType(String jobType) {
 		this.jobType = jobType;
+	}
+
+	/**
+	 * this will lazy initialize metaData here,
+	 * since currently, most of the time, metaData will not be used
+	 * @return
+	 */
+	public Map<String, String> getMetaData() {
+		if (metaData == null)
+			metaData = new HashMap<>();
+		return metaData;
+	}
+
+	/**
+	 * meta data give user ability to pass down the parameters from http request
+	 * to service (most services only contain a <code>Query<code/> object)
+	 * From request parameters -> Query object -> result if needed.
+	 *
+	 * Notice: meta data will not be persisted, as well as JsonIgnored
+	 * @param metaData
+	 */
+	public void setMetaData(Map<String, String> metaData) {
+		this.metaData = metaData;
 	}
 }

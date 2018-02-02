@@ -362,6 +362,11 @@ public class I2B2XMLResourceImplementation
 
 	@Override
 	public Result runQuery(User user, Query query, Result result) throws ResourceInterfaceException {
+
+		if (query.getMetaData()!= null
+				&& !query.getMetaData().isEmpty())
+			result.getMetaData().putAll(query.getMetaData());
+
 		// Initial setup
 		HttpClient client = createClient(user);
 		result.setResultStatus(ResultStatus.CREATED);
@@ -452,6 +457,15 @@ public class I2B2XMLResourceImplementation
 						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString()));
 			}
 
+			// if only_count is enabled,
+			// do not retrieve all the patient data set
+			if ( !result.getMetaData().isEmpty()
+					&& result.getMetaData().containsKey("only_count")) {
+				return result;
+			}
+
+			// after checking i2b2's result status
+			// go to retrieve data
 			result.setResultStatus(ResultStatus.RUNNING);
 			logger.debug("getResults() Changed `ResultStatus` back to running.");
 
@@ -476,12 +490,6 @@ public class I2B2XMLResourceImplementation
 			e.printStackTrace();
 
 			result.setMessage("getResults() OtherException:"+e.getMessage());
-			result.setResultStatus(ResultStatus.ERROR);
-		} catch (Exception e) {
-			logger.debug("getResults() Exception");
-			e.printStackTrace();
-
-			result.setMessage("getResults() Exception:"+e.getMessage()+"/"+e.toString());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
 		return result;
@@ -556,6 +564,32 @@ public class I2B2XMLResourceImplementation
 				result.setResultStatus(ResultStatus.ERROR);
 				return result;
 			}
+
+
+			// check if only_count exist,
+			// if yes, will only retrieve counts from i2b2 and put it into result
+			// will not download all the data from i2b2 later (which is thousands millions of rows...)
+			if (result.getMetaData() != null
+					&& !result.getMetaData().isEmpty()
+					&& result.getMetaData().containsKey("only_count")) {
+				long counts = queryResultInstance.getSetSize();
+				FileResultSet frs = (FileResultSet) result.getData();
+				try {
+					frs.appendColumn(new Column("patient_set_counts", PrimitiveDataType.STRING));
+					frs.appendRow();
+					frs.updateString("patient_set_counts", Long.toString(counts));
+				} catch (ResultSetException e) {
+					logger.error("checkForResult() generating patient set counts file error: " + e.getMessage());
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage("generating patient set counts file error: " + e.getMessage());
+				} catch (PersistableException e) {
+					logger.error("checkForResult() cannot persist FileResultSet: " + e.getMessage());
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage("cannot persist result file: " + e.getMessage());
+				}
+
+			}
+
 			result.setResultStatus(ResultStatus.COMPLETE);
 			result.setMessage("i2b2 query has finished.");
 
@@ -565,13 +599,6 @@ public class I2B2XMLResourceImplementation
 
 			result.setMessage("checkForResult() OtherException: "+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
-		} catch (Exception e) {
-			logger.error("checkForResult() Exception:"+e.getMessage());
-			e.printStackTrace();
-
-			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("checkForResult() Exception:"+e.getMessage());
-			throw e;
 		}
 		return result;
 	}
@@ -672,6 +699,14 @@ public class I2B2XMLResourceImplementation
 		return myPath;
 	}
 
+	/**
+	 * FileResultSet will be used to store data
+	 * @param patientDataResponse
+	 * @param result
+	 * @return
+	 * @throws ResultSetException
+	 * @throws PersistableException
+	 */
 	private Result convertPatientSetToResultSet(PatientDataResponseType patientDataResponse, Result result)
 			throws ResultSetException, PersistableException {
 		logger.debug("convertPatientSetToResultSet() Starting...");

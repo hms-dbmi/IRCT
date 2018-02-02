@@ -62,7 +62,7 @@ public class QueryResultInstanceType {
     @XmlElement(name = "query_result_type", required = true)
     protected QueryResultTypeType queryResultType;
     @XmlElement(name = "set_size", defaultValue = "-1")
-    protected int setSize;
+    protected long setSize;
     @XmlElement(name = "obfuscate_method", required = true)
     protected String obfuscateMethod;
     @XmlElement(name = "start_date", required = true)
@@ -176,7 +176,7 @@ public class QueryResultInstanceType {
      * Gets the value of the setSize property.
      * 
      */
-    public int getSetSize() {
+    public long getSetSize() {
         return setSize;
     }
 
@@ -184,7 +184,7 @@ public class QueryResultInstanceType {
      * Sets the value of the setSize property.
      * 
      */
-    public void setSetSize(int value) {
+    public void setSetSize(long value) {
         this.setSize = value;
     }
 
