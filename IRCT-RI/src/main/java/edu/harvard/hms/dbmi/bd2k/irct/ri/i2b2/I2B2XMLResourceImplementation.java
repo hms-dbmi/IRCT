@@ -487,7 +487,6 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (JAXBException | I2B2InterfaceException | IOException | ResultSetException | PersistableException e) {
 			logger.error("getResults() OtherException");
-			e.printStackTrace();
 
 			result.setMessage("getResults() OtherException:"+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
