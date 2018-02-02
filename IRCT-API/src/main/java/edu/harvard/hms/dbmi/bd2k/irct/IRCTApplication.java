@@ -75,6 +75,10 @@ public class IRCTApplication {
 	// check the example from Apache HttpClient official website:
 	// http://hc.apache.org/httpcomponents-client-4.5.x/httpclient/examples/org/apache/http/examples/client/ClientMultiThreadedExecution.java
 	public static final PoolingHttpClientConnectionManager HTTP_CLIENT_CONNECTION_MANAGER;
+
+	// If want to use self sign certificate for https,
+	// please follow the official httpclient example link:
+	// https://hc.apache.org/httpcomponents-client-ga/httpclient/examples/org/apache/http/examples/client/ClientCustomSSL.java
 	public static final CloseableHttpClient CLOSEABLE_HTTP_CLIENT;
 	static {
 		HTTP_CLIENT_CONNECTION_MANAGER = new PoolingHttpClientConnectionManager();
