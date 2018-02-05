@@ -1,9 +1,9 @@
 -- Set the resource parameters
-set @resourceName = 'i2b2-nhanes';
-set @resourceURL = 'https://nhanes.hms.harvard.edu/i2b2-services/';
-set @domain = 'i2b2demo';
-set @userName = 'Demo';
-set @password = 'demouser';
+set @resourceName = '{{resourceName}}';
+set @resourceURL = '{{resourceURL}}';
+set @domain = '{{domain}}';
+set @userName = '{{userName}}';
+set @password = '{{password}}';
 set @ignoreCertificate = 'false';
 
 set @resourceImplementingInterface = 'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation';
@@ -77,7 +77,7 @@ insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@contain
 insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@containsId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:INTEGER');
 insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@containsId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:FLOAT');
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ContainsId, 'By Encounter', 'By Encounter', 'ENOUNTER', null, 1);
+insert into Field(id, description, name, path, relationship, required) values(@encounter_ContainsId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ContainsId, 'YES');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ContainsId, 'NO');
 
@@ -93,7 +93,7 @@ insert into PredicateType_dataTypes(PredicateType_id, dataTypes) values(@constra
 
 insert into Field(id, description, name, path, relationship, required) values(@modifier_FieldId, 'Constrain by a modifier of this entity', 'Modifier', 'MODIFIER_KEY', 'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship:MODIFIER', 1);
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ModifierId, 'By Encounter', 'By Encounter', 'ENOUNTER', null, 1);
+insert into Field(id, description, name, path, relationship, required) values(@encounter_ModifierId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ModifierId, 'YES');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ModifierId, 'NO');
 
@@ -130,7 +130,7 @@ insert into Field_dataTypes(Field_id, dataTypes) values(@constraint_ConstrainVal
 insert into Field(id, description, name, path, relationship, required) values(@unitOfMeasure_ConstrainValueId, 'Unit of Measure', 'Unit of Measure', 'UNIT_OF_MEASURE', null, 0);
 insert into Field_dataTypes(Field_id, dataTypes) values(@unitOfMeasure_ConstrainValueId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:STRING');
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ConstrainValueId, 'By Encounter', 'By Encounter', 'ENOUNTER', null, 1);
+insert into Field(id, description, name, path, relationship, required) values(@encounter_ConstrainValueId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainValueId, 'YES');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainValueId, 'NO');
 
@@ -170,7 +170,7 @@ insert into Field_permittedValues(Field_Id, permittedValues) values(@toTime_Cons
 insert into Field(id, description, name, path, relationship, required) values(@toDate_ConstrainDateId, 'To Date', 'To Date', 'TO_DATE', null, 1);
 insert into Field_dataTypes(Field_id, dataTypes) values(@toDate_ConstrainDateId, 'edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType:DATE');
 
-insert into Field(id, description, name, path, relationship, required) values(@encounter_ConstrainDateId, 'By Encounter', 'By Encounter', 'ENOUNTER', null, 1);
+insert into Field(id, description, name, path, relationship, required) values(@encounter_ConstrainDateId, 'By Encounter', 'By Encounter', 'ENCOUNTER', null, 1);
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainDateId, 'YES');
 insert into Field_permittedValues(Field_Id, permittedValues) values(@encounter_ConstrainDateId, 'NO');
 

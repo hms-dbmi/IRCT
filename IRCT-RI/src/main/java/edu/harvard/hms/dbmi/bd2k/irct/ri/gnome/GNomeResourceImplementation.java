@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
@@ -34,7 +35,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -124,7 +124,7 @@ public class GNomeResourceImplementation implements
 	private void retrieveToken(){
 		String urlString = resourceRootURL + AUTH_URL;
 
-		CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+		CloseableHttpClient httpClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 		HttpGet httpGet = new HttpGet(urlString);
 		httpGet.addHeader("Authorization", "Basic " +
 				DatatypeConverter.printBase64Binary((gnomeUserName+":"+gnomePassword)
@@ -192,7 +192,7 @@ public class GNomeResourceImplementation implements
 				objectNode.put(key, queries.get(key));
 			}
 
-			CloseableHttpClient client = HttpClientBuilder.create().build();
+			CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 			HttpPost post = new HttpPost(urlString);
 			try {
 				post.setEntity(new StringEntity(objectMapper

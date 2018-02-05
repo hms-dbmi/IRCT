@@ -4,6 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -25,12 +26,8 @@ import javax.inject.Named;
 import javax.json.*;
 import javax.json.JsonValue.ValueType;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.util.HashMap;
@@ -117,9 +114,10 @@ public class QueryService implements Serializable {
 	@POST
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response runQuery(String payload, @Context UriInfo info) {
+	public Response runQuery(String payload,
+							 @QueryParam("full_response") final String fullResponse,
+							 @QueryParam("only_count") final String onlyCount) {
 		logger.debug("GET /runQuery starting");
-        MultivaluedMap<String, String> query_params = info.getQueryParameters();
 
 		JsonObjectBuilder response = Json.createObjectBuilder();
 
@@ -166,7 +164,9 @@ public class QueryService implements Serializable {
 			Query query = null;
 			try {
 				query = convertJsonToQuery(jsonQuery);
-			} catch (Exception e) {
+				if (onlyCount != null)
+					query.getMetaData().put("only_count", onlyCount);
+			} catch (QueryException e) {
 				response.add("status", "error");
 				response.add("message", e.getMessage());
 				return IRCTResponse.applicationError("Could not convert JSON. "+String.valueOf(e.getMessage()));
@@ -175,7 +175,7 @@ public class QueryService implements Serializable {
 			try {
 				Result r = ec.runQuery(query, (User) session.getAttribute("user"));
 
-                if (query_params.containsKey("full_response")) {
+                if (fullResponse!=null) {
                     return IRCTResponse.success(r);
                 } else {
                     // TODO: Maybe one day we can remove this dumbed down response.
@@ -183,7 +183,7 @@ public class QueryService implements Serializable {
                     extendedResponse.put("resultId", r.getId());
                     return IRCTResponse.success(extendedResponse);
                 }
-            } catch (Exception e) {
+            } catch (PersistableException e) {
                 return IRCTResponse.applicationError("Could not run query. "+String.valueOf(e.getMessage()));
 			}
 		}
