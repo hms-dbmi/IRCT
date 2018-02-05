@@ -27,6 +27,7 @@ import edu.harvard.hms.dbmi.bd2k.util.Utility;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -34,6 +35,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +90,7 @@ public class HAIL implements QueryResourceImplementationInterface,
 
     @Override
     public String getType() {
-        return "hail";
+        return "Hail";
     }
 
     @Override
@@ -117,21 +119,25 @@ public class HAIL implements QueryResourceImplementationInterface,
         if (result == null)
             logger.debug("runQuery() `result` object is null, still.");
 
-
         try {
-
             List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
             result.setResultStatus(ResultStatus.CREATED);
             result.setMessage("Started running the query.");
 
-
             for (WhereClause whereClause : whereClauses) {
-                restCall(resourceURL + Utility.getURLFromPui(whereClause
+                String hailEndpoint = whereClause.getPredicateType().getName();
+                logger.debug("runQuery() hailEndpoint:"+hailEndpoint);
+
+                for (String fieldName: whereClause.getStringValues().keySet()) {
+                    logger.debug("runQuery() endpoint Payload :"+fieldName+"="+whereClause.getStringValues().get(fieldName));
+                }
+                whereClause.getStringValues().put("study", Utility.getURLFromPui(whereClause
                         .getField()
-                        .getPui(),resourceName), result);
+                        .getPui(),resourceName));
+
+                logger.debug("runQuery() endpoint URL:"+resourceURL + '/' + hailEndpoint);
+                restCall(resourceURL + '/' + hailEndpoint, whereClause.getStringValues(), result);
             }
-
-
             logger.debug("runQuery() made the HTTP call. ");
 
         } catch (Exception e) {
@@ -161,7 +167,69 @@ public class HAIL implements QueryResourceImplementationInterface,
         return ResultDataType.TABULAR;
     }
 
+    private void restCall(String urlString, Map<String, String> payload, Result result) {
+        logger.debug("restCall() Starting with query_string");
+
+        ObjectMapper objectMapper = IRCTApplication.objectMapper;
+
+        CloseableHttpClient restClient = HttpClientBuilder.create().build();
+        URIBuilder builder = null;
+        HttpGet get = null;
+        try {
+            builder = new URIBuilder(urlString);
+            for (String fieldName: payload.keySet()) {
+                builder.setParameter(fieldName, payload.get(fieldName));
+            }
+            get = new HttpGet(builder.build());
+            get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Invalid URL generated:"+urlString);
+        }
+        CloseableHttpResponse restResponse = null;
+
+        try {
+            result.setResultStatus(ResultStatus.RUNNING);
+            restResponse = restClient.execute(get);
+            HttpEntity restEntity = restResponse.getEntity();
+
+            // parsing data
+            parseData(result, objectMapper
+                    .readTree(restEntity
+                            .getContent()));
+
+            result.setResultStatus(ResultStatus.COMPLETE);
+
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("restCall() released entity resource.");
+
+        } catch (PersistableException ex) {
+            result.setResultStatus(ResultStatus.ERROR);
+            logger.error("restCall() Persistable error: " + ex.getMessage() );
+        } catch (ResultSetException ex) {
+            result.setResultStatus(ResultStatus.ERROR);
+            logger.error("restCall() Cannot append row: " + ex.getMessage());
+        } catch (JsonParseException ex){
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage("Cannot parse response as JSON");
+            logger.error("restCall() Cannot parse response as a JsonNode: " + ex.getMessage());
+        } catch (IOException ex ){
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage("Cannot execute request to "+resourceName);
+            logger.error("restCall() IOException: Cannot cannot execute POST with URL: " + urlString);
+        } finally {
+            try {
+                if (restResponse != null)
+                    restResponse.close();
+            } catch (Exception ex) {
+                logger.error("restCall() finallyException: " + ex.getMessage());
+            }
+        }
+        logger.debug("restCall() finished.");
+    }
+
     private void restCall(String urlString, Result result) {
+        logger.debug("restCall() Starting ");
 
         ObjectMapper objectMapper = IRCTApplication.objectMapper;
 
@@ -186,22 +254,22 @@ public class HAIL implements QueryResourceImplementationInterface,
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
             EntityUtils.consume(restEntity);
-            logger.debug("restClient() released entity resource.");
+            logger.debug("restCall() released entity resource.");
 
         } catch (PersistableException ex) {
             result.setResultStatus(ResultStatus.ERROR);
-            logger.error("Persistable error: " + ex.getMessage() );
+            logger.error("restCall() Persistable error: " + ex.getMessage() );
         } catch (ResultSetException ex) {
             result.setResultStatus(ResultStatus.ERROR);
-            logger.error("Cannot append row: " + ex.getMessage());
+            logger.error("restCall() Cannot append row: " + ex.getMessage());
         } catch (JsonParseException ex){
             result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage("Cannot parse gnome response as a JsonNode");
-            logger.error("Cannot parse response as a JsonNode: " + ex.getMessage());
+            result.setMessage("Cannot parse response as JSON");
+            logger.error("restCall() Cannot parse response as a JsonNode: " + ex.getMessage());
         } catch (IOException ex ){
             result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage("Cannot execute Post request to gnome");
-            logger.error("IOException: Cannot cannot execute POST with URL: " + urlString);
+            result.setMessage("Cannot execute request to "+resourceName);
+            logger.error("restCall() IOException: Cannot cannot execute POST with URL: " + urlString);
         } finally {
             try {
                 if (restResponse != null)
@@ -210,7 +278,7 @@ public class HAIL implements QueryResourceImplementationInterface,
                 logger.error("restCall() finallyException: " + ex.getMessage());
             }
         }
-        logger.debug("restClient() finished.");
+        logger.debug("restCall() finished.");
     }
 
     private void parseData(Result result, JsonNode responseJsonNode)
@@ -233,6 +301,7 @@ public class HAIL implements QueryResourceImplementationInterface,
                 if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
                     String errorMessage = "Cannot parse response JSON from gnome: expecting a String in header array";
                     result.setMessage(errorMessage);
+                    result.setResultStatus(ResultStatus.ERROR);
                     throw new PersistableException(errorMessage);
                 }
 
@@ -246,9 +315,9 @@ public class HAIL implements QueryResourceImplementationInterface,
                 if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
                     String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
                     result.setMessage(errorMessage);
+                    result.setResultStatus(ResultStatus.ERROR);
                     throw new PersistableException(errorMessage);
                 }
-
                 frs.appendRow();
 
                 for (int j = 0; j<jsonNode.size(); j++){

@@ -306,12 +306,14 @@ public class QueryController implements Serializable{
 			throw new QueryException(
 					"Predicate is not supported by the resource");
 		}
+
 		// Does the predicate support the entity?
-		if ((!predicate.getDataTypes().isEmpty())
+		/*if ((!predicate.getDataTypes().isEmpty())
 				&& (!predicate.getDataTypes().contains(field.getDataType()))) {
+
 			throw new QueryException(
-					"Predicate does not support this type of field");
-		}
+					"Predicate `"+predicate.getName()+"` does not support data type of field");
+		}*/
 		// Are all the fields valid?
 		validateFields(predicate.getFields(), queryFields, null);
 	}
@@ -334,9 +336,7 @@ public class QueryController implements Serializable{
 			}
 			// Are all the fields valid?
 			validateFields(operation.getFields(), selectFields, null);
-
 		}
-
 	}
 
 	private void validateJoinClause(Resource resource, JoinType joinType,
