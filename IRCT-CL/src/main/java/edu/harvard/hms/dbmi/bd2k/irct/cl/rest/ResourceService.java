@@ -305,9 +305,9 @@ public class ResourceService {
 	@POST
     @JacksonSerialized
 	@Produces(MediaType.APPLICATION_JSON)
-    @Path("/path_json")
+    @Path("/jsonPath")
     public Response path_json(@QueryParam("relationship") String relationshipString, List<Entity> entityPathsJson) {
-        logger.debug("GET /path_json Starting");
+        logger.debug("GET /jsonPath Starting");
 
         //Return all resources if no specific paths have been requested
         if (entityPathsJson == null || entityPathsJson.isEmpty()){
