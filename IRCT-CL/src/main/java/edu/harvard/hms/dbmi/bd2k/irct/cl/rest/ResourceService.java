@@ -307,7 +307,7 @@ public class ResourceService {
 	@Produces(MediaType.APPLICATION_JSON)
     @Path("/jsonPath")
     public Response path_json(@QueryParam("relationship") String relationshipString, List<Entity> entityPathsJson) {
-        logger.debug("GET /jsonPath Starting");
+        logger.debug("POST /jsonPath Starting");
 
         //Return all resources if no specific paths have been requested
         if (entityPathsJson == null || entityPathsJson.isEmpty()){
