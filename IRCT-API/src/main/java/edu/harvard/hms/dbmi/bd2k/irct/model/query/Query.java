@@ -3,27 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.query;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.ManyToMany;
-
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import javax.persistence.*;
+import java.io.Serializable;
+import java.util.*;
 
 /**
  * The query class represents any query against any individual or group of
@@ -51,6 +39,10 @@ public class Query implements Serializable {
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	private Set<Resource> resources;
+
+	@Transient
+	@JsonIgnore
+	private Map<String, String> metaData;
 	
 	/**
 	 * Creates an empty query
@@ -330,5 +322,27 @@ public class Query implements Serializable {
 	 */
 	public void setResources(Set<Resource> resources) {
 		this.resources = resources;
+	}
+
+	/**
+	 * this will lazy initialize metaData here,
+	 * since currently, most of the time, metaData will not be used
+	 * @return
+	 */
+	public Map<String, String> getMetaData() {
+		if (metaData == null)
+			metaData = new HashMap<>();
+		return metaData;
+	}
+
+	/**
+	 * meta data give user ability to pass down the parameters from http request
+	 * to service (most services only contain a <code>Query<code/> object)
+	 *
+	 * Notice: meta data will not be persisted, as well as JsonIgnored
+	 * @param metaData
+	 */
+	public void setMetaData(Map<String, String> metaData) {
+		this.metaData = metaData;
 	}
 }

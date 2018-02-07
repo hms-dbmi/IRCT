@@ -15,6 +15,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -24,9 +25,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Creates a REST interface for the resource service
@@ -225,48 +224,10 @@ public class ResourceService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response path(@PathParam("path") String path, @QueryParam("relationship") String relationshipString) {
 		logger.debug("GET /path Starting");
-		User currentUser = (User) session.getAttribute("user");
-		
-		List<Entity> entities = null;
 
-		Resource resource = null;
-		Entity resourcePath = null;
+		List<String> paths = new ArrayList<>(Arrays.asList(path));
 
-		if (path != null && !path.isEmpty()) {
-			if (!path.startsWith("/"))
-				path = "/" + path;
-
-			resource = rc.getResource(path.split("/")[1]);
-			resourcePath = new Entity(path);
-		}
-		
-		if (resource != null) {
-			if (relationshipString == null) {
-				relationshipString = "child";
-			}
-			
-			try {
-				entities = pc.traversePath(resource, resourcePath, resource.getRelationshipByName(relationshipString),currentUser);
-			} catch (Exception e) {
-				return IRCTResponse.error(e.getMessage());
-			}
-			
-		} else if (path == null || path.isEmpty()) {
-			try {
-				entities = pc.getAllResourcePaths();
-			} catch (Exception e) {
-				logger.error("GET /path Exception:",e);
-				return IRCTResponse.error(e.getMessage());
-			}
-		} else {
-			return IRCTResponse.error("Resource is null and Path is missing.");
-		}
-
-		if (entities != null) {
-			return IRCTResponse.success(entities);
-		} else {
-			return IRCTResponse.error("Could not find any entities.");
-		}
+		return getEntitiesFromPaths(paths, relationshipString);
 	}
 
 	/**
@@ -328,5 +289,93 @@ public class ResourceService {
         } else
             return IRCTResponse.error("Could not find any entities.");
 	}
+
+	/**
+	 * Returns a list of entities based on paths sent in json form:
+     * This could be from traversing the paths, or
+	 * through searching for a term or an ontology.
+	 *
+	 * @param relationshipString
+	 *            Relationship
+     * @param entityPathsJson
+     *      List of Json objects with path for resource under the key "pui":
+     *       [ {"pui" : "pui1"}, {"pui": "pui2"}
+	 * @return List of entities
+	 */
+	@POST
+    @JacksonSerialized
+	@Produces(MediaType.APPLICATION_JSON)
+    @Path("/jsonPath")
+    public Response path_json(@QueryParam("relationship") String relationshipString, List<Entity> entityPathsJson) {
+        logger.debug("POST /jsonPath Starting");
+
+        //Return all resources if no specific paths have been requested
+        if (entityPathsJson == null || entityPathsJson.isEmpty()){
+            return IRCTResponse.success(pc.getAllResourcePaths());
+        }
+
+        //Pull all paths from entities
+        List<String> paths = new ArrayList<>();
+        for(Entity entity : entityPathsJson){
+            paths.add(entity.getPui());
+        }
+
+        return getEntitiesFromPaths(paths, relationshipString);
+    }
+
+    private Response getEntitiesFromPaths(List<String> paths, String relationshipString) {
+        User currentUser = (User) session.getAttribute("user");
+
+        //This will contain all resources from all paths
+        List<Entity> allResources = new ArrayList<>();
+
+
+        for (String path : paths) {
+            List<Entity> fetchedResources = null;
+            Resource resource = null;
+            Entity entity = null;
+
+            if (StringUtils.isNotBlank(path)) {
+                if (!path.startsWith("/")) {
+                    path = "/" + path;
+                }
+
+                resource = rc.getResource(path.split("/")[1]);
+                entity = new Entity(path);
+            }
+
+            if (resource != null) {
+                if (relationshipString == null) {
+                    relationshipString = "child";
+                }
+
+                try {
+                    fetchedResources = pc.traversePath(resource, entity, resource.getRelationshipByName(relationshipString), currentUser);
+                } catch (Exception e) {
+                    logger.error("Unable to fetch resources: ", e);
+                    return IRCTResponse.error(e.getMessage());
+                }
+            } else if (StringUtils.isBlank(path)) {
+                try {
+                    fetchedResources = pc.getAllResourcePaths();
+                } catch (Exception e) {
+                    logger.error("GET /path_json Exception: ", e);
+                    return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, e.getMessage());
+                }
+            } else {
+                return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, "Resource is null and Path is incorrect, nonexistent or malformed");
+            }
+
+            //If any resources were successfully fetched, add to the list
+            //Note: if a list with multiple blank puis is sent, this will result in duplicate results
+            if (fetchedResources != null) {
+                allResources.addAll(fetchedResources);
+            }
+
+        }
+
+        //If it reaches here empty, presumably the paths were leaf nodes, so we do want to send back the empty list
+		return IRCTResponse.success(allResources);
+    }
 
 }

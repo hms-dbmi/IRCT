@@ -5,10 +5,9 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.security;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import javax.persistence.*;
 import java.io.Serializable;
 import java.security.Principal;
-
-import javax.persistence.*;
 
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
@@ -30,12 +29,12 @@ public class User implements Principal, Serializable {
 
 	@JsonProperty("key")
 	private String accessKey;
-	
+
 	/**
 	 * Creates a new user
 	 */
 	public User() {
-		
+
 	}
 
 	public String getAccessKey() {
@@ -48,7 +47,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Creates a new user with the given User Id
-	 * 
+	 *
 	 * @param userId User Id
 	 */
 	public User(String userId) {
@@ -57,7 +56,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Returns the id of this User object
-	 * 
+	 *
 	 * @return Id
 	 */
 	public Long getId() {
@@ -66,7 +65,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Sets the id of this User object
-	 * 
+	 *
 	 * @param id Id
 	 */
 	public void setId(Long id) {
@@ -75,7 +74,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Returns the user id
-	 * 
+	 *
 	 * @return User Id
 	 */
 	public String getUserId() {
@@ -84,7 +83,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Sets the user id
-	 * 
+	 *
 	 * @param userId User Id
 	 */
 	public void setUserId(String userId) {
