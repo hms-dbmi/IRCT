@@ -98,21 +98,30 @@ public class HAIL implements QueryResourceImplementationInterface,
     @Override
     public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) {
         logger.debug("getPathRelationship() Starting");
+        List<Entity> entities = new ArrayList<Entity>();
 
         // Split the path into components. The first component is the Hail resource name, the rest is
         // a URL path like string.
         String p = path.getPui();
         logger.debug(p);
-        logger.debug(p.indexOf('/',2));
-        //logger.debug("getPathRelationship() path  "+p.substring());
+        if (p.indexOf('/',2)==-1) {
+            // This is a request for the root
+            logger.debug("querying the root path");
 
-        List<Entity> entities = null;
-//
-//        if (allPathEntities == null || allPathEntities.isEmpty()) {
-//            retrieveAllPathTree();
-//            if (allPathEntities == null || allPathEntities.isEmpty())
-//                return null;
-//        }
+
+            restCall(resourceURL + '/objects', , rslt);
+        } else {
+            String objectPath = p.substring(p.indexOf('/',2));
+            logger.debug("substring "+objectPath);
+
+            Entity e = new Entity();
+
+            e.setPui("objectIdVal");
+            e.setName("objectNameVal");
+            e.setDisplayName("objectDisplayNameVal");
+
+            entities.add(e);
+        }
 
         logger.debug("getPathRelationship() Finished");
         return entities;
@@ -199,6 +208,7 @@ public class HAIL implements QueryResourceImplementationInterface,
                         .getPui(),resourceName));
 
                 logger.debug("runQuery() endpoint URL:"+resourceURL + '/' + hailEndpoint);
+
                 restCall(resourceURL + '/' + hailEndpoint, whereClause.getStringValues(), result);
             }
             logger.debug("runQuery() made the HTTP call. ");
@@ -354,7 +364,7 @@ public class HAIL implements QueryResourceImplementationInterface,
         if (responseStatus.equalsIgnoreCase("ok")){
             if (!matrixNode.getNodeType().equals(JsonNodeType.ARRAY)
                     || !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
-                String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
+                String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
                 result.setMessage(errorMessage);
                 throw new PersistableException(errorMessage);
             }
@@ -362,7 +372,7 @@ public class HAIL implements QueryResourceImplementationInterface,
             // append columns
             for (JsonNode innerJsonNode : matrixNode.get(0)){
                 if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
-                    String errorMessage = "Cannot parse response JSON from gnome: expecting a String in header array";
+                    String errorMessage = "Cannot parse response JSON from Hail: expecting a String in header array";
                     result.setMessage(errorMessage);
                     result.setResultStatus(ResultStatus.ERROR);
                     throw new PersistableException(errorMessage);
@@ -376,7 +386,7 @@ public class HAIL implements QueryResourceImplementationInterface,
             for (int i = 1; i < matrixNode.size(); i++){
                 JsonNode jsonNode = matrixNode.get(i);
                 if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
-                    String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
+                    String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
                     result.setMessage(errorMessage);
                     result.setResultStatus(ResultStatus.ERROR);
                     throw new PersistableException(errorMessage);
