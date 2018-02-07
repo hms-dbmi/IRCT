@@ -56,11 +56,11 @@ public class PathController {
 		logger.debug("traversePath() resource:"+resource.getName()+" resourcePath:"+resourcePath.toString());
 		
 		if (resource.getImplementingInterface() == null) {
-			logger.debug("traversePath() is an interface implementing NULL");
+			logger.debug("traversePath() Resource `"+resource.getName()+"` is not configured to implement requests.");
 		}
 		
 		if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
-			logger.debug("traversePath() resource `"+resource.getName()+"` processing PathRelationship for `"+resourcePath.getPui()+"` path.");
+			logger.debug("traversePath() Resource `"+resource.getName()+"` processing PathRelationship for `"+resourcePath.getPui()+"` path.");
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(
 					resourcePath, relationship, user);

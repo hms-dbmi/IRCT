@@ -97,7 +97,15 @@ public class HAIL implements QueryResourceImplementationInterface,
 
     @Override
     public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) {
-        logger.debug("getPathRelationship() Starting process path: " + path.getPui());
+        logger.debug("getPathRelationship() Starting");
+
+        // Split the path into components. The first component is the Hail resource name, the rest is
+        // a URL path like string.
+        String p = path.getPui();
+        logger.debug(p);
+        logger.debug(p.indexOf('/',2));
+        //logger.debug("getPathRelationship() path  "+p.substring());
+
         List<Entity> entities = null;
 //
 //        if (allPathEntities == null || allPathEntities.isEmpty()) {
@@ -105,8 +113,6 @@ public class HAIL implements QueryResourceImplementationInterface,
 //            if (allPathEntities == null || allPathEntities.isEmpty())
 //                return null;
 //        }
-
-
 
         logger.debug("getPathRelationship() Finished");
         return entities;
