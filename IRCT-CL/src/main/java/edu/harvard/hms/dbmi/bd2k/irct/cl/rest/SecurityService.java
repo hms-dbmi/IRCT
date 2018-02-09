@@ -64,6 +64,9 @@ public class SecurityService implements Serializable {
 	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientSecret;
 
+	@javax.annotation.Resource(mappedName ="java:global/userField")
+	private String userField;
+
 	/**
 	 * Creates a secure key if the user is inside a valid session
 	 *
@@ -75,7 +78,7 @@ public class SecurityService implements Serializable {
 	public Response createKey(@Context HttpServletRequest req) {
 		logger.debug("/createKey Starting");
 		try {
-			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
+			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret, this.userField));
 			logger.debug("/createKey user exists");
 			userObject.setToken(Utilities.extractToken(req));
 			

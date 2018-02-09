@@ -69,9 +69,15 @@ public class Utilities {
 		return firstMap;
 	}
 	
-	public static String extractEmailFromJWT(HttpServletRequest req, String clientSecret) 
+	public static String extractEmailFromJWT(HttpServletRequest req, String clientSecret, String userField)
 			throws IllegalArgumentException, UnsupportedEncodingException {
 		logger.debug("extractEmailFromJWT() with secret:"+clientSecret);
+
+		//No point in doing anything if there's no userField
+        if (userField == null){
+            logger.error("extractEmailFromJWT() No userField set for determining JWT claim");
+            return null;
+        }
 		
 		String tokenString = extractToken(req);
 		String userEmail = null;
@@ -118,17 +124,11 @@ public class Utilities {
 				Claim myClaim = claims.get(s);
 				logger.debug("extractEmailFromJWT() claim: "+s+"="+myClaim.asString());
 			}
-			
-			userEmail = jwt.getClaim("email").asString();
-			
-			// TODO: tranSmart might not have `email` claim in its JWT. Use the `sub` claim instead.
+
+            userEmail = jwt.getClaim(userField).asString();
+
 			if (userEmail == null) {
-				if (jwt.getClaim("sub") == null) {
-					logger.error("extractEmailFromJWT() No email claim, nor the backup `sub` claim is present in the provided JWT.");
-				} else {
-					logger.debug("extractEmailFromJWT() using the `sub` claim, because `email` does not exists");
-					userEmail = jwt.getClaim("sub").toString();
-				}
+                logger.error("extractEmailFromJWT() No " + userField + " claim found");
 			}
 		}
 		
