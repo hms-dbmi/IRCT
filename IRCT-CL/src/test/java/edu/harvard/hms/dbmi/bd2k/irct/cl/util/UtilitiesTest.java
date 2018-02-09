@@ -14,6 +14,8 @@ import java.io.*;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @PowerMockIgnore({"javax.crypto.*" })
@@ -27,8 +29,8 @@ public class UtilitiesTest {
     public void testExtractEmailFromJWT() throws UnsupportedEncodingException, IOException{
 
         /*
-        JWT generated and returned in mock HttpServletRequest:
-         email = "test@email.com"
+        JWT returned in mock HttpServletRequest: (generated separately)
+        email = "test@email.com"
         environment="test.environment"
         client_id="testClientId1234567890abcdefghij"
         client_secret="testClientSecretabcdefghijklmnopqrstuvwx_12345678910111213141516"
@@ -43,10 +45,10 @@ public class UtilitiesTest {
 
         String clientSecret = "testClientSecretabcdefghijklmnopqrstuvwx_12345678910111213141516";
         String userField = "testField";
-
+        String validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzYW1scHx0ZXN0QGVtYWlsLmNvbSIsImF1ZCI6InRlc3RDbGllbnRJZDEyMzQ1Njc4OTBhYmNkZWZnaGlqIiwiaXNzIjoxNTE4MTIxMDcwLCJleHAiOjE1NDg4MDY0MDAsImVtYWlsIjoidGVzdEBlbWFpbC5jb20iLCJkZXNjcmlwdGlvbiI6IkF1dG9nZW5lcmF0ZWQgdG9rZW4gZm9yIHRlc3QuZW52aXJvbm1lbnQifQ.2PiZQbHkEc1uIkEZ9F8j5RhlCfVE35BjRc0i3CcWP8s";
 
         HttpServletRequest req = PowerMockito.mock(HttpServletRequest.class);
-        when(req.getHeader("Authorization")).thenReturn("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzYW1scHx0ZXN0QGVtYWlsLmNvbSIsImF1ZCI6InRlc3RDbGllbnRJZDEyMzQ1Njc4OTBhYmNkZWZnaGlqIiwiaXNzIjoxNTE4MTIxMDcwLCJleHAiOjE1NDg4MDY0MDAsImVtYWlsIjoidGVzdEBlbWFpbC5jb20iLCJkZXNjcmlwdGlvbiI6IkF1dG9nZW5lcmF0ZWQgdG9rZW4gZm9yIHRlc3QuZW52aXJvbm1lbnQifQ.2PiZQbHkEc1uIkEZ9F8j5RhlCfVE35BjRc0i3CcWP8s");
+        when(req.getHeader("Authorization")).thenReturn("Bearer " + validToken);
 
         //Fake field should return null
         String result = cut.extractEmailFromJWT(req, clientSecret, userField);
@@ -59,6 +61,31 @@ public class UtilitiesTest {
         result = cut.extractEmailFromJWT(req, clientSecret, "email");
         assertNotNull(result);
         assertEquals(result, "test@email.com");
+
+        //Missing userField should return null
+        result = cut.extractEmailFromJWT(req, clientSecret, null);
+        assertNull(result);
+
+        try {
+            result = cut.extractEmailFromJWT(req, "invalidClientSecret", "email");
+            //It shouldn't have gotten past here
+            fail();
+        } catch (Exception e){
+            //Good!  There should be an exception
+            assertEquals("Could not validate with a plain, not-encoded client secret. The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256", e.getMessage());
+        }
+
+        //Test invalid token
+        String invalidToken = validToken.replaceAll("y", "X");
+        when(req.getHeader("Authorization")).thenReturn("Bearer " + invalidToken);
+        try {
+            result = cut.extractEmailFromJWT(req, clientSecret, "email");
+            //It shouldn't have gotten past here
+            fail();
+        } catch (Exception e){
+            assertTrue(e.getMessage().startsWith("Could not validate with a plain, not-encoded client secret."));
+        }
+
 
     }
 }
