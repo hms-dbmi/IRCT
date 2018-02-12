@@ -336,9 +336,8 @@ public class ResourceService {
             Entity entity = null;
 
             if (StringUtils.isNotBlank(path)) {
-                if (!path.startsWith("/")) {
+                if (!path.startsWith("/"))
                     path = "/" + path;
-                }
 
                 resource = rc.getResource(path.split("/")[1]);
                 entity = new Entity(path);

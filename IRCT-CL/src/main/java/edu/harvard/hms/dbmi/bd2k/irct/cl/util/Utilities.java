@@ -3,27 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.log4j.Logger;
-
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.Claim;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * A collection of static methods that provide shared functionality throughout
- * the IRCT-UI
+ * the IRCT-CL
  */
 public class Utilities {
 	
