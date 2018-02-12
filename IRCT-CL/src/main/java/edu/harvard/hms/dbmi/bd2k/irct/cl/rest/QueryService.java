@@ -331,13 +331,13 @@ public class QueryService implements Serializable {
 		Resource resource = null;
 
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 
-            logger.error("addJsonWhereClauseToQuery() guessing that resourcename: "+path.split("/")[1]);
+            logger.info("addJsonWhereClauseToQuery() resource name: "+path.split("/")[1]);
 			resource = rc.getResource(path.split("/")[1]);
 
-            logger.error("addJsonWhereClauseToQuery() guessing that entity: "+path);
+            logger.info("addJsonWhereClauseToQuery() entity: "+path);
 			entity = new Entity(path);
 
 			if (dataType != null) {
@@ -443,8 +443,8 @@ public class QueryService implements Serializable {
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
@@ -522,8 +522,8 @@ public class QueryService implements Serializable {
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
@@ -631,8 +631,8 @@ public class QueryService implements Serializable {
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
