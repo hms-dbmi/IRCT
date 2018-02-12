@@ -8,6 +8,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -350,7 +351,7 @@ public class ResourceService {
 
                 try {
                     fetchedResources = pc.traversePath(resource, entity, resource.getRelationshipByName(relationshipString), currentUser);
-                } catch (Exception e) {
+                } catch (ResourceInterfaceException e) {
                     logger.error("Unable to fetch resources: ", e);
                     return IRCTResponse.error(e.getMessage());
                 }
@@ -358,6 +359,7 @@ public class ResourceService {
                 try {
                     fetchedResources = pc.getAllResourcePaths();
                 } catch (Exception e) {
+                	// what exact Exceptions you want to catch here?
                     logger.error("GET /path_json Exception: ", e);
                     return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, e.getMessage());
                 }
