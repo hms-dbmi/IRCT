@@ -8,6 +8,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -204,7 +205,7 @@ public class ResourceService {
 				return IRCTResponse.success(entities);
 			}
 			
-		} catch (Exception e) {
+		} catch (ResourceInterfaceException e) {
 			return IRCTResponse.error(e);
 		}
 	}
@@ -257,12 +258,7 @@ public class ResourceService {
 		try {
 
 		    if (path.equals("*")) {
-                try {
-                    entities = pc.getAllResourcePaths();
-                } catch (Exception e) {
-                    return IRCTResponse.error(e.getMessage());
-                }
-
+		    	entities = pc.getAllResourcePaths();
             } else {
                 Resource resource = picsureAPI.getResources().get(datasource);
                 Entity resourcePath = new Entity(path);
@@ -276,7 +272,7 @@ public class ResourceService {
 
             }
 
-        } catch (Exception e) {
+        } catch (ResourceInterfaceException e) {
             return IRCTResponse.error(String.format("Exception `%s` with message `%s`.", e.toString(), e.getMessage()));
         }
         logger.debug("GET /objects Finished.");
@@ -350,17 +346,12 @@ public class ResourceService {
 
                 try {
                     fetchedResources = pc.traversePath(resource, entity, resource.getRelationshipByName(relationshipString), currentUser);
-                } catch (Exception e) {
+                } catch (ResourceInterfaceException e) {
                     logger.error("Unable to fetch resources: ", e);
-                    return IRCTResponse.error(e.getMessage());
+                    return IRCTResponse.riError(e.getMessage());
                 }
             } else if (StringUtils.isBlank(path)) {
-                try {
-                    fetchedResources = pc.getAllResourcePaths();
-                } catch (Exception e) {
-                    logger.error("GET /path_json Exception: ", e);
-                    return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, e.getMessage());
-                }
+            	fetchedResources = pc.getAllResourcePaths();
             } else {
                 return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, "Resource is null and Path is incorrect, nonexistent or malformed");
             }
