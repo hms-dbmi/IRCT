@@ -149,7 +149,8 @@ public class Utilities {
 	 * @param req
 	 * @return
 	 */
-	public static String extractToken(HttpServletRequest req) {
+	public static String extractToken(HttpServletRequest req)
+			throws NotAuthorizedException{
 		logger.debug("extractToken() Starting");
 		String token = null;
 		
@@ -160,7 +161,7 @@ public class Utilities {
 			String[] parts = authorizationHeader.split(" ");
 
 			if (parts.length != 2) {
-				return null;
+				throw new NotAuthorizedException("token structure is incorrect, expecting: \"scheme_string token_string\"");
 			}
 
 			String scheme = parts[0];
@@ -171,10 +172,10 @@ public class Utilities {
 			// several ways to choose:
 			// use regular expression: if (schema.matches("typeA|typeB|typeC")){...}
 			// or use a HashSet<String> to pre-store all the possible values
-			if (scheme.equalsIgnoreCase("Bearer")){
-				token = credentials;
+			if (StringUtils.isBlank(scheme) || !scheme.equalsIgnoreCase("Bearer")){
+				throw new NotAuthorizedException("token scheme is not specified or not supported.");
 			} else {
-				throw new NotAuthorizedException("token scheme is not specified.");
+				token = credentials;
 			}
 
 			logger.debug("extractToken() token:" + token);
