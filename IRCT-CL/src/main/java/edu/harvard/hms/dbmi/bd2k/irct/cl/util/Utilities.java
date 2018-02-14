@@ -161,7 +161,7 @@ public class Utilities {
 			String[] parts = authorizationHeader.split(" ");
 
 			if (parts.length != 2) {
-				throw new NotAuthorizedException("token structure is incorrect, expecting: \"scheme_string token_string\"");
+				throw new NotAuthorizedException("token structure is incorrect, expecting: \'scheme_string token_string\'");
 			}
 
 			String scheme = parts[0];
