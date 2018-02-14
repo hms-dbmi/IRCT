@@ -133,29 +133,25 @@ public class QueryService implements Serializable {
 
 			String resourceName = jsonQuery.get("source").toString().replace("\"", "");
 			
-			try {
-				//edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
 
-				if (picsureAPI.getResources() == null || picsureAPI.getResources().isEmpty()) {
-					return IRCTResponse.applicationError("There are no sources defined.");
-				}
-				
-				Resource source = picsureAPI.getResources().get(resourceName);
-				if (source == null) {
-					return IRCTResponse.applicationError("Source `"+resourceName+"` is not defined.");
-				}
-				if(!source.isSetup()) {
-					source = rc.getResource(source.getName());
-				}
-				
-				JsonArray queryRequest = jsonQuery.getJsonArray("request");
-				response.add("status", "ok so far");
-				response.add("status", "got something "+queryRequest.toString());
-				
-			} catch (Exception e) {
-				return IRCTResponse.applicationError("Could not run PASSTHROUGH query."+String.valueOf(e.getMessage()));
+			//edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
+
+			if (picsureAPI.getResources() == null || picsureAPI.getResources().isEmpty()) {
+				return IRCTResponse.applicationError("There are no sources defined.");
 			}
-			
+
+			Resource source = picsureAPI.getResources().get(resourceName);
+			if (source == null) {
+				return IRCTResponse.applicationError("Source `"+resourceName+"` is not defined.");
+			}
+			if(!source.isSetup()) {
+				return IRCTResponse.applicationError("Source `"+resourceName+"` has not been setup yet.");
+			}
+
+			JsonArray queryRequest = jsonQuery.getJsonArray("request");
+			response.add("status", "ok so far");
+			response.add("message", "got something "+queryRequest.toString());
+
 		} else {
 			logger.debug("GET /runQuery ORIGINAL query format.");
 

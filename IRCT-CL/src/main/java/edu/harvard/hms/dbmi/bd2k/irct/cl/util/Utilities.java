@@ -3,21 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
 
-import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * A collection of static methods that provide shared functionality throughout
@@ -66,9 +65,16 @@ public class Utilities {
 
 		return firstMap;
 	}
-	
-	public static String extractEmailFromJWT(HttpServletRequest req, String clientSecret, String userField)
-			throws IllegalArgumentException, UnsupportedEncodingException {
+
+	/**
+	 * extract specific user field from JWT token
+	 * @param req
+	 * @param clientSecret
+	 * @param userField specifies which user field is going to be extracted from JWT token
+	 * @return
+	 * @throws NotAuthorizedException
+	 */
+	public static String extractEmailFromJWT(HttpServletRequest req, String clientSecret, String userField) {
 		logger.debug("extractEmailFromJWT() with secret:"+clientSecret);
 
 		//No point in doing anything if there's no userField
@@ -78,41 +84,39 @@ public class Utilities {
         }
 		
 		String tokenString = extractToken(req);
+        if (StringUtils.isBlank(tokenString)){
+			throw new NotAuthorizedException("token string is null or empty");
+		}
+
+
 		String userEmail = null;
 		
 		DecodedJWT jwt = null;
-		boolean isValidated = false;
 		try {
 			logger.debug("validateAuthorizationHeader() validating with un-decoded secret.");
-			Algorithm algo = Algorithm.HMAC256(clientSecret.getBytes("UTF-8"));
-			JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-			jwt = verifier.verify(tokenString);
-			isValidated = true;
-		} catch (Exception e) {
-			logger.warn("extractEmailFromJWT() First validation with undecoded secret has failed. "+e.getMessage());
-		}
-		
-		// If the first try, with decoding the clientSecret fails, due to whatever reason,
-		// try to use a different algorithm, where the clientSecret does not get decoded
-		if (!isValidated) {
-			try {
-				logger.debug("extractEmailFromJWT() validating with de-coded secret.");
-				Algorithm algo = Algorithm.HMAC256(Base64.decodeBase64(clientSecret.getBytes("UTF-8")));
-				JWTVerifier verifier = com.auth0.jwt.JWT.require(algo).build();
-				jwt = verifier.verify(tokenString);
-				isValidated = true;
-				logger.debug("extractEmailFromJWT() validation is successful.");
-			} catch (Exception e) {
-				logger.debug("extractEmailFromJWT() Second validation has failed as well."+e.getMessage());
-				throw new RuntimeException("Could not validate with a plain, not-encoded client secret. "+e.getMessage());
+			jwt = com.auth0.jwt.JWT.require(Algorithm
+					.HMAC256(clientSecret
+							.getBytes("UTF-8")))
+					.build()
+					.verify(tokenString);
+		} catch (UnsupportedEncodingException e){
+			logger.error("extractEmailFromJWT() getting bytes for initialize jwt token algorithm error: " + e.getMessage());
+		} catch (JWTVerificationException e) {
+			try{
+				jwt = com.auth0.jwt.JWT.require(Algorithm
+						.HMAC256(Base64.decodeBase64(clientSecret
+								.getBytes("UTF-8"))))
+						.build()
+						.verify(tokenString);
+			} catch (UnsupportedEncodingException ex){
+				logger.error("extractEmailFromJWT() getting bytes for initialize jwt token algorithm error: " + e.getMessage());
+			} catch (JWTVerificationException ex) {
+				logger.error("extractEmailFromJWT() token is invalid after tried with another algorithm: " + e.getMessage());
+				throw new NotAuthorizedException("Token is invalid, please request a new one");
 			}
 		}
-		
-		if (!isValidated) {
-			// If we get here, it means we could not validated the JWT token. Total failure.
-			throw new NotAuthorizedException(Response.status(401)
-					.entity("Could not validate the JWT token passed in."));
-		}
+
+		logger.debug("extractEmailFromJWT() validation is successful.");
 		
 		if (jwt != null) {
 			// Just in case someone cares, this will list all the claims that are 
@@ -130,7 +134,7 @@ public class Utilities {
 			}
 		}
 		
-		logger.debug("extractEmailFromJWT() Finished. Returning userEmail:"+userEmail);
+		logger.debug("extractEmailFromJWT() Finished. Returning userEmail: "+userEmail);
 		return userEmail;
 
 	}
@@ -140,35 +144,44 @@ public class Utilities {
 		return Utilities.extractToken(req);		
 	}
 
-	public static String extractToken(HttpServletRequest req) {
+	/**
+	 * extract token from http request
+	 * @param req
+	 * @return
+	 */
+	public static String extractToken(HttpServletRequest req)
+			throws NotAuthorizedException{
 		logger.debug("extractToken() Starting");
 		String token = null;
 		
-		String authorizationHeader = ((HttpServletRequest) req).getHeader("Authorization");
+		String authorizationHeader = req.getHeader("Authorization");
 		if (authorizationHeader != null) {
 			logger.debug("extractToken() header:" + authorizationHeader);
-			try {
 
-				String[] parts = authorizationHeader.split(" ");
+			String[] parts = authorizationHeader.split(" ");
 
-				if (parts.length != 2) {
-					return null;
-				}
-
-				String scheme = parts[0];
-				String credentials = parts[1];
-
-				Pattern pattern = Pattern.compile("^Bearer$", Pattern.CASE_INSENSITIVE);
-				if (pattern.matcher(scheme).matches()) {
-					token = credentials;
-				}
-				logger.debug("extractToken() token:" + token);
-
-			} catch (Exception e) {
-				logger.error("extractToken() token validation failed: " + e + "/" + e.getMessage());
+			if (parts.length != 2) {
+				throw new NotAuthorizedException("token structure is incorrect, expecting: \'scheme_string token_string\'");
 			}
+
+			String scheme = parts[0];
+			String credentials = parts[1];
+
+
+			// if in the future, we need to handle multiple token types,
+			// several ways to choose:
+			// use regular expression: if (schema.matches("typeA|typeB|typeC")){...}
+			// or use a HashSet<String> to pre-store all the possible values
+			if (StringUtils.isBlank(scheme) || !scheme.equalsIgnoreCase("Bearer")){
+				throw new NotAuthorizedException("token scheme is not specified or not supported.");
+			} else {
+				token = credentials;
+			}
+
+			logger.debug("extractToken() token:" + token);
+
 		} else {
-			throw new NotAuthorizedException(Response.status(401).entity("No Authorization header found in request."));
+			throw new NotAuthorizedException("No Authorization header found in request.");
 		}
 		logger.debug("extractToken() Finished.");
 		return token;
