@@ -2,13 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.exception;
+
+import javax.ws.rs.WebApplicationException;
+
 /**
  * Indicates a Resource Interface Exception occurred of some type
  * 
  * @author Jeremy R. Easton-Marks
  *
  */
-public class ResourceInterfaceException extends Exception {
+public class ResourceInterfaceException extends WebApplicationException {
 	private static final long serialVersionUID = -4688536480746747740L;
 	
 	/**

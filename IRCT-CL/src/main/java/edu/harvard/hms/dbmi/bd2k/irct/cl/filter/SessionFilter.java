@@ -19,7 +19,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.NotAuthorizedException;
 import java.io.IOException;
-import java.util.Enumeration;
 
 //import javax.servlet.ServletContext;
 
@@ -66,8 +65,9 @@ public class SessionFilter implements Filter {
 			
 			try {
 				User user = (User) session.getAttribute("user");
+
 				if (user == null)
-					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret));
+					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
 				logger.debug("doFilter() User(userId:"+user.getUserId()+")");
 				
 				//DI-994: email whitelist for authorization without a token
@@ -104,10 +104,10 @@ public class SessionFilter implements Filter {
 
 				logger.debug("doFilter() set session attributes.");
 
-			} catch (Exception e) {
+			} catch (NotAuthorizedException e) {
 				logger.error("doFilter() "+e.getMessage());
 
-				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getMessage()+"\"}";
+				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getChallenges()+"\"}";
 
 				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 				res.setContentType("application/json");
