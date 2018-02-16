@@ -81,6 +81,8 @@ public class ResultService {
 	@Path("/resultStatus/{resultId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response resultStatus(@PathParam("resultId") Long resultId) {
+		logger.debug("GET resultStatus/ starting");
+
 		JsonObjectBuilder response = Json.createObjectBuilder();
 		User user = (User) session.getAttribute("user");
 
@@ -88,15 +90,18 @@ public class ResultService {
 		if (result == null) {
 			response.add("message", "Unable to get result for that id");
 		} else {
-			response.add("resultId", resultId);
+			response.add("resultId", result.getId());
+			response.add("riActionId", String.valueOf(result.getResourceActionId()));
+
 			response.add("status", result.getResultStatus().toString());
+
 			response.add("starttime", String.valueOf(result.getStartTime()));
 			response.add("endtime", String.valueOf(result.getEndTime()));
-			response.add("dataType", String.valueOf(result.getDataType()));
 
-			if (result.getResultStatus() == ResultStatus.ERROR) {
-				response.add("message", result.getMessage());
-			}
+			response.add("dataType", String.valueOf(result.getDataType()));
+			response.add("path", String.valueOf(result.getResultSetLocation()));
+
+			response.add("message", String.valueOf(result.getMessage()));
 		}
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();

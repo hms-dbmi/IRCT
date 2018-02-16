@@ -174,6 +174,7 @@ public class QueryService implements Serializable {
 			}
 
 			try {
+				logger.debug("******************************************************");
 				Result r = ec.runQuery(query, (User) session.getAttribute("user"));
 
                 if (fullResponse!=null) {
