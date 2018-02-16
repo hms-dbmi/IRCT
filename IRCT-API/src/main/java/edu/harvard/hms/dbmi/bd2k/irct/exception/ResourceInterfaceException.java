@@ -6,14 +6,22 @@ package edu.harvard.hms.dbmi.bd2k.irct.exception;
 import javax.ws.rs.WebApplicationException;
 
 /**
- * Indicates a Resource Interface Exception occurred of some type
- * 
- * @author Jeremy R. Easton-Marks
+ * Will end up to return a RI error
  *
+ * @see edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse
  */
 public class ResourceInterfaceException extends WebApplicationException {
 	private static final long serialVersionUID = -4688536480746747740L;
-	
+
+	private Object content;
+
+	public ResourceInterfaceException() {
+	}
+
+	public ResourceInterfaceException(Object content) {
+		this.content = content;
+	}
+
 	/**
 	 * Create a Resource Interface Exception with the given message
 	 * 
@@ -40,5 +48,13 @@ public class ResourceInterfaceException extends WebApplicationException {
 	 */
 	public ResourceInterfaceException(String message, Exception exception) {
 		super(message, exception);
+	}
+
+	public Object getContent() {
+		return content;
+	}
+
+	public void setContent(Object content) {
+		this.content = content;
 	}
 }

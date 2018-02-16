@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
@@ -113,7 +113,7 @@ public class SecurityService implements Serializable {
 		User u = sc.validateKey(key);
 		if (u == null){
 			logger.error("/startSession Cannot validate key: " + key);
-			return IRCTResponse.protocolError(Status.UNAUTHORIZED, "Cannot validate key");
+			throw new NotAuthorizedException("Cannot validate key");
 		}
 
 		session.setAttribute("user", u);
