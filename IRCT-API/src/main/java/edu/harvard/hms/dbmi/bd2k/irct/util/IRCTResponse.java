@@ -1,4 +1,4 @@
-package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
+package edu.harvard.hms.dbmi.bd2k.irct.util;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -70,6 +70,13 @@ public class IRCTResponse {
                 .build();
     }
 
+    private static Response error(int status, String errorType, Object content, MediaType type){
+        return Response.status(status)
+                .entity(new IRCTResponseError(errorType, content))
+                .type(type)
+                .build();
+    }
+
     /**
      *  if IRCT application encountered some errors which is not users' fault,
      *  this method should be used
@@ -101,6 +108,10 @@ public class IRCTResponse {
      */
     public static Response protocolError(Response.Status status, Object content){
         return error(status, content, MediaType.APPLICATION_JSON_TYPE);
+    }
+
+    public static Response protocolError(int status, Object content){
+        return error(status, null, content, MediaType.APPLICATION_JSON_TYPE);
     }
 
 }
