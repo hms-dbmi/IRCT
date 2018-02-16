@@ -1,6 +1,7 @@
 package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
@@ -12,6 +13,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
@@ -27,19 +29,21 @@ import edu.harvard.hms.dbmi.bd2k.util.Utility;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import us.monoid.json.JSONObject;
 
+import javax.json.JsonObject;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * A resource implementation of a data source that communicates with a HAIL proxy via HTTP
@@ -103,16 +107,37 @@ public class HAIL implements QueryResourceImplementationInterface,
         // Split the path into components. The first component is the Hail resource name, the rest is
         // a URL path like string.
         String p = path.getPui();
-        logger.debug(p);
+        logger.debug("getPathRelationship() pui:"+p);
         if (p.indexOf('/',2)==-1) {
             // This is a request for the root
-            logger.debug("querying the root path");
+
+            // Call the external URL
+            InputStream is = simpleRestCall(this.resourceURL);
+
+            // Parse the response, as JSON mime type
+            ObjectMapper objectMapper = IRCTApplication.objectMapper;
+            JsonNode responseJsonNode;
+            try {
+                responseJsonNode = objectMapper.readTree(is);
+                String responseStatus = responseJsonNode.get("status").textValue();
+                Entity e = new Entity();
+
+                e.setPui("objectIdVal");
+                e.setName("objectNameVal");
+                e.setDisplayName("objectDisplayNameVal status:" + responseStatus);
+
+                entities.add(e);
+            } catch (JsonMappingException jme) {
+                logger.error("getPathRelationship() Exception:"+jme.getMessage());
+                throw new RuntimeException("Could not parse JSON response from `"+resourceName+"` resource");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
 
-            restCall(resourceURL + '/objects', , rslt);
         } else {
             String objectPath = p.substring(p.indexOf('/',2));
-            logger.debug("substring "+objectPath);
+            logger.debug("getPathRelationship() objectPath: "+objectPath);
 
             Entity e = new Entity();
 
@@ -168,11 +193,7 @@ public class HAIL implements QueryResourceImplementationInterface,
      * @return null if nothing
      */
     private TreeMap<String, JsonNode> parseAllHailPathJsonNode(JsonNode pathNode){
-
-
-
         TreeMap<String, JsonNode> entityTreeMap = null;
-
         return entityTreeMap;
     }
 
@@ -197,24 +218,40 @@ public class HAIL implements QueryResourceImplementationInterface,
             result.setMessage("Started running the query.");
 
             for (WhereClause whereClause : whereClauses) {
-                String hailEndpoint = whereClause.getPredicateType().getName();
-                logger.debug("runQuery() hailEndpoint:"+hailEndpoint);
-
+                // Convert the predicate fields into variables on the Hail request
+                // These variables will be used when rendering the Hail template
+                // into an actual script.
+                Map<String,String> hailVariables = new HashMap<String, String>();
                 for (String fieldName: whereClause.getStringValues().keySet()) {
-                    logger.debug("runQuery() endpoint Payload :"+fieldName+"="+whereClause.getStringValues().get(fieldName));
+                    hailVariables.put(fieldName, whereClause.getStringValues().get(fieldName));
+                    logger.debug("runQuery() field:"+fieldName+"="+whereClause.getStringValues().get(fieldName));
                 }
-                whereClause.getStringValues().put("study", Utility.getURLFromPui(whereClause
+
+                // Convert the predicate value to a hail template
+                String hailTemplate = whereClause.getPredicateType().getName();
+                logger.debug("runQuery() hailTemplate:"+hailTemplate);
+                hailVariables.put("template", hailTemplate);
+
+                // Use the pui from the where clause to set the study name in the list of variables.
+                hailVariables.put("study", Utility.getURLFromPui(whereClause
                         .getField()
                         .getPui(),resourceName));
 
-                logger.debug("runQuery() endpoint URL:"+resourceURL + '/' + hailEndpoint);
+                HailResponse hailResponse = hailJobSubmit(hailTemplate,hailVariables);
 
-                restCall(resourceURL + '/' + hailEndpoint, whereClause.getStringValues(), result);
+                if (hailResponse.isError()) {
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage(hailResponse.getErrorMessage());
+                } else {
+                    result.setResourceActionId(hailResponse.getJobUUID());
+                    result.setResultStatus(ResultStatus.RUNNING);
+                    result.setMessage(hailResponse.getMessage());
+                }
             }
-            logger.debug("runQuery() made the HTTP call. ");
+            logger.debug("runQuery() HTTPResponse has been interpreted. Updated `result` object.");
 
         } catch (Exception e) {
-            logger.error(String.format("runQuery() Exception: %s", e.getMessage()));
+            logger.error(String.format("runQuery() UnhandledException: %s", e.getMessage()));
 
             result.setResultStatus(ResultStatus.ERROR);
             result.setMessage(String.valueOf(e.getMessage()));
@@ -227,6 +264,11 @@ public class HAIL implements QueryResourceImplementationInterface,
     @Override
     public Result getResults(User user, Result result) {
         logger.debug("getResults() starting");
+        logger.debug("getResults() getting result for "+result.getResourceActionId());
+
+        result.setResultStatus(ResultStatus.ERROR);
+        result.setMessage("Result failed, on purpose.");
+
         return result;
     }
 
@@ -240,17 +282,17 @@ public class HAIL implements QueryResourceImplementationInterface,
         return ResultDataType.TABULAR;
     }
 
-    private void restCall(String urlString, Map<String, String> payload, Result result) {
-        logger.debug("restCall() Starting with query_string");
+    private InputStream simpleRestCall(String urlString, Map<String, String> payload) {
+        logger.debug("simpleRestCall() Starting");
 
-        ObjectMapper objectMapper = IRCTApplication.objectMapper;
-
+        HttpEntity restEntity = null;
         CloseableHttpClient restClient = HttpClientBuilder.create().build();
         URIBuilder builder = null;
         HttpGet get = null;
         try {
             builder = new URIBuilder(urlString);
             for (String fieldName: payload.keySet()) {
+                logger.debug("simpleRestCall() add `"+fieldName+"` to payload as `"+payload.get(fieldName)+"`.");
                 builder.setParameter(fieldName, payload.get(fieldName));
             }
             get = new HttpGet(builder.build());
@@ -259,37 +301,55 @@ public class HAIL implements QueryResourceImplementationInterface,
             throw new RuntimeException("Invalid URL generated:"+urlString);
         }
         CloseableHttpResponse restResponse = null;
-
         try {
-            result.setResultStatus(ResultStatus.RUNNING);
             restResponse = restClient.execute(get);
-            HttpEntity restEntity = restResponse.getEntity();
+            restEntity = restResponse.getEntity();
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("simpleRestCall() released entity resource.");
+        } catch (IOException ex ){
+            logger.error("simpleRestCall() IOException: Cannot execute POST with URL: " + urlString);
+        } finally {
+            try {
+                if (restResponse != null)
+                    restResponse.close();
+            } catch (Exception ex) {
+                logger.error("simpleRestCall() finallyException: " + ex.getMessage());
+            }
+        }
+        logger.debug("simpleRestCall() finished.");
 
-            // parsing data
-            parseData(result, objectMapper
-                    .readTree(restEntity
-                            .getContent()));
+        if (restEntity!=null) {
+            try {
+                return restEntity.getContent();
+            } catch (IOException ioex) {
+                logger.error("simpleRestCall() Exception:"+ioex);
 
-            result.setResultStatus(ResultStatus.COMPLETE);
+            } finally {
+
+            }
+        }
+        return null;
+    }
+
+    private InputStream simpleRestCall(String urlString) {
+        logger.debug("restCall() Starting");
+        HttpEntity restEntity = null;
+        CloseableHttpClient restClient = HttpClientBuilder.create().build();
+
+        CloseableHttpResponse restResponse = null;
+        try {
+            HttpGet get = new HttpGet(urlString);
+            get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
+
+            restResponse = restClient.execute(get);
+            restEntity = restResponse.getEntity();
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
             EntityUtils.consume(restEntity);
             logger.debug("restCall() released entity resource.");
-
-        } catch (PersistableException ex) {
-            result.setResultStatus(ResultStatus.ERROR);
-            logger.error("restCall() Persistable error: " + ex.getMessage() );
-        } catch (ResultSetException ex) {
-            result.setResultStatus(ResultStatus.ERROR);
-            logger.error("restCall() Cannot append row: " + ex.getMessage());
-        } catch (JsonParseException ex){
-            result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage("Cannot parse response as JSON");
-            logger.error("restCall() Cannot parse response as a JsonNode: " + ex.getMessage());
         } catch (IOException ex ){
-            result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage("Cannot execute request to "+resourceName);
-            logger.error("restCall() IOException: Cannot cannot execute POST with URL: " + urlString);
+            logger.error("restCall() IOException: Cannot execute POST with URL: " + urlString);
         } finally {
             try {
                 if (restResponse != null)
@@ -299,6 +359,126 @@ public class HAIL implements QueryResourceImplementationInterface,
             }
         }
         logger.debug("restCall() finished.");
+
+        if (restEntity!=null) {
+            try {
+                return restEntity.getContent();
+            } catch (IOException ioex) {
+                logger.error("restCall() Exception:"+ioex);
+
+            } finally {
+
+            }
+        }
+        return null;
+    }
+
+    // HTTP POST with JSON body, constructed from `payload` Map, and parse the
+    // returned stream into a JsonNode object for later parsing. Protocoll errors
+    // are captured as well.
+    // Any protocol or parsing error will be thrown as RuntimeException
+    private JsonNode restPOST(String urlString, Map<String, String> payload) {
+        logger.debug("restPOST() Starting ");
+        JsonNode responseObject = null;
+
+        CloseableHttpResponse restResponse = null;
+        try {
+            ObjectMapper objectMapper = IRCTApplication.objectMapper;
+            CloseableHttpClient restClient = HttpClientBuilder.create().build();
+            // Convert payload into JSON object.
+            JSONObject json = new JSONObject();
+            for(String fieldName: payload.keySet()) {
+                json.put(fieldName,payload.get(fieldName));
+            }
+            HttpPost post = new HttpPost((urlString));
+            post.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
+            post.setEntity(new StringEntity(json.toString()));
+            restResponse = restClient.execute(post);
+
+            if (restResponse.getStatusLine().getStatusCode()!=200) {
+                // Error status returned.
+            }
+            if (restResponse==null) {
+                logger.error("restResponse is null");
+            }
+            HttpEntity restEntity = restResponse.getEntity();
+            if (restEntity==null) {
+                logger.error("restEntity is null");
+            }
+            // Convert JSON response into Java object
+            responseObject = objectMapper
+                    .readTree(restEntity
+                            .getContent());
+            logger.debug("restCall() finished parsing data");
+
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("restPOST() released entity resource.");
+        } catch (JsonParseException ex){
+            logger.error("restPOST() JsonParseException: " + ex.getMessage());
+        } catch (IOException ex ) {
+            logger.error("restPOST() IOException: " + urlString);
+        } catch (Exception ex) {
+            logger.error("restPOST() UnhandledException:"+ex);
+        } finally {
+            try {
+                if (restResponse != null)
+                    restResponse.close();
+            } catch (Exception ex) {
+                logger.error("restPOST() finallyException: " + ex.getMessage());
+            }
+        }
+        logger.debug("restPOST() finished.");
+        return responseObject;
+    }
+
+    // HTTP GET, parse the returned stream into a JsonNode object for
+    // later parsing.
+    private JsonNode restGET(String urlString) {
+        logger.debug("restPOST() Starting ");
+        JsonNode responseObject = null;
+
+        CloseableHttpResponse restResponse = null;
+        try {
+            ObjectMapper objectMapper = IRCTApplication.objectMapper;
+            CloseableHttpClient restClient = HttpClientBuilder.create().build();
+
+            HttpPost get = new HttpGet((urlString));
+            restResponse = restClient.execute(get);
+
+            if (restResponse.getStatusLine().getStatusCode()!=200) {
+                // Error status returned.
+            }
+            if (restResponse==null) {
+                logger.error("restResponse is null");
+            }
+            HttpEntity restEntity = restResponse.getEntity();
+            if (restEntity==null) {
+                logger.error("restEntity is null");
+            }
+            // Convert JSON response into Java object
+            responseObject = objectMapper
+                    .readTree(restEntity
+                            .getContent());
+            logger.debug("restCall() finished parsing data");
+
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("restPOST() released entity resource.");
+        } catch (JsonParseException ex){
+            throw new ResourceInterfaceException("JSON Parsing exception: "+ex.getMessage());
+        } catch (IOException ex ) {
+            logger.error("restPOST() IOException: " + urlString);
+        } finally {
+            try {
+                if (restResponse != null)
+                    restResponse.close();
+            } catch (Exception ex) {
+                logger.error("restPOST() finallyException: " + ex.getMessage());
+            }
+        }
+        logger.debug("restPOST() finished.");
+        return responseObject;
     }
 
     private void restCall(String urlString, Result result) {
@@ -318,12 +498,19 @@ public class HAIL implements QueryResourceImplementationInterface,
             restResponse = restClient.execute(get);
             HttpEntity restEntity = restResponse.getEntity();
 
-            // parsing data
-            parseData(result, objectMapper
-                    .readTree(restEntity
-                            .getContent()));
+            logger.debug("restCall() Response status is "+restResponse.getStatusLine().getStatusCode());
+            if (restResponse.getStatusLine().getStatusCode() != 200) {
+                result.setMessage(restResponse.getStatusLine().getReasonPhrase());
+                result.setResultStatus(ResultStatus.ERROR);
+            } else {
+                // If response status is 200, then parse response data
+                parseData(result, objectMapper
+                        .readTree(restEntity
+                                .getContent()));
 
-            result.setResultStatus(ResultStatus.COMPLETE);
+                result.setMessage("Received data from datasource.");
+                result.setResultStatus(ResultStatus.COMPLETE);
+            }
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
             EntityUtils.consume(restEntity);
@@ -358,6 +545,16 @@ public class HAIL implements QueryResourceImplementationInterface,
             throws PersistableException, ResultSetException{
         FileResultSet frs = (FileResultSet) result.getData();
 
+        if (responseJsonNode.get("status")==null) {
+            if (responseJsonNode.get("message")==null) {
+                throw new RuntimeException("Unknown error.");
+            } else {
+                // If status is missing, but there is a message,
+                // use that for error message
+                throw new RuntimeException(responseJsonNode.get("message").textValue());
+            }
+        }
+
         String responseStatus = responseJsonNode.get("status").textValue();
 
         JsonNode matrixNode = responseJsonNode.get("matrix");
@@ -366,6 +563,7 @@ public class HAIL implements QueryResourceImplementationInterface,
                     || !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
                 String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
                 result.setMessage(errorMessage);
+                result.setResultStatus(ResultStatus.ERROR);
                 throw new PersistableException(errorMessage);
             }
 
@@ -414,9 +612,82 @@ public class HAIL implements QueryResourceImplementationInterface,
         result.setData(frs);
     }
 
+    // Submit a Hail job, via the HailProxy RESTful API interface.
+    private HailResponse hailJobSubmit(String templateName, Map<String, String> variables) {
+        HailResponse resp = new HailResponse();
+
+        try {
+            JsonNode nd = restPOST(resourceURL+"/jobs", variables);
+
+            // If all is well, the response will be HTTPStatus == 200
+            // and
+
+            if (nd == null) {
+                resp.setError("Could not submit Hail job.");
+            }
+
+
+        } catch (Exception ex) {
+            logger.error("hailJob() UnhandledException:"+ex.getMessage());
+        }
+
+
+        return resp;
+    }
+
+    // Submit a Hail job, via the HailProxy RESTful API interface.
+    private HailResponse hailJobStatus(String jobUUID) {
+        HailResponse resp = new HailResponse();
+        try {
+            JsonNode nd = restGET(resourceURL+"/jobs?id="+jobUUID);
+
+            // If all is well, the response will be HTTPStatus == 200
+            // and
+
+            if (nd == null) throw new ResourceInterfaceException("Could not get Hail job information.");
+
+
+        } catch (Exception ex) {
+            logger.error("hailJob() UnhandledException:"+ex.getMessage());
+        }
+        return resp;
+    }
+
 
     class PathElement {
         String pui;
 
+    }
+
+    class HailResponse {
+
+        private String error_message = "";
+        private String hail_message = "";
+
+        public String getJobUUID() {
+            return jobUUID;
+        }
+
+        public void setJobUUID(String jobUUID) {
+            this.jobUUID = jobUUID;
+        }
+
+        private String jobUUID = "";
+
+        public boolean isError() {
+            return !this.error_message.isEmpty();
+        }
+
+        public String getErrorMessage() {
+            return this.error_message;
+        }
+        public String getMessage() {
+            return this.hail_message;
+        }
+
+        public void setError(String error_message) {
+            this.error_message = error_message;
+
+        }
     }
 }

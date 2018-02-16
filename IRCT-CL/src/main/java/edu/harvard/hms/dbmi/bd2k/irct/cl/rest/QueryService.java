@@ -33,6 +33,7 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * Creates a REST interface for the query service
@@ -57,7 +58,7 @@ public class QueryService implements Serializable {
 
 	@Inject
 	private HttpSession session;
-	
+
 	private Logger logger = Logger.getLogger(this.getClass());
 
 	// TODO For future generations
@@ -67,7 +68,7 @@ public class QueryService implements Serializable {
 
 	/**
 	 * Saves a query
-	 * 
+	 *
 	 * @param payload
 	 *            JSON
 	 * @return Query Id
@@ -106,7 +107,7 @@ public class QueryService implements Serializable {
 
 	/**
 	 * Runs a query using a JSON representation of the Query
-	 * 
+	 *
 	 * @param payload
 	 *            JSON
 	 * @return Result Id
@@ -124,7 +125,7 @@ public class QueryService implements Serializable {
 		JsonReader jsonReader = Json.createReader(new StringReader(payload));
 		JsonObject jsonQuery = jsonReader.readObject();
 		jsonReader.close();
-		
+
 		// If the queryrequest contains a "source" field, for now, we consider
 		// this as a passthrough type RI, so we just get the referenced resource
 		//
@@ -132,14 +133,14 @@ public class QueryService implements Serializable {
 			logger.debug("GET /runQuery PASSTHROUGH query format.");
 
 			String resourceName = jsonQuery.get("source").toString().replace("\"", "");
-			
+
 			try {
 				//edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
 
 				if (picsureAPI.getResources() == null || picsureAPI.getResources().isEmpty()) {
 					return IRCTResponse.applicationError("There are no sources defined.");
 				}
-				
+
 				Resource source = picsureAPI.getResources().get(resourceName);
 				if (source == null) {
 					return IRCTResponse.applicationError("Source `"+resourceName+"` is not defined.");
@@ -147,15 +148,15 @@ public class QueryService implements Serializable {
 				if(!source.isSetup()) {
 					source = rc.getResource(source.getName());
 				}
-				
+
 				JsonArray queryRequest = jsonQuery.getJsonArray("request");
 				response.add("status", "ok so far");
 				response.add("status", "got something "+queryRequest.toString());
-				
+
 			} catch (Exception e) {
 				return IRCTResponse.applicationError("Could not run PASSTHROUGH query."+String.valueOf(e.getMessage()));
 			}
-			
+
 		} else {
 			logger.debug("GET /runQuery ORIGINAL query format.");
 
@@ -193,7 +194,7 @@ public class QueryService implements Serializable {
 
 	/**
 	 * Runs a query
-	 * 
+	 *
 	 * @return Result Id
 	 */
 	@GET
@@ -365,13 +366,19 @@ public class QueryService implements Serializable {
 		if (whereClause.containsKey("logicalOperator")) {
 			logicalOperatorName = whereClause.getString("logicalOperator");
 		} else {
-            logger.debug("addJsonWhereClauseToQuery() no `logicalOperator` field.");
-        }
+			logger.debug("addJsonWhereClauseToQuery() no `logicalOperator` field.");
+		}
 
+		// Validate the predicate field of the WHERE clause.
+        // TODO: This should NOT be handled by the CL module!
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
 		if (predicateType == null) {
-			throw new QueryException("Unknown predicate type");
+            StringJoiner ptList = new StringJoiner(",");
+            for (PredicateType pt: resource.getSupportedPredicates()) {
+                ptList.add(pt.getName());
+            }
+			throw new QueryException("Unknown predicate type. Interface only supports `"+ptList+"` predicate(s).");
 		} else {
             logger.debug("addJsonWhereClauseToQuery() predicateType `"+predicateType.getName()+"` is supported ;)");
         }
@@ -478,30 +485,30 @@ public class QueryService implements Serializable {
 			for (Field field : st.getFields()) {
 				clauseFields.put(field.getPath(), field);
 			}
-		
-			if (selectClause.containsKey("fields")) {
-				JsonObject fieldObject = selectClause.getJsonObject("fields");
-				objectFields = getObjectFields(clauseFields, fieldObject);
-				fields = getStringFields(clauseFields, fieldObject);
-			}
-		} 
-		
-		if ((resource.getSupportedSelectFields() != null) && (!resource.getSupportedSelectFields().isEmpty())) {
-			
-			Map<String, Field> clauseFields = new HashMap<String, Field>();
-			for(Field field : resource.getSupportedSelectFields()) {
-				clauseFields.put(field.getPath(), field);
-			}
-			
+
 			if (selectClause.containsKey("fields")) {
 				JsonObject fieldObject = selectClause.getJsonObject("fields");
 				objectFields = getObjectFields(clauseFields, fieldObject);
 				fields = getStringFields(clauseFields, fieldObject);
 			}
 		}
-		
-		
-		
+
+		if ((resource.getSupportedSelectFields() != null) && (!resource.getSupportedSelectFields().isEmpty())) {
+
+			Map<String, Field> clauseFields = new HashMap<String, Field>();
+			for(Field field : resource.getSupportedSelectFields()) {
+				clauseFields.put(field.getPath(), field);
+			}
+
+			if (selectClause.containsKey("fields")) {
+				JsonObject fieldObject = selectClause.getJsonObject("fields");
+				objectFields = getObjectFields(clauseFields, fieldObject);
+				fields = getStringFields(clauseFields, fieldObject);
+			}
+		}
+
+
+
 		return validateSelectClause(sq, clauseId, resource, entity, alias,
 				operationName, fields, objectFields);
 	}
@@ -615,7 +622,7 @@ public class QueryService implements Serializable {
 
 		return fields;
 	}
-	
+
 	private Long addJsonSortClauseToQuery(SubQuery sq, JsonObject sortClause)
 			throws QueryException {
 		String path = null;
@@ -653,7 +660,7 @@ public class QueryService implements Serializable {
 		if (sortType == null) {
 			throw new QueryException("Unknown sort type");
 		}
-		
+
 		Map<String, Field> clauseFields = new HashMap<String, Field>();
 		for (Field field : sortType.getFields()) {
 			clauseFields.put(field.getPath(), field);
@@ -671,7 +678,7 @@ public class QueryService implements Serializable {
 		return validateSortClause(sq, clauseId, resource, entity, sortName,
 				fields, objectFields);
 	}
-	
+
 	private Long validateSortClause(SubQuery sq, Long clauseId,
 			Resource resource, Entity field, String sortName,
 			Map<String, String> fields, Map<String, Object> objectFields) throws QueryException {
@@ -689,7 +696,7 @@ public class QueryService implements Serializable {
 		SubQuery sq = (SubQuery) convertJsonToQuery(qc.createSubQuery(),
 				subQuery);
 		if(query == null) {
-			qc.addSubQuery(subQueryId, sq);	
+			qc.addSubQuery(subQueryId, sq);
 		} else {
 			query.addSubQuery(subQueryId, sq);
 		}

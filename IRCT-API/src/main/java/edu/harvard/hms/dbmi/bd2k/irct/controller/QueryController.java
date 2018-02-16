@@ -418,7 +418,7 @@ public class QueryController implements Serializable{
 			} else if (predicateField.isRequired() && ((objectFields != null) && (objectFields.containsKey(predicateField.getPath())))) {
 				
 			} else if(predicateField.isRequired()) {
-				throw new QueryException("Required field " + predicateField.getName() + " is not set");
+				throw new QueryException("Field `" + predicateField.getName() + "` is mandatory.");
 			}
 		}
 	}

@@ -53,6 +53,16 @@
 			<artifactId>IRCT-API</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>us.monoid.web</groupId>
+            <artifactId>resty</artifactId>
+            <version>0.3.1</version>
+        </dependency>
+		<dependency>
+			<groupId>us.monoid.web</groupId>
+			<artifactId>resty</artifactId>
+			<version>0.3.1</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<finalName>IRCT-RI</finalName>
