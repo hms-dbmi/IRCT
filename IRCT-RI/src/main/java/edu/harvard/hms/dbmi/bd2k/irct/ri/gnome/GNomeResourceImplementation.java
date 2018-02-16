@@ -327,17 +327,17 @@ public class GNomeResourceImplementation implements
 	@Override
 	public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) throws ResourceInterfaceException {
 
-		if (!path.getPui().equals("/gnome")
-                && !path.getPui().equals("gnome")
-				&& !path.getPui().equals("/gnome/")){
+		if (!path.getPui().equals(resourceName)
+                && !path.getPui().equals("/"+resourceName)
+				&& !path.getPui().equals("/" + resourceName + "/")){
 			return null;
 		}
 
 		List<Entity> entities = new ArrayList<>();
 		entities.add(
-				new Entity("/gnome/analyze_genes_rest.cgi", "For genes analyze"));
+				new Entity("/" + resourceName +"/analyze_genes_rest.cgi", "For genes analyze"));
 		entities.add(
-				new Entity("/gnome/analyze_variants_rest.cgi", "For variants analyze"));
+				new Entity("/" + resourceName + "/analyze_variants_rest.cgi", "For variants analyze"));
 
 		return entities;
 	}
