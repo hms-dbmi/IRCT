@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -431,7 +433,6 @@ public class HAIL implements QueryResourceImplementationInterface,
         JsonNode responseObject = null;
 
         CloseableHttpResponse restResponse = null;
-
         ObjectMapper objectMapper = IRCTApplication.objectMapper;
         CloseableHttpClient restClient = HttpClientBuilder.create().build();
         // Convert payload into JSON object.
@@ -443,22 +444,34 @@ public class HAIL implements QueryResourceImplementationInterface,
         post.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
         post.setEntity(new StringEntity(json.toString()));
         restResponse = restClient.execute(post);
-
         if (restResponse.getStatusLine().getStatusCode() != 200) {
-            // Error status returned.
+            logger.error("restPost() Error status response from RESTful call:"+restResponse.getStatusLine().getStatusCode());
         }
         if (restResponse == null) {
-            logger.error("restResponse is null");
+            logger.error("restPOST() restResponse is null");
         }
         HttpEntity restEntity = restResponse.getEntity();
         if (restEntity == null) {
             logger.error("restEntity is null");
         }
-        // Convert JSON response into Java object
-        responseObject = objectMapper
-                .readTree(restEntity
-                        .getContent());
-        logger.debug("restCall() finished parsing data");
+        
+        if (restResponse.getLastHeader("Content-type").getValue().equalsIgnoreCase("application/json")) {
+            // Convert JSON response into Java object
+            responseObject = objectMapper
+                    .readTree(restEntity
+                            .getContent());
+            
+        } else {
+            logger.debug("restPOST() Response is not JSON mime type.");
+            JsonNodeFactory factory = JsonNodeFactory.instance;
+            ObjectNode rootNode = factory.objectNode();
+
+            rootNode.put("status","ok");
+            rootNode.put("message", "nonJSON data received");
+            rootNode.put("data", EntityUtils.toString(restEntity));
+
+        }
+        logger.debug("restPOST() finished parsing data");
 
         // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
         EntityUtils.consume(restEntity);
@@ -478,7 +491,7 @@ public class HAIL implements QueryResourceImplementationInterface,
     // HTTP GET, parse the returned stream into a JsonNode object for
     // later parsing.
     private JsonNode restGET(String urlString) throws ResourceInterfaceException {
-        logger.debug("restPOST() Starting ");
+        logger.debug("restGET() Starting");
         JsonNode responseObject = null;
 
         CloseableHttpResponse restResponse = null;
@@ -499,77 +512,34 @@ public class HAIL implements QueryResourceImplementationInterface,
             if (restEntity==null) {
                 logger.error("restEntity is null");
             }
-            // Convert JSON response into Java object
-            responseObject = objectMapper
-                    .readTree(restEntity
-                            .getContent());
-            logger.debug("restCall() finished parsing data");
+
+            if (restEntity.getContentType().getValue().equalsIgnoreCase("application/json")) {
+                // Convert JSON response into Java object
+                responseObject = objectMapper
+                        .readTree(restEntity
+                                .getContent());
+            } else {
+                // Process non JSON data, which happens if we are streaming down actual data
+                System.out.println(EntityUtils.toString(restEntity));
+            }
+            logger.debug("restGET() finished parsing data");
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
             EntityUtils.consume(restEntity);
-            logger.debug("restPOST() released entity resource.");
+            logger.debug("restGET() released entity resource.");
         } catch (IOException ex ) {
-            logger.error("restPOST() IOException: " + urlString + " " + ex.getMessage());
+            logger.error("restGET() IOException: " + urlString + " " + ex.getMessage());
             throw new ResourceInterfaceException("Could not get Hail response ("+ex.getMessage()+")");
         } finally {
             try {
                 if (restResponse != null)
                     restResponse.close();
             } catch (Exception ex) {
-                logger.error("restPOST() finallyException: " + ex.getMessage());
+                logger.error("restGET() finallyException: " + ex.getMessage());
             }
         }
-        logger.debug("restPOST() finished.");
+        logger.debug("restGET() finished.");
         return responseObject;
-    }
-
-    private void restCall(String urlString, Result result) throws PersistableException, ResultSetException {
-        logger.debug("restCall() Starting ");
-
-        ObjectMapper objectMapper = IRCTApplication.objectMapper;
-
-        CloseableHttpClient restClient = HttpClientBuilder.create().build();
-        HttpGet get = new HttpGet(urlString);
-        get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
-
-        CloseableHttpResponse restResponse = null;
-
-        try {
-            result.setResultStatus(ResultStatus.RUNNING);
-
-            restResponse = restClient.execute(get);
-            HttpEntity restEntity = restResponse.getEntity();
-
-            logger.debug("restCall() Response status is "+restResponse.getStatusLine().getStatusCode());
-            if (restResponse.getStatusLine().getStatusCode() != 200) {
-                result.setMessage(restResponse.getStatusLine().getReasonPhrase());
-                result.setResultStatus(ResultStatus.ERROR);
-            } else {
-                // If response status is 200, then parse response data
-                parseData(result, objectMapper
-                        .readTree(restEntity
-                                .getContent()));
-
-                result.setMessage("Received data from datasource.");
-                result.setResultStatus(ResultStatus.COMPLETE);
-            }
-
-            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
-            EntityUtils.consume(restEntity);
-            logger.debug("restCall() released entity resource.");
-        } catch (IOException ex ){
-            result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage("Cannot execute request to "+resourceName);
-            logger.error("restCall() IOException: Cannot cannot execute POST with URL: " + urlString);
-        } finally {
-            try {
-                if (restResponse != null)
-                    restResponse.close();
-            } catch (Exception ex) {
-                logger.error("restCall() finallyException: " + ex.getMessage());
-            }
-        }
-        logger.debug("restCall() finished.");
     }
 
     private void parseData(Result result, JsonNode responseJsonNode)
@@ -661,34 +631,34 @@ public class HAIL implements QueryResourceImplementationInterface,
             if (rootNode.get("status") == null) {
                 logger.error("HailRespons() 'status' field is mandatory, but it is missing.");
             } else {
-                logger.error("HailRespons() 'status' field has data in it.");
-            }
-            // Start parsing a Hail response
-            if (rootNode.get("status").textValue().equalsIgnoreCase("ok")) {
-                logger.debug("HailResponse() Success message from Hail.");
+                logger.debug("HailRespons() 'status' field has data in it.");
+                // Start parsing a Hail response
+                if (rootNode.get("status").textValue().equalsIgnoreCase("ok")) {
+                    logger.debug("HailResponse() Success message from Hail.");
 
-                // Success response from Hail
-                if (rootNode.get("job") != null) {
-                    // If this is a job response
-                    logger.debug("HailResponse() parse job details.");
-                    this.jobUUID = rootNode.get("job").get("id").textValue();
-                    this.hailMessage = rootNode.get("job").get("state").textValue();
-                    this.jobStatus = rootNode.get("job").get("state").textValue();
+                    // Success response from Hail
+                    if (rootNode.get("job") != null) {
+                        // If this is a job response
+                        logger.debug("HailResponse() parse job details.");
+                        this.jobUUID = rootNode.get("job").get("id").textValue();
+                        this.hailMessage = rootNode.get("job").get("state").textValue();
+                        this.jobStatus = rootNode.get("job").get("state").textValue();
 
-                } else if (rootNode.get("data") != null) {
-                    // We need to handle the data response, and persist it to disk.
-                    rootNode.get("data");
+                    } else if (rootNode.get("data") != null) {
+                        // We need to handle the data response, and persist it to disk.
+                        rootNode.get("data");
+
+                    } else {
+                        logger.debug("HailResponse() parse data details.");
+                        this.hailMessage = "Parsing Hail data";
+                    }
 
                 } else {
-                    logger.debug("HailResponse() parse data details.");
-                    this.hailMessage = "Parsing Hail data";
+                    logger.debug("HailResponse() Error message from Hail"+rootNode.get("message").textValue());
+
+                    // Error response from Hail
+                    this.errorMessage = rootNode.get("message").textValue();
                 }
-
-            } else {
-                logger.debug("HailResponse() Error message from Hail"+rootNode.get("message").textValue());
-
-                // Error response from Hail
-                this.errorMessage = rootNode.get("message").textValue();
             }
             logger.debug("HailResponse() finished");
         }
