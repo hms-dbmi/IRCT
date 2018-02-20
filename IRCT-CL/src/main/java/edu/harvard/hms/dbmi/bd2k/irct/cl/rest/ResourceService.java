@@ -16,7 +16,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.commons.collections.Predicate;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -145,7 +147,7 @@ public class ResourceService {
 	@Path("/find{path : .*}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response find(@PathParam("path") String path, @Context UriInfo info) {
-		
+
 		FindInformationInterface findInformation;
 		if (info.getQueryParameters().containsKey("term")) {
 			findInformation = new FindByPath();
@@ -194,13 +196,28 @@ public class ResourceService {
 
 		try {
 			logger.debug("GET /find params  :"+findInformation.getRequiredParameters());
-			logger.debug("GET /find resource:"+resource.getName());
-			logger.debug("GET /find path    :"+resourcePath.getName());
-			
+			if (resource != null){
+				logger.debug("GET /find resource:"+resource.getName());
+			}
+			if (resourcePath != null){
+				logger.debug("GET /find path    :"+resourcePath.getName());
+			}
+
 			List<Entity> entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
 			if (entities == null || entities.size() == 0) {
-				return IRCTResponse.applicationError("No entities were found in `"+resource.getName()+"`");
+				return IRCTResponse.applicationError("No entities were found in `"+ (resource == null ? "resource"  : resource.getName())+"`");
 			} else {
+				//Filter to match the requested scope
+				if (resourcePath != null){
+					//inner Predicate class requires a final variable
+					final String filterPath = resourcePath.getPui();
+					CollectionUtils.filter(entities, new Predicate() {
+						@Override
+						public boolean evaluate(Object entity) {
+							return ((Entity) entity).getPui().startsWith(filterPath);
+						}
+					});
+				}
 				logger.debug("GET /find There were `"+entities.size()+"` entities found.");
 				return IRCTResponse.success(entities);
 			}

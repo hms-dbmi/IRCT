@@ -252,8 +252,13 @@
 			<version>2.13.0</version>
             <scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>commons-collections</groupId>
+            <artifactId>commons-collections</artifactId>
+            <version>3.2.1</version>
+        </dependency>
 
-	</dependencies>
+    </dependencies>
 
 	<build>
 		<!-- Maven will append the version to the finalName (which is the name
