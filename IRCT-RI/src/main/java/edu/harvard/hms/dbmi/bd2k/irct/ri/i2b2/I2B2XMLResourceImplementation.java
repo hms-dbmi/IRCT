@@ -211,7 +211,7 @@ public class I2B2XMLResourceImplementation
 
 				} else {
 					ontCell = createOntCell(pathComponents[2]);
-					ConceptsType conceptsType = null;
+					ConceptsType conceptsType;
 					if (pathComponents.length == 3) {
 						// If beyond second then get ontology categories
 						conceptsType = ontCell.getCategories(client, false, false, true, "core");
@@ -806,9 +806,9 @@ public class I2B2XMLResourceImplementation
 
 			attributes.put("synonymCd", concept.getSynonymCd());
 			attributes.put("visualattributes", concept.getVisualattributes());
-			if (concept.getTotalnum() != null) {
-				attributes.put("totalnum", concept.getTotalnum().toString());
-			}
+//			if (concept.getTotalnum() != null) {
+				attributes.put("totalnum", concept.getTotalnum()==null? null:concept.getTotalnum().toString());
+//			}
 
 			attributes.put("facttablecolumn", concept.getFacttablecolumn());
 			attributes.put("tablename", concept.getTablename());

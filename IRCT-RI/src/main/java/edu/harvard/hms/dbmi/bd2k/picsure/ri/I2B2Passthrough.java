@@ -466,8 +466,6 @@ public class I2B2Passthrough
 	/**
 	 * Checks to see if the result is available
 	 *
-	 * @param session
-	 *            Current Session
 	 * @param result
 	 *            Result
 	 * @return Result

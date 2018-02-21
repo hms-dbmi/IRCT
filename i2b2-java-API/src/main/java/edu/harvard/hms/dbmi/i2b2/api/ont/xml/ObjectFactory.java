@@ -370,7 +370,7 @@ public class ObjectFactory {
      * Create an instance of {@link BodyType }
      * 
      */
-    public BodyType createBodyType() {
+    public  BodyType createBodyType() {
         return new BodyType();
     }
 

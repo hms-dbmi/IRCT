@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.crc;
 
+import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 import edu.harvard.hms.dbmi.i2b2.api.Cell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ApplicationType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.BodyType;
@@ -31,7 +32,9 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -995,21 +998,13 @@ public class CRCCell extends Cell {
 
 		HttpResponse response = client.execute(post);
 		if((response.getStatusLine() != null) &&  (response.getStatusLine().getStatusCode() != 200)) {
-			logger.error("i2b2 response with status code: " + response.getStatusLine().getStatusCode());
 
-			BufferedReader r = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-
-			StringBuilder total = new StringBuilder();
-
-			String line = null;
-
-			while ((line = r.readLine()) != null) {
-				total.append(line);
-			}
-			r.close();
+		    String lines = Utilities.readFromHttpResponse(response);
+			logger.error("CRCCell runQuery() i2b2 response with status code: " + response.getStatusLine().getStatusCode()
+                    + " with message: " + lines);
 
 			throw new I2B2InterfaceException("PM Server error with status code: " + response.getStatusLine().getStatusCode()
-					+ " with message: " + total);
+					+ " with message: " + lines);
 		}
 		return response.getEntity().getContent();
 

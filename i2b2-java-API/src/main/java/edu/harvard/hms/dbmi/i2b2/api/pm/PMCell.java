@@ -3,55 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.pm;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-
-import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-
+import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
+import edu.harvard.hms.dbmi.i2b2.api.Cell;
+import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
+import edu.harvard.hms.dbmi.i2b2.api.pm.xml.*;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 
-import edu.harvard.hms.dbmi.i2b2.api.Cell;
-import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ApplicationType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ApprovalType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ApprovalsType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.BodyType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.CellDataType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.CellDatasType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfiguresType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.FacilityType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.GetUserConfigurationType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.GlobalDataType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.GlobalDatasType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.MessageHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ObjectFactory;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ParamType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ParamsType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.PasswordType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectsType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.Proxy;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.RequestHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.RequestMessageType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ResponseMessageType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.RoleType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.RolesType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.SecurityType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.UserType;
-import edu.harvard.hms.dbmi.i2b2.api.pm.xml.UsersType;
+import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import java.io.*;
+import java.util.Arrays;
+import java.util.GregorianCalendar;
 
 /**
  * The Project Management Cell communication class makes requests to the i2b2
@@ -469,8 +437,6 @@ public class PMCell extends Cell {
 	 *            Parameter data type
 	 * @param paramName
 	 *            Parameter name
-	 * @param paramvalue
-	 *            Parameter value
 	 * @throws JAXBException
 	 *             An XML processing exception occurred
 	 * @throws UnsupportedOperationException
@@ -748,8 +714,6 @@ public class PMCell extends Cell {
 	 *            Parameter data type
 	 * @param paramName
 	 *            Parameter name
-	 * @param paramvalue
-	 *            Parameter value
 	 * @throws JAXBException
 	 *             An XML processing exception occurred
 	 * @throws UnsupportedOperationException
@@ -1021,8 +985,6 @@ public class PMCell extends Cell {
 	 *            Parameter data type
 	 * @param paramName
 	 *            Parameter name
-	 * @param paramvalue
-	 *            Parameter value
 	 * @throws JAXBException
 	 *             An XML processing exception occurred
 	 * @throws UnsupportedOperationException
@@ -1271,8 +1233,6 @@ public class PMCell extends Cell {
 	 *            Parameter data type
 	 * @param paramName
 	 *            Parameter name
-	 * @param paramvalue
-	 *            Parameter value
 	 * @throws JAXBException
 	 *             An XML processing exception occurred
 	 * @throws UnsupportedOperationException
@@ -1542,8 +1502,6 @@ public class PMCell extends Cell {
 	 *            Parameter data type
 	 * @param paramName
 	 *            Parameter name
-	 * @param paramvalue
-	 *            Parameter value
 	 * @throws JAXBException
 	 *             An XML processing exception occurred
 	 * @throws UnsupportedOperationException
@@ -1906,7 +1864,6 @@ public class PMCell extends Cell {
 	 *             An unsupported operation exception occurred
 	 * @throws IOException
 	 *             An IO exception occurred An IO Exception occurred
-	 * @throws I2B2Exception 
 	 */
 	private InputStream runRequest(HttpClient client, String entity,
 			String urlAppend) throws UnsupportedOperationException, IOException, I2B2InterfaceException {
@@ -1927,7 +1884,8 @@ public class PMCell extends Cell {
 
 		HttpResponse response = client.execute(post);
 		if((response.getStatusLine() != null) &&  (response.getStatusLine().getStatusCode() != 200)) {
-			throw new I2B2InterfaceException("Non 200 response from PM Server");
+			throw new I2B2InterfaceException("PMCell - runRequest() Server error with status code: " + response.getStatusLine().getStatusCode()
+					+ " with message: " + Utilities.readFromHttpResponse(response));
 		}
 		return response.getEntity().getContent();
 	}

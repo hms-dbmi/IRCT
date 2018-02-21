@@ -3,57 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.ont;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.GregorianCalendar;
-
-import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-
+import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
+import edu.harvard.hms.dbmi.i2b2.api.Cell;
+import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.*;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetOntProcessStatusType.ProcessEndDate;
+import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetOntProcessStatusType.ProcessStartDate;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 
-import edu.harvard.hms.dbmi.i2b2.api.Cell;
-import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ApplicationType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.BodyType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptsType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.DirtyValueType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.FacilityType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetCategoriesType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetChildrenType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetModifierChildrenType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetModifierInfoType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetModifiersType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetOntProcessStatusType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetReturnType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetTermInfoType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.MatchStrType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.MessageHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifierType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifyChildType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.OntologyProcessStatusListType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.OntologyProcessStatusType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.PasswordType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.RequestHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.RequestMessageType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ResponseMessageType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.SecurityType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.UpdateConceptTotalNumType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.UpdateCrcConceptType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.VocabRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetOntProcessStatusType.ProcessEndDate;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.GetOntProcessStatusType.ProcessStartDate;
-import edu.harvard.hms.dbmi.i2b2.api.ont.xml.Proxy;
+import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import java.io.*;
+import java.util.GregorianCalendar;
 
 /**
  * The Ontology Management Cell communication class makes requests to the i2b2
@@ -191,7 +159,7 @@ public class ONTCell extends Cell {
 
 	/**
 	 * Returns a list of children from a given category
-	 * 
+	 *
 	 * @param client
 	 *            HTTP Client
 	 * @param parentKey
@@ -758,7 +726,6 @@ public class ONTCell extends Cell {
 	 *            HTTP Client
 	 * @param blob
 	 *            Return data stored as Blob or Clob
-	 * @param category
 	 *            Category to search on
 	 * @param hidden
 	 *            Return hidden data
@@ -1171,7 +1138,8 @@ public class ONTCell extends Cell {
 
 		HttpResponse response = client.execute(post);
 		if((response.getStatusLine() != null) &&  (response.getStatusLine().getStatusCode() != 200)) {
-			throw new I2B2InterfaceException("Non 200 response from PM Server");
+			throw new I2B2InterfaceException("ONTCell - runRequest() Server error with status code: " + response.getStatusLine().getStatusCode()
+					+ " with message: " + Utilities.readFromHttpResponse(response));
 		}
 		
 		return response.getEntity().getContent();
