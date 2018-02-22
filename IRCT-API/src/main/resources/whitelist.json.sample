@@ -1,0 +1,19 @@
+[
+  {
+    "userid":"without.resources@email.com"
+  },
+  {
+    "userid":"with.resources@email.com",
+    "resources":[
+      {"id":"blabla", "name":"blalala"},
+      {"id":"blalalala","name":"lalala"}
+    ]
+  },
+  {
+    "userid":"non_email_user_id",
+    "resources":[
+      {"id":"blablalalalala", "name":"blalala???"},
+      {"id":"blalalalajajajaja","name":"lalala!!!!"}
+    ]
+  }
+]

@@ -3,20 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.crc;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.GregorianCalendar;
-import java.util.List;
-
-import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-
+import edu.harvard.hms.dbmi.i2b2.api.Cell;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ApplicationType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.BodyType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.*;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FacilityType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PasswordType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.Proxy;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.RequestHeaderType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.RequestMessageType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ResponseMessageType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.SecurityType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.*;
+import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -24,59 +26,15 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.log4j.Logger;
 
-import edu.harvard.hms.dbmi.i2b2.api.Cell;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ApplicationType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.BodyType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptPrimaryKeyType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.EventPrimaryKeyType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FacilityType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FactPrimaryKeyType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetConceptByPrimaryKeyRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetEventByPrimaryKeyRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObservationFactByPrimaryKeyRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetObserverByPrimaryKeyRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPDOFromInputListRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.GetPatientByPrimaryKeyRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.InputOptionListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ObserverPrimaryKeyType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PasswordType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientPrimaryKeyType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PdoQryHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PdoRequestTypeType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.Proxy;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.RequestHeaderType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.RequestMessageType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ResponseMessageType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.SecurityType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.AnalysisDefinitionRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.AnalysisDefinitionType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.CrcXmlResultResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InstanceRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InstanceResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InstanceResultResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterDeleteRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterRenameRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PsmRequestTypeType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryDefinitionRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryMasterType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryResultInstanceType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.RequestXmlResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.UserRequestType;
-import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
+import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import java.io.*;
+import java.util.Arrays;
+import java.util.GregorianCalendar;
+import java.util.List;
 
 /**
  * The CRC Cell communication class makes requests to the i2b2 CRC Cell via XML
@@ -1037,7 +995,21 @@ public class CRCCell extends Cell {
 
 		HttpResponse response = client.execute(post);
 		if((response.getStatusLine() != null) &&  (response.getStatusLine().getStatusCode() != 200)) {
-			throw new I2B2InterfaceException("Non 200 response from PM Server");
+			logger.error("i2b2 response with status code: " + response.getStatusLine().getStatusCode());
+
+			BufferedReader r = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+
+			StringBuilder total = new StringBuilder();
+
+			String line = null;
+
+			while ((line = r.readLine()) != null) {
+				total.append(line);
+			}
+			r.close();
+
+			throw new I2B2InterfaceException("PM Server error with status code: " + response.getStatusLine().getStatusCode()
+					+ " with message: " + total);
 		}
 		return response.getEntity().getContent();
 

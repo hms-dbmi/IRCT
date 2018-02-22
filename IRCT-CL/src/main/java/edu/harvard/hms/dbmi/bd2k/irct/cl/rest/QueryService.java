@@ -3,42 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import java.io.Serializable;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
-import javax.enterprise.context.ConversationScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SubQuery;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.*;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -46,6 +18,21 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
+
+import javax.enterprise.context.ConversationScoped;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.json.*;
+import javax.json.JsonValue.ValueType;
+import javax.servlet.http.HttpSession;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.io.Serializable;
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Creates a REST interface for the query service
@@ -57,19 +44,21 @@ public class QueryService implements Serializable {
 	private static final long serialVersionUID = -3951500710489406681L;
 
 	@Inject
+	private IRCTApplication picsureAPI;
+
+	@Inject
 	private QueryController qc;
 
 	@Inject
 	private ResourceController rc;
 
 	@Inject
-	private AdminBean admin;
-
-	@Inject
 	private ExecutionController ec;
 
 	@Inject
 	private HttpSession session;
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	// TODO For future generations
 	// qc.createQuery();
@@ -125,32 +114,77 @@ public class QueryService implements Serializable {
 	@POST
 	@Path("/runQuery")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response runQuery(String payload) {
+	public Response runQuery(String payload,
+							 @QueryParam("full_response") final String fullResponse,
+							 @QueryParam("only_count") final String onlyCount) {
+		logger.debug("GET /runQuery starting");
+
 		JsonObjectBuilder response = Json.createObjectBuilder();
 
 		JsonReader jsonReader = Json.createReader(new StringReader(payload));
 		JsonObject jsonQuery = jsonReader.readObject();
 		jsonReader.close();
-		Query query = null;
-		try {
-			query = convertJsonToQuery(jsonQuery);
-		} catch (QueryException e) {
-			response.add("status", "Invalid Request");
-			response.add("message", e.getMessage());
-			return Response.status(400).entity(response.build()).build();
-		}
+		
+		// If the queryrequest contains a "source" field, for now, we consider
+		// this as a passthrough type RI, so we just get the referenced resource
+		//
+		if (jsonQuery.containsKey("source")) {
+			logger.debug("GET /runQuery PASSTHROUGH query format.");
 
-		try {
-			Result r = ec.runQuery(query, (User) session.getAttribute("user"));
-			response.add("resultId", r.getId());
-		} catch (PersistableException e) {
-			response.add("status", "Error running request");
-			response.add("message", "An error occurred running this request");
-			return Response.status(400).entity(response.build()).build();
-		}
+			String resourceName = jsonQuery.get("source").toString().replace("\"", "");
+			
 
-		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
-				.build();
+			//edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource resource = (edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource) query.getResources().toArray()[0];
+
+			if (picsureAPI.getResources() == null || picsureAPI.getResources().isEmpty()) {
+				return IRCTResponse.applicationError("There are no sources defined.");
+			}
+
+			Resource source = picsureAPI.getResources().get(resourceName);
+			if (source == null) {
+				return IRCTResponse.applicationError("Source `"+resourceName+"` is not defined.");
+			}
+			if(!source.isSetup()) {
+				return IRCTResponse.applicationError("Source `"+resourceName+"` has not been setup yet.");
+			}
+
+			JsonArray queryRequest = jsonQuery.getJsonArray("request");
+			response.add("status", "ok so far");
+			response.add("message", "got something "+queryRequest.toString());
+
+		} else {
+			logger.debug("GET /runQuery ORIGINAL query format.");
+
+			// This is the original logic, where the query is parsed by the CL module
+			// and NOT by the RI
+			Query query = null;
+			try {
+				query = convertJsonToQuery(jsonQuery);
+				if (onlyCount != null)
+					query.getMetaData().put("only_count", onlyCount);
+			} catch (QueryException e) {
+				response.add("status", "error");
+				response.add("message", e.getMessage());
+				return IRCTResponse.applicationError("Could not convert JSON. "+String.valueOf(e.getMessage()));
+			}
+
+			try {
+				Result r = ec.runQuery(query, (User) session.getAttribute("user"));
+
+                if (fullResponse!=null) {
+                    return IRCTResponse.success(r);
+                } else {
+                    // TODO: Maybe one day we can remove this dumbed down response.
+                    Map<String,Object> extendedResponse = new HashMap<String, Object>();
+                    extendedResponse.put("resultId", r.getId());
+                    return IRCTResponse.success(extendedResponse);
+                }
+            } catch (PersistableException e) {
+                return IRCTResponse.applicationError("Could not run query. "+String.valueOf(e.getMessage()));
+			}
+		}
+		logger.debug("GET /runQuery starting");
+		return IRCTResponse.success("completed");
 	}
 
 	/**
@@ -171,7 +205,6 @@ public class QueryService implements Serializable {
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -270,15 +303,20 @@ public class QueryService implements Serializable {
 
 	private Long addJsonWhereClauseToQuery(SubQuery sq, JsonObject whereClause)
 			throws QueryException {
+	    logger.debug("addJsonWhereClauseToQuery() starting");
+
 		String path = null;
 		String dataType = null;
+
 		if (whereClause.containsKey("field")) {
 			path = whereClause.getJsonObject("field").getString("pui");
 			if (whereClause.getJsonObject("field").containsKey("dataType")) {
 				dataType = whereClause.getJsonObject("field").getString(
 						"dataType");
 			}
-		}
+		} else {
+            logger.warn("addJsonWhereClauseToQuery() no `field` after `where`?!");
+        }
 
 		Long clauseId = null;
 		if (whereClause.containsKey("clauseId")) {
@@ -287,34 +325,59 @@ public class QueryService implements Serializable {
 
 		Entity entity = null;
 		Resource resource = null;
+
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
+
+            logger.info("addJsonWhereClauseToQuery() resource name: "+path.split("/")[1]);
 			resource = rc.getResource(path.split("/")[1]);
+
+            logger.info("addJsonWhereClauseToQuery() entity: "+path);
 			entity = new Entity(path);
+
 			if (dataType != null) {
 				entity.setDataType(resource.getDataTypeByName(dataType));
 			}
 		}
-		if ((resource == null) || (entity == null)) {
-			throw new QueryException("Invalid Path");
-		}
+
+		if (resource == null) {
+		    logger.error("addJsonWhereClauseToQuery() `resource` object is null, path:"+path);
+            throw new QueryException("Could not get resource object from `"+path+"` path.");
+        }
+
+        if (entity == null) {
+            logger.error("addJsonWhereClauseToQuery() `entity` object is null");
+            throw new QueryException("Could not get `entity` object from `"+path+"` path.");
+        }
+
+        logger.debug("addJsonWhereClauseToQuery() resource:"+resource.getName());
+        logger.debug("addJsonWhereClauseToQuery() entity:"+entity.getName());
+
 		String predicateName = whereClause.getString("predicate");
+		logger.debug("addJsonWhereClauseToQuery() predicate:"+predicateName);
+
 		String logicalOperatorName = null;
 		if (whereClause.containsKey("logicalOperator")) {
 			logicalOperatorName = whereClause.getString("logicalOperator");
-		}
+		} else {
+            logger.debug("addJsonWhereClauseToQuery() no `logicalOperator` field.");
+        }
 
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
 		if (predicateType == null) {
 			throw new QueryException("Unknown predicate type");
-		}
+		} else {
+            logger.debug("addJsonWhereClauseToQuery() predicateType `"+predicateType.getName()+"` is supported ;)");
+        }
 
 		Map<String, Field> clauseFields = new HashMap<String, Field>();
 		for (Field field : predicateType.getFields()) {
+            logger.debug("addJsonWhereClauseToQuery() predicateType.field `"+field.getName()+"` is added.");
 			clauseFields.put(field.getPath(), field);
 		}
+        logger.debug("addJsonWhereClauseToQuery() mapped all `predicateType` fields.");
 
 		Map<String, Object> objectFields = new HashMap<String, Object>();
 		Map<String, String> fields = new HashMap<String, String>();
@@ -324,6 +387,7 @@ public class QueryService implements Serializable {
 			objectFields = getObjectFields(clauseFields, fieldObject);
 			fields = getStringFields(clauseFields, fieldObject);
 		}
+        logger.debug("addJsonWhereClauseToQuery() finished, onto validateWhereClause");
 
 		return validateWhereClause(sq, clauseId, resource, entity,
 				predicateName, logicalOperatorName, fields, objectFields);
@@ -334,10 +398,12 @@ public class QueryService implements Serializable {
 			String logicalOperatorName, Map<String, String> fields,
 			Map<String, Object> objectFields) throws QueryException {
 
+        logger.debug("validateWhereClause() starting");
+
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
 		if (predicateType == null) {
-			throw new QueryException("Unknown predicate type");
+			throw new QueryException("Unknown predicate type for `"+predicateName+"`");
 		}
 
 		LogicalOperator logicalOperator = null;
@@ -345,10 +411,10 @@ public class QueryService implements Serializable {
 			logicalOperator = resource
 					.getLogicalOperatorByName(logicalOperatorName);
 			if (logicalOperator == null) {
-				throw new QueryException("Unknown logical operator");
+				throw new QueryException("Unknown logical operator `"+logicalOperatorName+"`");
 			}
 		}
-
+        logger.debug("validateWhereClause() finished, moving on to addingWhereClause");
 		return qc.addWhereClause(sq, clauseId, resource, field, predicateType,
 				logicalOperator, fields, objectFields);
 	}
@@ -373,8 +439,8 @@ public class QueryService implements Serializable {
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
@@ -452,8 +518,8 @@ public class QueryService implements Serializable {
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");
@@ -561,8 +627,8 @@ public class QueryService implements Serializable {
 		Entity entity = null;
 		Resource resource = null;
 		if (path != null && !path.isEmpty()) {
-			path = "/" + path;
-			path = path.substring(1);
+			if (!path.startsWith("/"))
+				path = "/" + path;
 			resource = rc.getResource(path.split("/")[1]);
 			if (resource == null) {
 				throw new QueryException("Invalid Resource");

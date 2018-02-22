@@ -3,40 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.xml.bind.JAXBException;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
-
-import org.apache.http.Header;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.message.BasicHeader;
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -61,23 +27,15 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.OutputOptionSelectType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ParamType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientDataResponseType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientSet;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PatientType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateTimeType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainOperatorType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainValueType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InclusiveType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.InstanceResponseType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ItemType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.MasterInstanceResultResponseType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.PanelType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.QueryResultInstanceType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionListType;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
 import edu.harvard.hms.dbmi.i2b2.api.exception.I2B2InterfaceException;
 import edu.harvard.hms.dbmi.i2b2.api.ont.ONTCell;
 import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ConceptType;
@@ -87,6 +45,35 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
+import org.apache.http.Header;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeader;
+import org.apache.log4j.Logger;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.xml.bind.JAXBException;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 /**
  * A resource implementation of a resource that communicates with the i2b2
@@ -236,7 +223,7 @@ public class I2B2XMLResourceImplementation
 						}
 						basePath = pathComponents[0] + "/" + pathComponents[1] + "/" + pathComponents[2];
 
-						conceptsType = ontCell.getChildren(client, myPath, false, false, false, -1, "core");
+						conceptsType = ontCell.getChildren(client, myPath, false, true, false, -1, "core");
 
 					}
 					// Convert ConceptsType to Entities
@@ -279,10 +266,9 @@ public class I2B2XMLResourceImplementation
 				throw new ResourceInterfaceException(relationship.toString() + " not supported by this resource");
 			}
 		} catch (Exception e) {
-			logger.error("getPathRelationship()", e);
+			logger.error("getPathRelationship() Exception:", e);
 			throw new ResourceInterfaceException(e.getMessage());
 		}
-
 		return entities;
 	}
 
@@ -377,6 +363,11 @@ public class I2B2XMLResourceImplementation
 
 	@Override
 	public Result runQuery(User user, Query query, Result result) throws ResourceInterfaceException {
+
+		if (query.getMetaData()!= null
+				&& !query.getMetaData().isEmpty())
+			result.getMetaData().putAll(query.getMetaData());
+
 		// Initial setup
 		HttpClient client = createClient(user);
 		result.setResultStatus(ResultStatus.CREATED);
@@ -446,14 +437,9 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.RUNNING);
 		} catch (JAXBException | IOException | I2B2InterfaceException e) {
 			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
-
+			e.printStackTrace();
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
-		} catch (Exception e) {
-			logger.error(getType()+".runQuery() "+e.getMessage()+" "+e);
-
-			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage(getType()+".runQuery() Exception: "+e.getMessage());
 		}
 		return result;
 	}
@@ -472,6 +458,15 @@ public class I2B2XMLResourceImplementation
 						(result.getResultStatus()==null?"NULL":result.getResultStatus().toString()));
 			}
 
+			// if only_count is enabled,
+			// do not retrieve all the patient data set
+			if ( !result.getMetaData().isEmpty()
+					&& result.getMetaData().containsKey("only_count")) {
+				return result;
+			}
+
+			// after checking i2b2's result status
+			// go to retrieve data
 			result.setResultStatus(ResultStatus.RUNNING);
 			logger.debug("getResults() Changed `ResultStatus` back to running.");
 
@@ -493,15 +488,8 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.COMPLETE);
 		} catch (JAXBException | I2B2InterfaceException | IOException | ResultSetException | PersistableException e) {
 			logger.error("getResults() OtherException");
-			e.printStackTrace();
 
 			result.setMessage("getResults() OtherException:"+e.getMessage());
-			result.setResultStatus(ResultStatus.ERROR);
-		} catch (Exception e) {
-			logger.debug("getResults() Exception");
-			e.printStackTrace();
-
-			result.setMessage("getResults() Exception:"+e.getMessage()+"/"+e.toString());
 			result.setResultStatus(ResultStatus.ERROR);
 		}
 		return result;
@@ -510,8 +498,6 @@ public class I2B2XMLResourceImplementation
 	/**
 	 * Checks to see if the result is available
 	 *
-	 * @param session
-	 *            Current Session
 	 * @param result
 	 *            Result
 	 * @return Result
@@ -532,10 +518,11 @@ public class I2B2XMLResourceImplementation
 		}
 		logger.debug("checkForResult() resultInstanceId:"+(resultInstanceId!=null?resultInstanceId:"NULL"));
 
-		String projectId = resultInstanceId.split("\\|")[0];
+		String[] resultInstanceIdArray = resultInstanceId.split("\\|");
+		String projectId = resultInstanceIdArray[0];
 		logger.debug("checkForResult() projectId:"+(projectId!=null?projectId:"NULL"));
 
-		String queryId = resultInstanceId.split("\\|")[1];
+		String queryId = resultInstanceIdArray[1];
 		logger.debug("checkForResult() queryId:"+(queryId!=null?queryId:"NULL"));
 
 		try {
@@ -577,6 +564,32 @@ public class I2B2XMLResourceImplementation
 				result.setResultStatus(ResultStatus.ERROR);
 				return result;
 			}
+
+
+			// check if only_count exist,
+			// if yes, will only retrieve counts from i2b2 and put it into result
+			// will not download all the data from i2b2 later (which is thousands millions of rows...)
+			if (result.getMetaData() != null
+					&& !result.getMetaData().isEmpty()
+					&& result.getMetaData().containsKey("only_count")) {
+				long counts = queryResultInstance.getSetSize();
+				FileResultSet frs = (FileResultSet) result.getData();
+				try {
+					frs.appendColumn(new Column("patient_set_counts", PrimitiveDataType.STRING));
+					frs.appendRow();
+					frs.updateString("patient_set_counts", Long.toString(counts));
+				} catch (ResultSetException e) {
+					logger.error("checkForResult() generating patient set counts file error: " + e.getMessage());
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage("generating patient set counts file error: " + e.getMessage());
+				} catch (PersistableException e) {
+					logger.error("checkForResult() cannot persist FileResultSet: " + e.getMessage());
+					result.setResultStatus(ResultStatus.ERROR);
+					result.setMessage("cannot persist result file: " + e.getMessage());
+				}
+
+			}
+
 			result.setResultStatus(ResultStatus.COMPLETE);
 			result.setMessage("i2b2 query has finished.");
 
@@ -586,13 +599,6 @@ public class I2B2XMLResourceImplementation
 
 			result.setMessage("checkForResult() OtherException: "+e.getMessage());
 			result.setResultStatus(ResultStatus.ERROR);
-		} catch (Exception e) {
-			logger.error("checkForResult() Exception:"+e.getMessage());
-			e.printStackTrace();
-
-			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("checkForResult() Exception:"+e.getMessage());
-			throw e;
 		}
 		return result;
 	}
@@ -693,6 +699,14 @@ public class I2B2XMLResourceImplementation
 		return myPath;
 	}
 
+	/**
+	 * FileResultSet will be used to store data
+	 * @param patientDataResponse
+	 * @param result
+	 * @return
+	 * @throws ResultSetException
+	 * @throws PersistableException
+	 */
 	private Result convertPatientSetToResultSet(PatientDataResponseType patientDataResponse, Result result)
 			throws ResultSetException, PersistableException {
 		logger.debug("convertPatientSetToResultSet() Starting...");
@@ -951,7 +965,7 @@ public class I2B2XMLResourceImplementation
 	/**
 	 * CREATES A CLIENT
 	 *
-	 * @param token
+	 * @param user
 	 * @return
 	 */
 	protected HttpClient createClient(User user) {
@@ -1012,6 +1026,7 @@ public class I2B2XMLResourceImplementation
 		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
 
 		Registry<ConnectionSocketFactory> r = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf)
+				.register("http", PlainConnectionSocketFactory.getSocketFactory())
 				.build();
 
 		HttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(r);

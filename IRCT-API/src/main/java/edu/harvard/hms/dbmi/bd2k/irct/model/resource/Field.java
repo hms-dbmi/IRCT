@@ -17,7 +17,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataTypeJsonConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.OntologyRelationshipConverter;
@@ -43,6 +46,7 @@ public class Field implements Serializable {
 
 	@ElementCollection
 	@Convert(converter = DataTypeConverter.class)
+	@JsonSerialize(contentConverter = DataTypeJsonConverter.class)
 	private List<DataType> dataTypes;
 
 	@ElementCollection

@@ -26,7 +26,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.AdminBean;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ProcessController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -53,9 +52,6 @@ public class ProcessService implements Serializable {
 	private ProcessController pc;
 
 	@Inject
-	private AdminBean admin;
-
-	@Inject
 	private ExecutionController ec;
 
 	@Inject
@@ -71,11 +67,9 @@ public class ProcessService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startProcess() {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
 
 		pc.createProcess();
 
-		response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -115,7 +109,6 @@ public class ProcessService implements Serializable {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response loadQuery(@QueryParam(value = "processId") Long processId) {
 		JsonObjectBuilder response = Json.createObjectBuilder();
-		String conversationId = admin.startConversation();
 
 		if (processId == null) {
 			response.add("status", "Invalid Request");
@@ -130,8 +123,6 @@ public class ProcessService implements Serializable {
 			response.add("message", e.getMessage());
 			return Response.status(400).entity(response.build()).build();
 		}
-
-		response.add("cid", conversationId);
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}
@@ -229,7 +220,6 @@ public class ProcessService implements Serializable {
 			response.add("message", "An error occurred running this request");
 			return Response.status(400).entity(response.build()).build();
 		}
-		admin.endConversation();
 		return Response.ok(response.build(), MediaType.APPLICATION_JSON)
 				.build();
 	}

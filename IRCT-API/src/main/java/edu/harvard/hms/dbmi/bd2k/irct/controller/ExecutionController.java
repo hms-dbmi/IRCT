@@ -3,21 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.util.Date;
-import java.util.concurrent.Callable;
-import java.util.logging.Logger;
-
-import javax.annotation.Resource;
-import javax.ejb.Asynchronous;
-import javax.ejb.Stateless;
-import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.inject.Inject;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.UserTransaction;
-
 import edu.harvard.hms.dbmi.bd2k.irct.action.JoinAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.ProcessAction;
 import edu.harvard.hms.dbmi.bd2k.irct.action.QueryAction;
@@ -32,13 +17,28 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 
+import javax.annotation.Resource;
+import javax.ejb.Asynchronous;
+import javax.ejb.Stateless;
+import javax.enterprise.concurrent.ManagedExecutorService;
+import javax.inject.Inject;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.transaction.UserTransaction;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.concurrent.Callable;
+import java.util.logging.Logger;
+
 /**
  * The execution controller is a stateless controller that manages the
  * executions of different processes, queries, and joins by creating an
  * execution plan and running it.
  */
 @Stateless
-public class ExecutionController {
+public class ExecutionController implements Serializable{
 
 	@Inject
 	Logger log;
@@ -90,7 +90,6 @@ public class ExecutionController {
 	 *
 	 * @param query
 	 *            Query
-	 * @param secureSession Session to run it in
 	 * @return Result Id
 	 * @throws PersistableException
 	 *             An error occurred
@@ -101,7 +100,6 @@ public class ExecutionController {
 		Result newResult = new Result();
 		newResult.setJobType("EXECUTION");
 
-		// Add the current user to the query.
 		newResult.setUser(user);
 
 		newResult.setResultStatus(ResultStatus.RUNNING);
@@ -130,7 +128,6 @@ public class ExecutionController {
 	 *
 	 * @param join
 	 *            Join to run
-	 * @param secureSession Session to run it in
 	 * @return Result Id
 	 * @throws PersistableException
 	 *             An error occurred

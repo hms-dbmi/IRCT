@@ -3,9 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.security;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import javax.persistence.*;
 import java.io.Serializable;
 import java.security.Principal;
 
+<<<<<<< HEAD
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -13,6 +17,8 @@ import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 
+=======
+>>>>>>> master
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
  * userId, and name are the same in this implementation.
@@ -29,7 +35,8 @@ public class User implements Principal, Serializable {
 	private String userId;
 
 	private String token;
-	
+
+	@JsonProperty("key")
 	private String accessKey;
 	
 	/**

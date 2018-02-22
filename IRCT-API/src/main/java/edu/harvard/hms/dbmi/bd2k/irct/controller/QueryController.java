@@ -3,37 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.util.List;
-import java.util.Map;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.*;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import org.apache.log4j.Logger;
 
 import javax.ejb.Stateful;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.SubQuery;
-import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A stateful controller for creating a query
  */
 @Stateful
-public class QueryController {
+public class QueryController implements Serializable{
+
 
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;

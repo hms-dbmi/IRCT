@@ -23,6 +23,20 @@
 		<version.war.plugin>2.5</version.war.plugin>
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<maven.compiler.source>1.7</maven.compiler.source>
+		
+		<jenkins.build.number>${env.BUILD_NUMBER}</jenkins.build.number>
+		<jenkins.build.name>${env.BUILD_DISPLAY_NAME}</jenkins.build.name>
+		<jenkins.build.tag>${env.BUILD_TAG}</jenkins.build.tag>
+		<jenkins.build.timestamp>${env.BUILD_TIMESTAMP}</jenkins.build.timestamp>
+		<jenkins.build.url>${env.BUILD_URL}</jenkins.build.url>
+		
+		<jenkins.build.git_branch>${env.GIT_BRANCH}</jenkins.build.git_branch>
+		<jenkins.build.git_commit>${env.GIT_COMMIT}</jenkins.build.git_commit>
+		<jenkins.build.git_url>${env.GIT_URL}</jenkins.build.git_url>
+
+		<jenkins.build.job_name>${env.JOB_NAME}</jenkins.build.job_name>
+		<jenkins.build.job_url>${env.JOB_URL}</jenkins.build.job_url>
+		
 	</properties>
 	<dependencies>
 		<dependency>

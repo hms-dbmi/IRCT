@@ -14,3 +14,7 @@ scratch/
 
 .DS_Store
 
+deploy.sh
+IRCT-RI/src/main/.DS_Store
+.idea/
+*.iml

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+<<<<<<< HEAD
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
@@ -27,45 +28,58 @@ import javax.persistence.JoinColumn;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
+=======
+import javax.persistence.*;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+>>>>>>> master
 
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataTypeJsonConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.ResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.OntologyRelationshipConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConverter;
+import org.apache.commons.logging.impl.Log4JLogger;
 
 /**
  * The resource class provides a way for the IRCT application to keep track of
  * which resources are available.
- * 
- * @author Jeremy R. Easton-Marks
- *
  */
 @Entity
 public class Resource implements Serializable {
 	private static final long serialVersionUID = 8099637983212553759L;
-	
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
+
+	@Column(unique = true)
 	private String name;
 
+	// TODO : This field is unused, see if we can figure out if it should be used
+	private String ontologyType;
+
 	@Convert(converter = ResourceImplementationConverter.class)
+	@JsonProperty("implementation")
+	@JsonSerialize(converter = ResourceImplementationInterfaceConverter.class)
 	private ResourceImplementationInterface implementingInterface;
 
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@Convert(converter = DataTypeConverter.class)
+	@JsonSerialize(contentConverter = DataTypeJsonConverter.class)
 	private List<DataType> dataTypes;
 
-	@ElementCollection(fetch = FetchType.EAGER)
+	@ElementCollection(fetch = FetchType.LAZY)
 	@Convert(converter = OntologyRelationshipConverter.class)
 	private List<OntologyRelationship> relationships;
 
@@ -76,35 +90,44 @@ public class Resource implements Serializable {
 	private List<LogicalOperator> logicalOperators;
 
 	@OneToMany
+	@JsonProperty("predicates")
 	private List<PredicateType> supportedPredicates;
-	
+
 	@OneToMany
+	@JsonProperty("selectOperations")
 	private List<SelectOperationType> supportedSelectOperations;
-	
+
 	@OneToMany
+	@JsonProperty("selectFields")
 	private List<Field> supportedSelectFields;
-	
+
 	@OneToMany
+	@JsonProperty("sorts")
 	private List<SortOperationType> supportedSortOperations;
 
 	@OneToMany
+	@JsonProperty("joins")
 	private List<JoinType> supportedJoins;
 
 	@OneToMany
+	@JsonProperty("processes")
 	private List<ProcessType> supportedProcesses;
 
 	@OneToMany
+	@JsonProperty("visualizations")
 	private List<VisualizationType> supportedVisualizations;
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@MapKeyColumn(name = "name")
 	@Column(name = "value")
 	@CollectionTable(name = "resource_parameters", joinColumns = @JoinColumn(name = "id"))
+	@JsonIgnore
 	private Map<String, String> parameters;
 
 	@Transient
+	@JsonIgnore
 	private boolean setup = false;
-	
+
 	/**
 	 * Sets up the Resource and the implementing interface
 	 * @throws ResourceInterfaceException Throws a resource interface
@@ -112,149 +135,22 @@ public class Resource implements Serializable {
 	public void setup() throws ResourceInterfaceException {
 		boolean isDoneSettingUp = false;
 		try {
-			implementingInterface.setup(this.parameters);
+			if (implementingInterface != null)
+				implementingInterface.setup(this.parameters);
+			else
+				org.apache.log4j.Logger.getLogger(this.getClass()).warn("Resource.setup() resource implementation is null, resource name:  " +
+						this.name);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Resource.setup() Exception:"+e.getMessage());
-			e.printStackTrace();
+			org.apache.log4j.Logger.getLogger(this.getClass()).error("Resource.setup() Exception: "+e.getMessage());
 		}
 		this.setSetup(isDoneSettingUp);
 	}
 
-	/**
-	 * Returns a JSONObject representation of the object. This returns only the
-	 * attributes associated with this object and not their representation.
-	 * 
-	 * This is equivalent of toJson(1);
-	 * 
-	 * @return JSON Representation
-	 */
-	public JsonObject toJson() {
-		return toJson(1);
-	}
 
-	/**
-	 * Returns a JSONObject representation of the object. This returns only the
-	 * attributes associated with this object and not their representation.
-	 * 
-	 * 
-	 * @param depth
-	 *            Depth to travel
-	 * @return JSON Representation
-	 */
-	public JsonObject toJson(int depth) {
-		depth--;
-		JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
-		jsonBuilder.add("id", this.id);
-		jsonBuilder.add("name", this.name);
-
-		if (this.implementingInterface != null) {
-			jsonBuilder.add("implementation", implementingInterface.getType());
-
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// RELATIONSHIPS (PATH Interface)
-				JsonArrayBuilder relationshipArray = Json.createArrayBuilder();
-				if (this.getRelationships() != null) {
-					for (OntologyRelationship rel : this.relationships) {
-						relationshipArray.add(rel.toString());
-					}
-				}
-				jsonBuilder.add("relationships", relationshipArray.build());
-
-			}
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// LOGICALOPERATORS (Query Interface)
-				JsonArrayBuilder logicalArray = Json.createArrayBuilder();
-				if (this.logicalOperators != null) {
-					for (LogicalOperator lo : this.logicalOperators) {
-						logicalArray.add(lo.toString());
-					}
-				}
-				jsonBuilder.add("logicaloperators", logicalArray.build());
-
-				// PREDICATES (Query Interface)
-				JsonArrayBuilder predicateArray = Json.createArrayBuilder();
-				if (this.supportedPredicates != null) {
-					for (PredicateType pt : this.supportedPredicates) {
-						predicateArray.add(pt.toJson());
-					}
-				}
-				jsonBuilder.add("predicates", predicateArray.build());
-				
-				// Supported Select Operations (Query Interface)
-				JsonArrayBuilder selectArray = Json.createArrayBuilder();
-				if (this.supportedPredicates != null) {
-					for (SelectOperationType pt : this.supportedSelectOperations) {
-						selectArray.add(pt.toJson());
-					}
-				}
-				jsonBuilder.add("selectOperations", selectArray.build());
-
-				// Supported Select Fields (Query Interface)
-				JsonArrayBuilder selectFieldsArray = Json.createArrayBuilder();
-				if (this.supportedPredicates != null) {
-					for (Field field : this.supportedSelectFields) {
-						selectFieldsArray.add(field.toJson());
-					}
-				}
-				jsonBuilder.add("selectFields", selectFieldsArray.build());
-				
-				// JOINS (Query Interface)
-				JsonArrayBuilder joinArray = Json.createArrayBuilder();
-				if (this.supportedJoins != null) {
-					for (JoinType jt : this.supportedJoins) {
-						joinArray.add(jt.toJson());
-					}
-				}
-				jsonBuilder.add("joins", joinArray.build());
-				
-				// SORTS (Query Interface)
-				JsonArrayBuilder sortArray = Json.createArrayBuilder();
-				if (this.supportedSortOperations != null) {
-					for (SortOperationType st : this.supportedSortOperations) {
-						sortArray.add(st.toJson());
-					}
-				}
-				jsonBuilder.add("sorts", sortArray.build());
-			}
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// PROCESSES (Process Interface)
-				JsonArrayBuilder processArray = Json.createArrayBuilder();
-				if (this.supportedProcesses != null) {
-					for (ProcessType pt : this.supportedProcesses) {
-						processArray.add(pt.toJson());
-					}
-				}
-				jsonBuilder.add("processes", processArray.build());
-			}
-			if (this.implementingInterface instanceof PathResourceImplementationInterface) {
-				// VISUALIZATIONS (Visualization Interface)
-				JsonArrayBuilder visualizationArray = Json.createArrayBuilder();
-				if (this.supportedVisualizations != null) {
-					for (VisualizationType vt : this.supportedVisualizations) {
-						visualizationArray.add(vt.toJson());
-					}
-				}
-				jsonBuilder.add("visualization", visualizationArray.build());
-
-			}
-		}
-
-		// DATATYPES
-		JsonArrayBuilder dataTypeArray = Json.createArrayBuilder();
-		if (this.getDataTypes() != null) {
-			for (DataType dataType : this.dataTypes) {
-				dataTypeArray.add(dataType.toJson());
-			}
-		}
-		jsonBuilder.add("dataTypes", dataTypeArray.build());
-
-		return jsonBuilder.build();
-	}
-	
 	/**
 	 * Returns a relationship from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param relationshipString Relationship name
 	 * @return Ontology Relationship
 	 */
@@ -266,10 +162,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a predicate type from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param predicateName Predicate name
 	 * @return Predicate Type
 	 */
@@ -281,10 +177,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a select operation from its name. It will return null if it does not exist
-	 * 
+	 *
 	 * @param operationName Operation name
 	 * @return Select Operation Type
 	 */
@@ -297,10 +193,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a sort operation from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param operationName Sort name
 	 * @return Sort Operation Type
 	 */
@@ -313,10 +209,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a process type from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param processName Process Name
 	 * @return Process Type
 	 */
@@ -328,10 +224,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a Logical Operator from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param logicalOperatorName Logical Operator Name
 	 * @return Logical Operator
 	 */
@@ -343,10 +239,10 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns a data type from its name. It will return null if it does not exist.
-	 * 
+	 *
 	 * @param dataTypeName Data Type Name
 	 * @return Data Type
 	 */
@@ -358,8 +254,8 @@ public class Resource implements Serializable {
 		}
 		return null;
 	}
-	
-	
+
+
 	public JoinType getSupportedJoinByName(String joinTypeName) {
 		for(JoinType joinType : this.supportedJoins) {
 			if(joinType.getName().equals(joinTypeName)) {
@@ -375,7 +271,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns the id of the resource
-	 * 
+	 *
 	 * @return the id
 	 */
 	public long getId() {
@@ -384,7 +280,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the id of the resource
-	 * 
+	 *
 	 * @param id
 	 *            the id to set
 	 */
@@ -394,7 +290,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns the name of the resource
-	 * 
+	 *
 	 * @return the name
 	 */
 	public String getName() {
@@ -403,7 +299,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the name of the resource
-	 * 
+	 *
 	 * @param name
 	 *            the name to set
 	 */
@@ -413,7 +309,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns the implementing interface of the resource
-	 * 
+	 *
 	 * @return the implementingInterface
 	 */
 	public ResourceImplementationInterface getImplementingInterface() {
@@ -422,7 +318,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the implementing interface of the resource
-	 * 
+	 *
 	 * @param implementingInterface
 	 *            the implementingInterface to set
 	 */
@@ -433,7 +329,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of data types that are supported by the resource
-	 *  
+	 *
 	 * @return the dataTypes
 	 */
 	public List<DataType> getDataTypes() {
@@ -442,7 +338,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of data type that are supported by the resource
-	 * 
+	 *
 	 * @param dataTypes
 	 *            the dataTypes to set
 	 */
@@ -452,7 +348,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of relationships that are supported by the resource
-	 * 
+	 *
 	 * @return the relationships
 	 */
 	public List<OntologyRelationship> getRelationships() {
@@ -461,7 +357,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of relationships that are supported by the resource
-	 * 
+	 *
 	 * @param relationships
 	 *            the relationships to set
 	 */
@@ -471,7 +367,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of logical operators that are supported by the resource
-	 * 
+	 *
 	 * @return the logicalOperators
 	 */
 	public List<LogicalOperator> getLogicalOperators() {
@@ -480,7 +376,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets a list of logical operators that are supported by the resource
-	 * 
+	 *
 	 * @param logicalOperators
 	 *            the logicalOperators to set
 	 */
@@ -490,7 +386,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of supported predicates that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedPredicates
 	 */
 	public List<PredicateType> getSupportedPredicates() {
@@ -499,7 +395,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of supported predicates that are supported by the resource
-	 * 
+	 *
 	 * @param supportedPredicates
 	 *            the supportedPredicates to set
 	 */
@@ -509,7 +405,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of select operation that are supported by the resource
-	 *  
+	 *
 	 * @return the supportedSelectOperations
 	 */
 	public List<SelectOperationType> getSupportedSelectOperations() {
@@ -518,7 +414,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of select operations that are supported by the resources
-	 * 
+	 *
 	 * @param supportedSelectOperations the supportedSelectOperations to set
 	 */
 	public void setSupportedSelectOperations(
@@ -528,7 +424,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Gets the list of supported select fields that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedSelectFields
 	 */
 	public List<Field> getSupportedSelectFields() {
@@ -537,7 +433,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of supported select fields that are supported by the resource
-	 * 
+	 *
 	 * @param supportedSelectFields the supportedSelectFields to set
 	 */
 	public void setSupportedSelectFields(List<Field> supportedSelectFields) {
@@ -546,7 +442,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of sort operation that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedSortOperations
 	 */
 	public List<SortOperationType> getSupportedSortOperations() {
@@ -555,7 +451,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list of sort operations that are supporterd by the resource
-	 * 
+	 *
 	 * @param supportedSortOperations the supportedSortOperations to set
 	 */
 	public void setSupportedSortOperations(List<SortOperationType> supportedSortOperations) {
@@ -564,7 +460,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list joins that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedJoins
 	 */
 	public List<JoinType> getSupportedJoins() {
@@ -573,7 +469,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets the list joins that are supported by the resource
-	 * 
+	 *
 	 * @param supportedJoins
 	 *            the supportedJoins to set
 	 */
@@ -583,7 +479,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of process that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedProcesses
 	 */
 	public List<ProcessType> getSupportedProcesses() {
@@ -601,7 +497,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a list of visualizations that are supported by the resource
-	 * 
+	 *
 	 * @return the supportedVisualizations
 	 */
 	public List<VisualizationType> getSupportedVisualizations() {
@@ -610,7 +506,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets a list of visualizations that are supported by the resource
-	 * 
+	 *
 	 * @param supportedVisualizations
 	 *            the supportedVisualizations to set
 	 */
@@ -621,7 +517,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Returns a map of parameters for the resource
-	 * 
+	 *
 	 * @return the parameters
 	 */
 	public Map<String, String> getParameters() {
@@ -630,7 +526,7 @@ public class Resource implements Serializable {
 
 	/**
 	 * Sets a map of resources for the resource
-	 * 
+	 *
 	 * @param parameters
 	 *            the parameters to set
 	 */
@@ -652,5 +548,5 @@ public class Resource implements Serializable {
 		this.setup = setup;
 	}
 
-	
+
 }

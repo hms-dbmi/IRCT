@@ -3,27 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.math.BigInteger;
-import java.security.SecureRandom;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
 
 import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.NonUniqueResultException;
-import javax.persistence.PersistenceContext;
+import javax.persistence.*;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import javax.ws.rs.NotAuthorizedException;
+import java.io.Serializable;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 
 /**
  * A stateless controller for managing security.
  */
 @Stateless
-public class SecurityController {
+public class SecurityController implements Serializable{
 
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
@@ -95,17 +92,13 @@ public class SecurityController {
 		return key;
 	}
 	
-	public String updateUserRecord(User user) {
+	public User updateUserRecord(User user) {
 		logger.debug("updateUserRecord() Starting");
-		try {
-			entityManager.merge(user);
-			entityManager.flush();
-		} catch (Exception e) {
-			logger.error("updateUserRecord() Exception"+e.getMessage());
-			return "error "+e.getMessage();
-		}
-		logger.debug("updateUserRecord() User has been updated.");
-		return "ok";
+
+		entityManager.merge(user);
+		entityManager.flush();
+
+		return user;
 	}
 	
 	// TODO: This is a temporary solution. While we store the "key" information 
@@ -124,10 +117,8 @@ public class SecurityController {
 			logger.debug("validateKey() User found.");
 			
 		} catch(NoResultException e){
-			logger.error("validateKey() The key is not in the database. Cannot authenticate the user.");
-		} catch(Exception e){
-			logger.error("validateKey() Exception:" + e.getMessage());
-			throw new RuntimeException("User cannot be validated based on the key", e);
+			logger.error("validateKey() The key is not in the database. Cannot authenticate the user, key: " + key);
+			throw new NotAuthorizedException("The key is not in the database. Cannot authenticate the user");
 		}
 		logger.debug("validateKey() Finished");
 		return user;

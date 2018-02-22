@@ -3,14 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.controller;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.ejb.Stateless;
-import javax.inject.Inject;
-
-import org.apache.log4j.Logger;
-
 import edu.harvard.hms.dbmi.bd2k.irct.event.IRCTEventListener;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -19,6 +11,12 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
+
+import javax.ejb.Stateless;
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A stateless controller that manages the relationships, and paths for a
@@ -44,8 +42,6 @@ public class PathController {
 	 *            Path in the resource
 	 * @param relationship
 	 *            Relationship type
-	 * @param session
-	 *            Session to run it in
 	 * @return Paths
 	 * @throws ResourceInterfaceException
 	 *             A resource interface exception occurred
@@ -60,6 +56,7 @@ public class PathController {
 		}
 		
 		if (resource.getImplementingInterface() instanceof PathResourceImplementationInterface) {
+			logger.debug("traversePath() resource `"+resource.getName()+"` processing PathRelationship for `"+resourcePath.getPui()+"` path.");
 			return ((PathResourceImplementationInterface) resource
 					.getImplementingInterface()).getPathRelationship(
 					resourcePath, relationship, user);
@@ -80,8 +77,6 @@ public class PathController {
 	 *            Resource Path
 	 * @param findInformation
 	 *            Information for the find operation
-	 * @param session
-	 *            Session to run it in
 	 * @return Paths
 	 * @throws ResourceInterfaceException
 	 *             A resource interface exception occurred

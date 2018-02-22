@@ -1,16 +1,13 @@
 package edu.harvard.hms.dbmi.bd2k.irct.model.result.json;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.util.List;
-
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonStructure;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Persistable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.List;
 
 /**
  * The JSON File Result allows for a json result to persisted.
@@ -19,8 +16,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
  *
  */
 public class JsonFileResult implements Persistable, JSONResultImpl {
-	private JsonStructure jsonStructure;
-	private String fileName;
+	private JsonNode jsonNode;
+	private String fileLocation;
 	private Path dataFile;
 	private boolean current = false;
 	private boolean persisted = false;
@@ -60,13 +57,16 @@ public class JsonFileResult implements Persistable, JSONResultImpl {
 
 	@Override
 	public void persist(String location) throws PersistableException {
-		// TODO Auto-generated method stub
+//		try {
+//			File file = new File()
+//		}
+
 
 	}
 
 	@Override
 	public void merge() throws PersistableException {
-		// TODO Auto-generated method stub
+
 
 	}
 
@@ -77,8 +77,9 @@ public class JsonFileResult implements Persistable, JSONResultImpl {
 	}
 
 	@Override
-	public void setObject(JsonObject jsonObject) {
-		this.jsonStructure = jsonObject;
+	public JSONResultImpl setJsonNode(JsonNode jsonNode) {
+		this.jsonNode = jsonNode;
+		return this;
 	}
 
 	@Override
@@ -89,11 +90,6 @@ public class JsonFileResult implements Persistable, JSONResultImpl {
 	@Override
 	public boolean isPersisted() {
 		return this.persisted;
-	}
-
-	@Override
-	public void setArray(JsonArray jsonArray) {
-		this.jsonStructure = jsonArray;
 	}
 
 	@Override

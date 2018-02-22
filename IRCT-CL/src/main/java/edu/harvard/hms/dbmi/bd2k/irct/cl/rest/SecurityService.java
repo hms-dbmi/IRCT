@@ -3,8 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
+import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
+import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import org.apache.log4j.Logger;
 
 import javax.enterprise.context.SessionScoped;
 import javax.faces.bean.ManagedBean;
@@ -13,20 +16,13 @@ import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.Utilities;
-import edu.harvard.hms.dbmi.bd2k.irct.controller.SecurityController;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import java.io.Serializable;
 
 /**
  * Creates a REST interface for the security service
@@ -61,6 +57,9 @@ public class SecurityService implements Serializable {
 	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientSecret;
 
+	@javax.annotation.Resource(mappedName ="java:global/userField")
+	private String userField;
+
 	/**
 	 * Creates a secure key if the user is inside a valid session
 	 *
@@ -72,58 +71,27 @@ public class SecurityService implements Serializable {
 	public Response createKey(@Context HttpServletRequest req) {
 		logger.debug("/createKey Starting");
 
-		JsonObjectBuilder build = Json.createObjectBuilder();
 		try {
-			User userObject = sc.ensureUserExists(Utilities.extractEmailFromJWT(req , this.clientSecret));
+			User userObject = sc.ensureUserExists(Utilities
+					.extractEmailFromJWT(req, this.clientSecret, this.userField));
 			logger.debug("/createKey user exists");
 			userObject.setToken(Utilities.extractToken(req));
-			
-			/*
-			Enumeration<String> keys = req.getAttributeNames();
-			while(keys.hasMoreElements()) {
-				String element = keys.nextElement();
-				logger.debug("Element:"+element);
-			}
-			*/
-			
+
 			String key = sc.createKey(userObject);
 			// IF USER IS LOGGED IN
 			if (key != null) {
 				userObject.setAccessKey(key);
 				sc.updateUserRecord(userObject);
-				build.add("status", "ok");
-				build.add("key", key);
+				logger.debug("/createKey user updated. key:" + key);
+				return IRCTResponse.success(userObject);
 			} else {
-				build.add("status", "error");
-				build.add("message", "Unable to generate key for user:"+userObject.getName()+" and token:"+session.getAttribute("token"));
-				return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-						.entity(build.build()).build();
-			}	
-		} catch (IllegalArgumentException e) {
-			logger.error("/createKey IllegalArgumentException");
-			
-			build.add("status", "error");
-			build.add("message", "JWT token is not a token."+e.getMessage());
-			return Response.status(Response.Status.FORBIDDEN)
-					.entity(build.build()).build();
-			
-		} catch (UnsupportedEncodingException e) {
-			logger.error("/createKey UnsupportedEncodingException");
-			
-			build.add("status", "error");
-			build.add("message", "Invalid encoding for JWT token handling");
-			return Response.status(Response.Status.FORBIDDEN)
-					.entity(build.build()).build();
-		} catch (Exception e) {
-			logger.error("/createKey Exception:"+e.getMessage());
-			
-			build.add("status", "error");
-			build.add("message", "Unknown exception, while creating key:"+e.getMessage());
-			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-					.entity(build.build()).build();
+				return IRCTResponse.protocolError(Status.UNAUTHORIZED, "Unable to generate key for user:" + userObject.getName() + " and token:" + session.getAttribute("token"));
+			}
+		} catch (NotAuthorizedException e){
+			logger.error("/createKey cannot validate the token: "+ e.getChallenges());
+			return IRCTResponse.protocolError(Status.UNAUTHORIZED, "unable to validate the token");
 		}
-		logger.debug("/createKey Success. Finished");
-		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
+
 	}
 	
 	/**
@@ -138,16 +106,21 @@ public class SecurityService implements Serializable {
 	@Path("/startSession")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response startSession(@QueryParam(value = "key") String key) {
+		String warning = "This authentication method should only be used to validate prior research. Any new research being developed should instead use the Bearer token functionality. Contact an administrator to acquire a bearer token and instructions on how to use it.";
+		
 		JsonObjectBuilder build = Json.createObjectBuilder();
-		try {
-			session.setAttribute("user", sc.validateKey(key));
-			build.add("status", "success");	
-			build.add("message", "This authentication method should only be used to validate prior research. Any new research being developed should instead use the Bearer token functionality. Contact an administrator to acquire a bearer token and instructions on how to use it.");
-		} catch (Exception e) {
-			logger.error("/startSession "+e.getMessage());
-			build.add("status", "error");
-			build.add("message", e.getMessage());
+
+		User u = sc.validateKey(key);
+		if (u == null){
+			logger.error("/startSession Cannot validate key: " + key);
+			throw new NotAuthorizedException("Cannot validate key");
 		}
+
+		session.setAttribute("user", u);
+		build.add("status", "success");
+		build.add("message", warning);
+		build.add("token", u.getToken());
+
 		return Response.ok(build.build(), MediaType.APPLICATION_JSON).build();
 	}
 

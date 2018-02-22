@@ -3,13 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.result;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
+import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
+import org.apache.log4j.Logger;
 
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+<<<<<<< HEAD
 import javax.persistence.CascadeType;
 import javax.persistence.Convert;
 import javax.persistence.Entity;
@@ -28,6 +32,14 @@ import org.apache.log4j.Logger;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
+=======
+import javax.persistence.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+>>>>>>> master
 
 /**
  * The result class is created for each execution that is run on the IRCT
@@ -40,7 +52,13 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
 @Entity
 public class Result {
 	@Id
+<<<<<<< HEAD
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
+=======
+	@GeneratedValue(generator = "resultSequencer")
+	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
+	@JsonProperty("resultId")
+>>>>>>> master
 	private Long id;
 
 	@Transient
@@ -48,6 +66,10 @@ public class Result {
 
 	@Transient
 	private Executable executable;
+
+	@Transient
+	@JsonIgnore
+	private Map<String, String> metaData;
 
 	@ManyToOne(cascade = CascadeType.MERGE)
 	private User user;
@@ -73,6 +95,10 @@ public class Result {
 	private String message;
 
 	private String jobType;
+
+	public Result() {
+		message = "No message was provided";
+	}
 
 	/**
 	 * Returns a JSONObject representation of the object. This returns only the
@@ -105,6 +131,7 @@ public class Result {
 		DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		jsonBuilder.add("runTime", formatter.format(new Date()));
 		logger.debug("toJson("+depth+") build");
+
 		return jsonBuilder.build();
 	}
 
@@ -305,34 +332,29 @@ public class Result {
 	 * @return Message
 	 */
 	public String getMessage() {
-		logger.debug("getMessage()");
 		if (this.message.length() > 255) {
 			this.message = this.message.substring(0, 252) + "...";
 		}
-		logger.debug("getMessage() returning "+this.message);
+		logger.debug("getMessage() returning "+String.valueOf(this.message));
+
 		return this.message;
 	}
 
-	/**
-	 * Sets the mesage associated with the result
-	 * @param message Message
-	 */
-	public void setMessage(String message) {
-		logger.debug("setMessage() "+(message!=null?message:"null"));
-		
-		if (message == null) {
-			logger.debug("setMessage() null passed in");
-			this.message = "No message was provided";
-		} else {
-		
-		if (message.length() > 255) {
-			logger.debug("setMessage() message is too long. chopping off");
-			this.message = message.substring(0, 252) + "...";
-		} else {
-			this.message = message;
-		}
-		}
-		}
+    /**
+     * Sets the mesage associated with the result
+     *
+     * @param message Message
+     */
+    public void setMessage(String message) {
+        logger.debug("setMessage() " + String.valueOf(message));
+
+        if (message.length() > 255) {
+            logger.debug("setMessage() message is too long. chopping off");
+            this.message = message.substring(0, 252) + "...";
+        } else {
+            this.message = String.valueOf(message);
+        }
+    }
 
 
 	/**
@@ -351,5 +373,28 @@ public class Result {
 	 */
 	public void setJobType(String jobType) {
 		this.jobType = jobType;
+	}
+
+	/**
+	 * this will lazy initialize metaData here,
+	 * since currently, most of the time, metaData will not be used
+	 * @return
+	 */
+	public Map<String, String> getMetaData() {
+		if (metaData == null)
+			metaData = new HashMap<>();
+		return metaData;
+	}
+
+	/**
+	 * meta data give user ability to pass down the parameters from http request
+	 * to service (most services only contain a <code>Query<code/> object)
+	 * From request parameters -> Query object -> result if needed.
+	 *
+	 * Notice: meta data will not be persisted, as well as JsonIgnored
+	 * @param metaData
+	 */
+	public void setMetaData(Map<String, String> metaData) {
+		this.metaData = metaData;
 	}
 }
