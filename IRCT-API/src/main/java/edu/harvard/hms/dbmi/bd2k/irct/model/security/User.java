@@ -8,17 +8,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.security.Principal;
-
-<<<<<<< HEAD
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-
-=======
->>>>>>> master
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
  * userId, and name are the same in this implementation.

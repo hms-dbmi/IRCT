@@ -62,10 +62,6 @@
 		    <artifactId>powermock-module-junit4</artifactId>
 			<scope>test</scope>
 		</dependency>
-<<<<<<< HEAD
-		
-        
-=======
 		<dependency>
 		    <groupId>com.fasterxml.jackson.core</groupId>
 		    <artifactId>jackson-databind</artifactId>
@@ -75,26 +71,15 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
-
->>>>>>> master
-
     </dependencies>
 	<build>
 		<sourceDirectory>src/main/java</sourceDirectory>
 		<resources>
-<<<<<<< HEAD
 			<resource>
-		        <directory>src/main/resources</directory>
-	      	</resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
 		</resources>
-		
-=======
-        <resource>
-            <directory>src/main/resources</directory>
-            <filtering>true</filtering>
-        </resource>
-    </resources>
->>>>>>> master
 		<finalName>IRCT-API</finalName>
 		<pluginManagement>
 			<plugins>

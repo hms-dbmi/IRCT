@@ -4,7 +4,6 @@
 package edu.harvard.hms.dbmi.bd2k.irct.model.result;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
@@ -13,33 +12,12 @@ import org.apache.log4j.Logger;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-<<<<<<< HEAD
-import javax.persistence.CascadeType;
-import javax.persistence.Convert;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import javax.persistence.Transient;
-
-import org.apache.log4j.Logger;
-
-import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
-import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
-import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
-=======
 import javax.persistence.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
->>>>>>> master
 
 /**
  * The result class is created for each execution that is run on the IRCT
@@ -52,13 +30,8 @@ import java.util.Map;
 @Entity
 public class Result {
 	@Id
-<<<<<<< HEAD
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-=======
-	@GeneratedValue(generator = "resultSequencer")
-	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
-	@JsonProperty("resultId")
->>>>>>> master
+
 	private Long id;
 
 	@Transient

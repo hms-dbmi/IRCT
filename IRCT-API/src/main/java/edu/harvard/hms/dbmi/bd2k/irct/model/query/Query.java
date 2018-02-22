@@ -9,23 +9,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-<<<<<<< HEAD
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.ManyToMany;
 
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
-=======
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.*;
->>>>>>> master
 
 /**
  * The query class represents any query against any individual or group of
