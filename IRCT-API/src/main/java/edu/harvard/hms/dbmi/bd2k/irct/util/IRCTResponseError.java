@@ -1,4 +1,4 @@
-package edu.harvard.hms.dbmi.bd2k.irct.cl.util;
+package edu.harvard.hms.dbmi.bd2k.irct.util;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 

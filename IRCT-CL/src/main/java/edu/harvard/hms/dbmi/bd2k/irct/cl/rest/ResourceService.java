@@ -5,7 +5,7 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.cl.feature.JacksonSerialized;
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.PathController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;

@@ -149,8 +149,7 @@ public class Utilities {
 	 * @param req
 	 * @return
 	 */
-	public static String extractToken(HttpServletRequest req)
-			throws NotAuthorizedException{
+	public static String extractToken(HttpServletRequest req) {
 		logger.debug("extractToken() Starting");
 		String token = null;
 		
