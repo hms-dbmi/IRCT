@@ -1,6 +1,6 @@
 package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +29,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.util.Utility;
+import org.apache.commons.io.IOCase;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -40,12 +41,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import org.omg.CORBA.portable.ApplicationException;
 import us.monoid.json.JSONException;
 import us.monoid.json.JSONObject;
 
-import javax.json.JsonObject;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -266,8 +268,6 @@ public class HAIL implements QueryResourceImplementationInterface,
 
         } catch (JSONException e) {
             throw new ResourceInterfaceException("Could not parse JSON response." + e.getMessage());
-        } catch (IOException e) {
-            throw new ResourceInterfaceException("Could not connect to resource URL." + e.getMessage());
         }
 
         logger.debug("runQuery() finished");
@@ -386,14 +386,13 @@ public class HAIL implements QueryResourceImplementationInterface,
     private InputStream simpleRestCall(String urlString) {
         logger.debug("restCall() Starting");
         HttpEntity restEntity = null;
-        CloseableHttpClient restClient = HttpClientBuilder.create().build();
+        CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 
-        CloseableHttpResponse restResponse = null;
-        try {
-            HttpGet get = new HttpGet(urlString);
-            get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
+        HttpGet get = new HttpGet(urlString);
+        get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
 
-            restResponse = restClient.execute(get);
+        try (CloseableHttpResponse restResponse = restClient.execute(get)){
+
             restEntity = restResponse.getEntity();
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
@@ -401,13 +400,6 @@ public class HAIL implements QueryResourceImplementationInterface,
             logger.debug("restCall() released entity resource.");
         } catch (IOException ex ){
             logger.error("restCall() IOException: Cannot execute POST with URL: " + urlString);
-        } finally {
-            try {
-                if (restResponse != null)
-                    restResponse.close();
-            } catch (Exception ex) {
-                logger.error("restCall() finallyException: " + ex.getMessage());
-            }
         }
         logger.debug("restCall() finished.");
 
@@ -424,64 +416,77 @@ public class HAIL implements QueryResourceImplementationInterface,
         return null;
     }
 
-    // HTTP POST with JSON body, constructed from `payload` Map, and parse the
-    // returned stream into a JsonNode object for later parsing. Protocoll errors
-    // are captured as well.
-    // Any protocol or parsing error will be thrown as RuntimeException
-    private JsonNode restPOST(String urlString, Map<String, String> payload) throws JSONException, IOException {
+    /**
+     *  HTTP POST with JSON body, constructed from `payload` Map, and parse the
+     *  returned stream into a JsonNode object for later parsing. Protocoll errors
+     *  are captured as well.
+     *  Any protocol or parsing error will be thrown as RuntimeException
+     * @param urlString
+     * @param payload
+     * @return
+     * @throws JSONException
+     * @throws IOException
+     */
+    private JsonNode restPOST(String urlString, Map<String, String> payload) {
         logger.debug("restPOST() Starting ");
         JsonNode responseObject = null;
 
-        CloseableHttpResponse restResponse = null;
+
         ObjectMapper objectMapper = IRCTApplication.objectMapper;
-        CloseableHttpClient restClient = HttpClientBuilder.create().build();
-        // Convert payload into JSON object.
-        JSONObject json = new JSONObject();
-        for (String fieldName : payload.keySet()) {
-            json.put(fieldName, payload.get(fieldName));
-        }
+        CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
+
+
         HttpPost post = new HttpPost((urlString));
         post.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
-        post.setEntity(new StringEntity(json.toString()));
-        restResponse = restClient.execute(post);
-        if (restResponse.getStatusLine().getStatusCode() != 200) {
-            logger.error("restPost() Error status response from RESTful call:"+restResponse.getStatusLine().getStatusCode());
-        }
-        if (restResponse == null) {
-            logger.error("restPOST() restResponse is null");
-        }
-        HttpEntity restEntity = restResponse.getEntity();
-        if (restEntity == null) {
-            logger.error("restEntity is null");
-        }
-        
-        if (restResponse.getLastHeader("Content-type").getValue().equalsIgnoreCase("application/json")) {
-            // Convert JSON response into Java object
-            responseObject = objectMapper
-                    .readTree(restEntity
-                            .getContent());
-            
-        } else {
-            logger.debug("restPOST() Response is not JSON mime type.");
-            JsonNodeFactory factory = JsonNodeFactory.instance;
-            ObjectNode rootNode = factory.objectNode();
-
-            rootNode.put("status","ok");
-            rootNode.put("message", "nonJSON data received");
-            rootNode.put("data", EntityUtils.toString(restEntity));
-
-        }
-        logger.debug("restPOST() finished parsing data");
-
-        // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
-        EntityUtils.consume(restEntity);
-        logger.debug("restPOST() released entity resource.");
 
         try {
-            if (restResponse != null)
-                restResponse.close();
-        } catch (Exception ex) {
-            logger.error("restPOST() finallyException: " + ex.getMessage());
+            post.setEntity(
+                    new StringEntity(objectMapper
+                            .writeValueAsString(payload)));
+        } catch (JsonProcessingException e) {
+            throw new ResourceInterfaceException()
+        } catch (UnsupportedEncodingException e) {
+
+        }
+
+
+        try (CloseableHttpResponse restResponse = restClient.execute(post)) {
+
+
+            if (restResponse.getStatusLine().getStatusCode() != 200) {
+                logger.error("restPost() Error status response from RESTful call:" + restResponse.getStatusLine().getStatusCode());
+            }
+            if (restResponse == null) {
+                logger.error("restPOST() restResponse is null");
+            }
+            HttpEntity restEntity = restResponse.getEntity();
+            if (restEntity == null) {
+                logger.error("restEntity is null");
+            }
+
+            if (restResponse.getLastHeader("Content-type").getValue().equalsIgnoreCase("application/json")) {
+                // Convert JSON response into Java object
+                responseObject = objectMapper
+                        .readTree(restEntity
+                                .getContent());
+
+            } else {
+                logger.debug("restPOST() Response is not JSON mime type.");
+                JsonNodeFactory factory = JsonNodeFactory.instance;
+                ObjectNode rootNode = factory.objectNode();
+
+                rootNode.put("status", "ok");
+                rootNode.put("message", "nonJSON data received");
+                rootNode.put("data", EntityUtils.toString(restEntity));
+
+            }
+            logger.debug("restPOST() finished parsing data");
+
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("restPOST() released entity resource.");
+        } catch (IOException e){
+            throw new ResourceInterfaceException("Hail - restPost() Could not connect to resource URL." + e.getMessage());
         }
 
         logger.debug("restPOST() finished.");
