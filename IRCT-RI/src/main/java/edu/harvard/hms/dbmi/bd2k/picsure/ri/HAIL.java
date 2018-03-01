@@ -300,7 +300,7 @@ public class HAIL implements QueryResourceImplementationInterface,
                 result.setResultStatus(ResultStatus.COMPLETE);
 
                 // Save the data
-                nd = restGET(resourceURL+"/static/jobs/"+result.getResourceActionId()+".data");
+                nd = restGET(resourceURL+"/data?id="+result.getResourceActionId());
                 logger.debug("getResults() parsing returned actual data");
                 hailResponse = new HailResponse(nd);
                 if (hailResponse.isError()) {
