@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -18,10 +19,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.*;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
@@ -41,9 +39,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import us.monoid.json.JSONException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -246,6 +242,7 @@ public class HAIL implements QueryResourceImplementationInterface,
         // Send the JSON request to the remote datasource, as an HTTP POST, with
         // `variables` as the body of the request.
         logger.debug("runQuery() starting hail job submission");
+        Date starttime = new Date();
         JsonNode nd = restPOST(this.resourceURL + "/jobs", hailVariables);
         logger.debug("runQUery() hail job submission finished");
 
@@ -256,7 +253,8 @@ public class HAIL implements QueryResourceImplementationInterface,
             result.setResultStatus(ResultStatus.ERROR);
             result.setMessage(hailResponse.getErrorMessage());
         } else {
-            logger.error("runQuery() Hail job started. UUID:" + hailResponse.getJobUUID());
+            logger.debug("runQuery() Hail job started. UUID:" + hailResponse.getJobUUID());
+            result.setStartTime(starttime);
             result.setResourceActionId(hailResponse.getJobUUID());
             result.setResultStatus(ResultStatus.RUNNING);
             result.setMessage(hailResponse.getHailMessage());
@@ -291,24 +289,20 @@ public class HAIL implements QueryResourceImplementationInterface,
                 logger.debug("getResults() setting result status to COMPLETE");
                 result.setResultStatus(ResultStatus.COMPLETE);
 
-                // Save the data
+                // Parse and persist the data
                 nd = restGET(resourceURL+"/data?id="+result.getResourceActionId());
                 logger.debug("getResults() parsing returned actual data");
-                hailResponse = new HailResponse(nd);
-                if (hailResponse.isError()) {
-                    logger.debug("getResults() Hail response is an error response");
+                try {
+                    parseData(result, nd);
+                } catch (PersistableException pe){
+                    logger.error("getResults() Unable to persist data");
                     result.setResultStatus(ResultStatus.ERROR);
-                    result.setMessage(hailResponse.getErrorMessage());
-                } else {
-                    logger.debug("getResults() Success response from Hail.");
-                    result.setData(hailResponse.getData());
-                    result.setDataType(ResultDataType.TABULAR);
-                    result.setMessage("Data has been downloaded");
-                    result.setResultStatus(ResultStatus.AVAILABLE);
+                    result.setMessage(pe.getMessage());
+                } catch (ResultSetException re){
+                    logger.error("getResults() Cannot parse HAIL response");
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage(re.getMessage());
                 }
-            }
-            if (hailResponse.getJobStatus().equalsIgnoreCase("error")) {
-                result.setResultStatus(ResultStatus.ERROR);
             }
         }
         logger.debug("getResults() finished");
@@ -548,71 +542,27 @@ public class HAIL implements QueryResourceImplementationInterface,
             throws PersistableException, ResultSetException{
         FileResultSet frs = (FileResultSet) result.getData();
 
-        if (responseJsonNode.get("status")==null) {
-            if (responseJsonNode.get("message")==null) {
-                throw new RuntimeException("Unknown error.");
-            } else {
-                // If status is missing, but there is a message,
-                // use that for error message
-                throw new RuntimeException(responseJsonNode.get("message").textValue());
-            }
+        //Expected to be a string in TSV format.
+        //If not, a ResultSetException will most likely occur while appending rows or columns
+        String tsv = responseJsonNode.asText();
+        //first line is header, data starts at second line
+        String[] allRows = tsv.split("\n");
+        String[] headers = allRows[0].split("\t");
+        for (int i = 0; i < headers.length; i++){
+            frs.appendColumn(new Column(headers[i], PrimitiveDataType.STRING));
         }
-
-        String responseStatus = responseJsonNode.get("status").textValue();
-
-        JsonNode matrixNode = responseJsonNode.get("matrix");
-        if (responseStatus.equalsIgnoreCase("ok")){
-            if (!matrixNode.getNodeType().equals(JsonNodeType.ARRAY)
-                    || !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
-                String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
-                result.setMessage(errorMessage);
-                result.setResultStatus(ResultStatus.ERROR);
-                throw new PersistableException(errorMessage);
-            }
-
-            // append columns
-            for (JsonNode innerJsonNode : matrixNode.get(0)){
-                if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
-                    String errorMessage = "Cannot parse response JSON from Hail: expecting a String in header array";
-                    result.setMessage(errorMessage);
-                    result.setResultStatus(ResultStatus.ERROR);
-                    throw new PersistableException(errorMessage);
-                }
-
-                // how can I know what datatype it is for now?... just set it primitive string...
-                frs.appendColumn(new Column(innerJsonNode.textValue(), PrimitiveDataType.STRING));
-            }
-
-            // append rows
-            for (int i = 1; i < matrixNode.size(); i++){
-                JsonNode jsonNode = matrixNode.get(i);
-                if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
-                    String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
-                    result.setMessage(errorMessage);
-                    result.setResultStatus(ResultStatus.ERROR);
-                    throw new PersistableException(errorMessage);
-                }
-                frs.appendRow();
-
-                for (int j = 0; j<jsonNode.size(); j++){
-                    // column datatype could be reset here by checking the json NodeType,
-                    // but no PrimitiveDataType.NUMBER implemented yet, can't efficiently separate
-                    // integer, double, just store everything as STRING for now
-                    frs.updateString(frs.getColumn(j).getName(),
-                            jsonNode.get(j).asText());
-                }
-
-            }
-        } else {
-            frs.appendColumn(new Column("status", PrimitiveDataType.STRING));
-            frs.appendColumn(new Column("message", PrimitiveDataType.STRING));
-
+        for (int i = 1; i < allRows.length; i++){
+            String[] row = allRows[i].split("\t");
             frs.appendRow();
-            frs.updateString("status", responseStatus);
-            frs.updateString("message", responseJsonNode.get("message").textValue());
+            for (int j = 0; j < row.length; j++){
+                frs.updateString(j, row[j]);
+            }
         }
 
         result.setData(frs);
+        result.setDataType(ResultDataType.TABULAR);
+        result.setMessage("Data has been downloaded");
+
     }
 
     class PathElement {
@@ -631,9 +581,9 @@ public class HAIL implements QueryResourceImplementationInterface,
             logger.debug("HailResponse() constructor");
 
             if (rootNode.get("status") == null) {
-                logger.error("HailRespons() 'status' field is mandatory, but it is missing.");
+                logger.error("HailResponse() 'status' field is mandatory, but it is missing.");
             } else {
-                logger.debug("HailRespons() 'status' field has data in it.");
+                logger.debug("HailResponse() 'status' field has data in it.");
                 // Start parsing a Hail response
                 if (rootNode.get("status").textValue().equalsIgnoreCase("ok")) {
                     logger.debug("HailResponse() Success message from Hail.");
@@ -645,12 +595,6 @@ public class HAIL implements QueryResourceImplementationInterface,
                         this.jobUUID = rootNode.get("job").get("id").textValue();
                         this.hailMessage = rootNode.get("job").get("state").textValue();
                         this.jobStatus = rootNode.get("job").get("state").textValue();
-
-                    } else if (rootNode.get("data") != null) {
-                        // We need to handle the data response, and persist it to disk.
-                        rootNode.get("data");
-
-
 
                     } else {
                         logger.debug("HailResponse() parse data details.");
