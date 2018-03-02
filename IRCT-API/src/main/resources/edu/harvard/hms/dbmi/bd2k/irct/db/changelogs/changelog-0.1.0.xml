@@ -35,10 +35,12 @@
         	<changeSet author="yu" id="4" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
         		<dropForeignKeyConstraint baseTableName="IRCTJoin_Field" constraintName="FK_jsa7dpa9w29eviuiu397l6wnu"/>
         		<dropForeignKeyConstraint baseTableName="join_values" constraintName="FK_g73pju28bqi5qinm6be2hp97h"/>
+        		<dropForeignKeyConstraint baseTableName="Resource_IRCTJoin" constraintName="FK_hpva18ho5d8toqkqer2xpxgf5"/>
         		<rollback>
         			<addForeignKeyConstraint constraintName="FK_jsa7dpa9w29eviuiu397l6wnu" referencedTableName="IRCTJoin" baseColumnNames="IRCTJoin_id" baseTableName="IRCTJoin_Field" referencedColumnNames="id"/>
         			<addForeignKeyConstraint constraintName="FK_g73pju28bqi5qinm6be2hp97h" referencedTableName="IRCTJoin" baseColumnNames="JOIN_VALUE" baseTableName="join_values" referencedColumnNames="id"/>
-				</rollback>
+        			<addForeignKeyConstraint constraintName="FK_hpva18ho5d8toqkqer2xpxgf5" referencedTableName="IRCTJoin" baseColumnNames="supportedJoins_id" baseTableName="Resource_IRCTJoin" referencedColumnNames="id"/>
+	        	</rollback>
         	</changeSet>
         	<changeSet author="yu" id="5" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
         		<addAutoIncrement
@@ -54,10 +56,12 @@
         <changeSet author="yu" id="6" objectQuotingStrategy="QUOTE_ALL_OBJECTS">
         		<addForeignKeyConstraint constraintName="FK_jsa7dpa9w29eviuiu397l6wnu" referencedTableName="IRCTJoin" baseColumnNames="IRCTJoin_id" baseTableName="IRCTJoin_Field" referencedColumnNames="id"/>
         		<addForeignKeyConstraint constraintName="FK_g73pju28bqi5qinm6be2hp97h" referencedTableName="IRCTJoin" baseColumnNames="JOIN_VALUE" baseTableName="join_values" referencedColumnNames="id"/>
+        		<addForeignKeyConstraint constraintName="FK_hpva18ho5d8toqkqer2xpxgf5" referencedTableName="IRCTJoin" baseColumnNames="supportedJoins_id" baseTableName="Resource_IRCTJoin" referencedColumnNames="id"/>
         		<rollback>
         			<dropForeignKeyConstraint baseTableName="IRCTJoin_Field" constraintName="FK_jsa7dpa9w29eviuiu397l6wnu"/>
         			<dropForeignKeyConstraint baseTableName="join_values" constraintName="FK_g73pju28bqi5qinm6be2hp97h"/>
-				</rollback>
+        			<dropForeignKeyConstraint baseTableName="Resource_IRCTJoin" constraintName="FK_hpva18ho5d8toqkqer2xpxgf5"/>
+        		</rollback>
         	</changeSet>
         	
         	<!-- add auto increment to table Entity -->
