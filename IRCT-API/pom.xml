@@ -131,6 +131,7 @@
 				      <propertyFileWillOverride>true</propertyFileWillOverride>
 					  <propertyFile>edu/harvard/hms/dbmi/bd2k/irct/db/liquibase.properties</propertyFile>
 					  <changeLogFile>edu/harvard/hms/dbmi/bd2k/irct/db/changelog-master.xml</changeLogFile>
+				      <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
 				   </configuration>                
 				   <executions>
 					 <execution>
