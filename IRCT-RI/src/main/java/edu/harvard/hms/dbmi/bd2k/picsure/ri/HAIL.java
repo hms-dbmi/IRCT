@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -15,14 +13,15 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.*;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.util.Utility;
@@ -284,16 +283,19 @@ public class HAIL implements QueryResourceImplementationInterface,
 
             if (hailResponse.getJobStatus().equalsIgnoreCase("running")) {
                 result.setResultStatus(ResultStatus.RUNNING);
-            }
-            if (hailResponse.getJobStatus().equalsIgnoreCase("finished")) {
+            } else if (hailResponse.getJobStatus().equalsIgnoreCase("finished")) {
                 logger.debug("getResults() setting result status to COMPLETE");
                 result.setResultStatus(ResultStatus.COMPLETE);
 
-                // Parse and persist the data
-                nd = restGET(resourceURL+"/data?id="+result.getResourceActionId());
-                logger.debug("getResults() parsing returned actual data");
+                String urlString = resourceURL+"/data?id="+result.getResourceActionId();
+                CloseableHttpResponse response = null;
                 try {
-                    parseData(result, nd);
+                    response = restGETReturnHttpResponse(urlString);
+                    parseData(result, response.getEntity());
+                    EntityUtils.consume(response.getEntity());
+                } catch (IOException ex ) {
+                    logger.error("restGET() IOException: " + urlString + " " + ex.getMessage());
+                    throw new ResourceInterfaceException("Could not get Hail response ("+ex.getMessage()+")");
                 } catch (PersistableException pe){
                     logger.error("getResults() Unable to persist data");
                     result.setResultStatus(ResultStatus.ERROR);
@@ -302,6 +304,13 @@ public class HAIL implements QueryResourceImplementationInterface,
                     logger.error("getResults() Cannot parse HAIL response");
                     result.setResultStatus(ResultStatus.ERROR);
                     result.setMessage(re.getMessage());
+                } finally {
+                    try {
+                        if (response != null)
+                            response.close();
+                    } catch (Exception ex) {
+                        logger.error("restGET() finallyException: " + ex.getMessage());
+                    }
                 }
             }
         }
@@ -493,10 +502,8 @@ public class HAIL implements QueryResourceImplementationInterface,
         CloseableHttpResponse restResponse = null;
         try {
             ObjectMapper objectMapper = IRCTApplication.objectMapper;
-            CloseableHttpClient restClient = HttpClientBuilder.create().build();
 
-            HttpGet get = new HttpGet((urlString));
-            restResponse = restClient.execute(get);
+            restResponse = restGETReturnHttpResponse(urlString);
 
             if (restResponse.getStatusLine().getStatusCode()!=200) {
                 throw new ResourceInterfaceException("Could not get Hail response ("+restResponse.getStatusLine().getStatusCode()+")");
@@ -538,30 +545,48 @@ public class HAIL implements QueryResourceImplementationInterface,
         return responseObject;
     }
 
-    private void parseData(Result result, JsonNode responseJsonNode)
-            throws PersistableException, ResultSetException{
+    private CloseableHttpResponse restGETReturnHttpResponse(String urlString) throws IOException{
+
+        CloseableHttpClient restClient = HttpClientBuilder.create().build();
+
+        HttpGet get = new HttpGet((urlString));
+        return restClient.execute(get);
+    }
+
+    private void parseData(Result result, HttpEntity entity)
+            throws IOException, PersistableException, ResultSetException{
+        logger.debug("getResults() parsing returned actual data");
         FileResultSet frs = (FileResultSet) result.getData();
+
+        BufferedReader rd = new BufferedReader(
+                new InputStreamReader(entity.getContent()));
+
+        StringBuffer content = new StringBuffer();
+        String line = "";
+        while ((line = rd.readLine()) != null) {
+            content.append(line);
+        }
 
         //Expected to be a string in TSV format.
         //If not, a ResultSetException will most likely occur while appending rows or columns
-        String tsv = responseJsonNode.asText();
-        //first line is header, data starts at second line
-        String[] allRows = tsv.split("\n");
-        String[] headers = allRows[0].split("\t");
-        for (int i = 0; i < headers.length; i++){
-            frs.appendColumn(new Column(headers[i], PrimitiveDataType.STRING));
-        }
-        for (int i = 1; i < allRows.length; i++){
-            String[] row = allRows[i].split("\t");
-            frs.appendRow();
-            for (int j = 0; j < row.length; j++){
-                frs.updateString(j, row[j]);
-            }
-        }
-
-        result.setData(frs);
-        result.setDataType(ResultDataType.TABULAR);
-        result.setMessage("Data has been downloaded");
+//        String tsv = responseJsonNode.asText();
+//        //first line is header, data starts at second line
+//        String[] allRows = tsv.split("\n");
+//        String[] headers = allRows[0].split("\t");
+//        for (int i = 0; i < headers.length; i++){
+//            frs.appendColumn(new Column(headers[i], PrimitiveDataType.STRING));
+//        }
+//        for (int i = 1; i < allRows.length; i++){
+//            String[] row = allRows[i].split("\t");
+//            frs.appendRow();
+//            for (int j = 0; j < row.length; j++){
+//                frs.updateString(j, row[j]);
+//            }
+//        }
+//
+//        result.setData(frs);
+//        result.setDataType(ResultDataType.TABULAR);
+//        result.setMessage("Data has been downloaded");
 
     }
 
