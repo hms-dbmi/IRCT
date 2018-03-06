@@ -369,9 +369,13 @@ public class QueryService implements Serializable {
 		PredicateType predicateType = resource
 				.getSupportedPredicateByName(predicateName);
 		if (predicateType == null) {
-            StringJoiner ptList = new StringJoiner(",");
-            for (PredicateType pt: resource.getSupportedPredicates()) {
-                ptList.add(pt.getName());
+            String ptList = "";
+            int size = resource.getSupportedPredicates().size();
+            for (int i = 0; i<size; i++) {
+            	if (i == 0)
+                	ptList += resource.getSupportedPredicates().get(i);
+            	else
+            		ptList += ", " + resource.getSupportedPredicates().get(i);
             }
 			throw new QueryException("Unknown predicate type. Interface only supports `"+ptList+"` predicate(s).");
 		} else {
