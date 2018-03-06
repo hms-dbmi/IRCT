@@ -33,7 +33,6 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.StringJoiner;
 
 /**
  * Creates a REST interface for the query service
