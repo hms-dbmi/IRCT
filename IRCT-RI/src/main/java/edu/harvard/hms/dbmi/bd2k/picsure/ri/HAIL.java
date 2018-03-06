@@ -1,12 +1,13 @@
 package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
@@ -15,14 +16,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
+import edu.harvard.hms.dbmi.bd2k.irct.model.result.*;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
@@ -41,11 +38,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import us.monoid.json.JSONException;
-import us.monoid.json.JSONObject;
 
-import javax.json.JsonObject;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -244,32 +238,28 @@ public class HAIL implements QueryResourceImplementationInterface,
         }
 
         // hailVariables now contains at least 'template' and 'study' fields, but not necessarily with valid values
-        try {
-            // Send the JSON request to the remote datasource, as an HTTP POST, with
-            // `variables` as the body of the request.
-            logger.debug("runQuery() starting hail job submission");
-            JsonNode nd = restPOST(this.resourceURL + "/jobs", hailVariables);
-            logger.debug("runQUery() hail job submission finished");
 
-            // Parse JSON and evaluate if this is an error, or whatnot
-            HailResponse hailResponse = new HailResponse(nd);
-            if (hailResponse.isError()) {
-                logger.error("runQuery() Hail job failed, due to " + hailResponse.getErrorMessage() + ".");
-                result.setResultStatus(ResultStatus.ERROR);
-                result.setMessage(hailResponse.getErrorMessage());
-            } else {
-                logger.error("runQuery() Hail job started. UUID:" + hailResponse.getJobUUID());
-                result.setResourceActionId(hailResponse.getJobUUID());
-                result.setResultStatus(ResultStatus.RUNNING);
-                result.setMessage(hailResponse.getHailMessage());
-            }
+        // Send the JSON request to the remote datasource, as an HTTP POST, with
+        // `variables` as the body of the request.
+        logger.debug("runQuery() starting hail job submission");
+        Date starttime = new Date();
+        JsonNode nd = restPOST(this.resourceURL + "/jobs", hailVariables);
+        logger.debug("runQUery() hail job submission finished");
 
-        } catch (JSONException e) {
-            throw new ResourceInterfaceException("Could not parse JSON response." + e.getMessage());
-        } catch (IOException e) {
-            throw new ResourceInterfaceException("Could not connect to resource URL." + e.getMessage());
+        // Parse JSON and evaluate if this is an error, or whatnot
+        HailResponse hailResponse = new HailResponse(nd);
+        if (hailResponse.isError()) {
+            logger.error("runQuery() Hail job failed, due to " + hailResponse.getErrorMessage() + ".");
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage(hailResponse.getErrorMessage());
+        } else {
+            logger.debug("runQuery() Hail job started. UUID:" + hailResponse.getJobUUID());
+            result.setStartTime(starttime);
+            result.setResourceActionId(hailResponse.getJobUUID());
+            result.setResultStatus(ResultStatus.RUNNING);
+            result.setMessage(hailResponse.getHailMessage());
         }
-
+        
         logger.debug("runQuery() finished");
         return result;
     }
@@ -299,24 +289,20 @@ public class HAIL implements QueryResourceImplementationInterface,
                 logger.debug("getResults() setting result status to COMPLETE");
                 result.setResultStatus(ResultStatus.COMPLETE);
 
-                // Save the data
+                // Parse and persist the data
                 nd = restGET(resourceURL+"/data?id="+result.getResourceActionId());
                 logger.debug("getResults() parsing returned actual data");
-                hailResponse = new HailResponse(nd);
-                if (hailResponse.isError()) {
-                    logger.debug("getResults() Hail response is an error response");
+                try {
+                    parseData(result, nd);
+                } catch (PersistableException pe){
+                    logger.error("getResults() Unable to persist data");
                     result.setResultStatus(ResultStatus.ERROR);
-                    result.setMessage(hailResponse.getErrorMessage());
-                } else {
-                    logger.debug("getResults() Success response from Hail.");
-                    result.setData(hailResponse.getData());
-                    result.setDataType(ResultDataType.TABULAR);
-                    result.setMessage("Data has been downloaded");
-                    result.setResultStatus(ResultStatus.AVAILABLE);
+                    result.setMessage(pe.getMessage());
+                } catch (ResultSetException re){
+                    logger.error("getResults() Cannot parse HAIL response");
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage(re.getMessage());
                 }
-            }
-            if (hailResponse.getJobStatus().equalsIgnoreCase("error")) {
-                result.setResultStatus(ResultStatus.ERROR);
             }
         }
         logger.debug("getResults() finished");
@@ -386,14 +372,13 @@ public class HAIL implements QueryResourceImplementationInterface,
     private InputStream simpleRestCall(String urlString) {
         logger.debug("restCall() Starting");
         HttpEntity restEntity = null;
-        CloseableHttpClient restClient = HttpClientBuilder.create().build();
+        CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 
-        CloseableHttpResponse restResponse = null;
-        try {
-            HttpGet get = new HttpGet(urlString);
-            get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
+        HttpGet get = new HttpGet(urlString);
+        get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
 
-            restResponse = restClient.execute(get);
+        try (CloseableHttpResponse restResponse = restClient.execute(get)){
+
             restEntity = restResponse.getEntity();
 
             // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
@@ -401,13 +386,6 @@ public class HAIL implements QueryResourceImplementationInterface,
             logger.debug("restCall() released entity resource.");
         } catch (IOException ex ){
             logger.error("restCall() IOException: Cannot execute POST with URL: " + urlString);
-        } finally {
-            try {
-                if (restResponse != null)
-                    restResponse.close();
-            } catch (Exception ex) {
-                logger.error("restCall() finallyException: " + ex.getMessage());
-            }
         }
         logger.debug("restCall() finished.");
 
@@ -424,72 +402,90 @@ public class HAIL implements QueryResourceImplementationInterface,
         return null;
     }
 
-    // HTTP POST with JSON body, constructed from `payload` Map, and parse the
-    // returned stream into a JsonNode object for later parsing. Protocoll errors
-    // are captured as well.
-    // Any protocol or parsing error will be thrown as RuntimeException
-    private JsonNode restPOST(String urlString, Map<String, String> payload) throws JSONException, IOException {
+    /**
+     *  HTTP POST with JSON body, constructed from `payload` Map, and parse the
+     *  returned stream into a JsonNode object for later parsing. Protocoll errors
+     *  are captured as well.
+     *  Any protocol or parsing error will be thrown as RuntimeException
+     * @param urlString
+     * @param payload
+     * @return
+     * @throws JSONException
+     * @throws IOException
+     */
+    private JsonNode restPOST(String urlString, Map<String, String> payload) {
         logger.debug("restPOST() Starting ");
         JsonNode responseObject = null;
 
-        CloseableHttpResponse restResponse = null;
+
         ObjectMapper objectMapper = IRCTApplication.objectMapper;
-        CloseableHttpClient restClient = HttpClientBuilder.create().build();
-        // Convert payload into JSON object.
-        JSONObject json = new JSONObject();
-        for (String fieldName : payload.keySet()) {
-            json.put(fieldName, payload.get(fieldName));
-        }
+        CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
+
+
         HttpPost post = new HttpPost((urlString));
         post.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
-        post.setEntity(new StringEntity(json.toString()));
-        restResponse = restClient.execute(post);
-        if (restResponse.getStatusLine().getStatusCode() != 200) {
-            logger.error("restPost() Error status response from RESTful call:"+restResponse.getStatusLine().getStatusCode());
-        }
-        if (restResponse == null) {
-            logger.error("restPOST() restResponse is null");
-        }
-        HttpEntity restEntity = restResponse.getEntity();
-        if (restEntity == null) {
-            logger.error("restEntity is null");
-        }
-        
-        if (restResponse.getLastHeader("Content-type").getValue().equalsIgnoreCase("application/json")) {
-            // Convert JSON response into Java object
-            responseObject = objectMapper
-                    .readTree(restEntity
-                            .getContent());
-            
-        } else {
-            logger.debug("restPOST() Response is not JSON mime type.");
-            JsonNodeFactory factory = JsonNodeFactory.instance;
-            ObjectNode rootNode = factory.objectNode();
-
-            rootNode.put("status","ok");
-            rootNode.put("message", "nonJSON data received");
-            rootNode.put("data", EntityUtils.toString(restEntity));
-
-        }
-        logger.debug("restPOST() finished parsing data");
-
-        // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
-        EntityUtils.consume(restEntity);
-        logger.debug("restPOST() released entity resource.");
 
         try {
-            if (restResponse != null)
-                restResponse.close();
-        } catch (Exception ex) {
-            logger.error("restPOST() finallyException: " + ex.getMessage());
+            post.setEntity(
+                    new StringEntity(objectMapper
+                            .writeValueAsString(payload)));
+        } catch (JsonProcessingException e) {
+            throw new ResourceInterfaceException("Hail - restPOST() cannot parse payload map to json string for request body: " + payload + ", with message: " + e.getMessage());
+        } catch (UnsupportedEncodingException e) {
+            throw new ResourceInterfaceException("Hail - restPOST() the encoding is not supported by apache httppost: " + e.getMessage());
+        }
+
+
+        try (CloseableHttpResponse restResponse = restClient.execute(post)) {
+
+            if (restResponse.getStatusLine().getStatusCode() != 200) {
+                logger.error("restPost() Error status response from RESTful call:" + restResponse.getStatusLine().getStatusCode());
+            }
+            if (restResponse == null) {
+                logger.error("restPOST() restResponse is null");
+            }
+            HttpEntity restEntity = restResponse.getEntity();
+            if (restEntity == null) {
+                logger.error("restEntity is null");
+            }
+
+            if (restResponse.getLastHeader("Content-type").getValue().equalsIgnoreCase("application/json")) {
+                // Convert JSON response into Java object
+                responseObject = objectMapper
+                        .readTree(restEntity
+                                .getContent());
+
+            } else {
+                logger.debug("restPOST() Response is not JSON mime type.");
+                JsonNodeFactory factory = JsonNodeFactory.instance;
+                ObjectNode rootNode = factory.objectNode();
+
+                rootNode.put("status", "ok");
+                rootNode.put("message", "nonJSON data received");
+                rootNode.put("data", EntityUtils.toString(restEntity));
+
+            }
+            logger.debug("restPOST() finished parsing data");
+
+            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
+            EntityUtils.consume(restEntity);
+            logger.debug("restPOST() released entity resource.");
+        } catch (IOException e){
+            throw new ResourceInterfaceException("Hail - restPost() Could not connect to resource URL." + e.getMessage());
         }
 
         logger.debug("restPOST() finished.");
         return responseObject;
     }
 
-    // HTTP GET, parse the returned stream into a JsonNode object for
-    // later parsing.
+    /**
+     *  HTTP GET, parse the returned stream into a JsonNode object for
+     *  later parsing.
+     *
+     * @param urlString
+     * @return
+     * @throws ResourceInterfaceException
+     */
     private JsonNode restGET(String urlString) throws ResourceInterfaceException {
         logger.debug("restGET() Starting");
         JsonNode responseObject = null;
@@ -502,15 +498,18 @@ public class HAIL implements QueryResourceImplementationInterface,
             HttpGet get = new HttpGet((urlString));
             restResponse = restClient.execute(get);
 
-            if (restResponse.getStatusLine().getStatusCode()!=200) {
-                throw new ResourceInterfaceException("Could not get Hail response ("+restResponse.getStatusLine().getStatusCode()+")");
-            }
             if (restResponse==null) {
                 logger.error("restResponse is null");
+                throw new ResourceInterfaceException("Could not get Hail response");
+            }
+
+            if (restResponse.getStatusLine().getStatusCode()!=200) {
+                throw new ResourceInterfaceException("Could not get Hail response ("+restResponse.getStatusLine().getStatusCode()+")");
             }
             HttpEntity restEntity = restResponse.getEntity();
             if (restEntity==null) {
                 logger.error("restEntity is null");
+                throw new ResourceInterfaceException("Could not get Hail response");
             }
 
             if (restEntity.getContentType().getValue().equalsIgnoreCase("application/json")) {
@@ -546,71 +545,27 @@ public class HAIL implements QueryResourceImplementationInterface,
             throws PersistableException, ResultSetException{
         FileResultSet frs = (FileResultSet) result.getData();
 
-        if (responseJsonNode.get("status")==null) {
-            if (responseJsonNode.get("message")==null) {
-                throw new RuntimeException("Unknown error.");
-            } else {
-                // If status is missing, but there is a message,
-                // use that for error message
-                throw new RuntimeException(responseJsonNode.get("message").textValue());
-            }
+        //Expected to be a string in TSV format.
+        //If not, a ResultSetException will most likely occur while appending rows or columns
+        String tsv = responseJsonNode.asText();
+        //first line is header, data starts at second line
+        String[] allRows = tsv.split("\n");
+        String[] headers = allRows[0].split("\t");
+        for (int i = 0; i < headers.length; i++){
+            frs.appendColumn(new Column(headers[i], PrimitiveDataType.STRING));
         }
-
-        String responseStatus = responseJsonNode.get("status").textValue();
-
-        JsonNode matrixNode = responseJsonNode.get("matrix");
-        if (responseStatus.equalsIgnoreCase("ok")){
-            if (!matrixNode.getNodeType().equals(JsonNodeType.ARRAY)
-                    || !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
-                String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
-                result.setMessage(errorMessage);
-                result.setResultStatus(ResultStatus.ERROR);
-                throw new PersistableException(errorMessage);
-            }
-
-            // append columns
-            for (JsonNode innerJsonNode : matrixNode.get(0)){
-                if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
-                    String errorMessage = "Cannot parse response JSON from Hail: expecting a String in header array";
-                    result.setMessage(errorMessage);
-                    result.setResultStatus(ResultStatus.ERROR);
-                    throw new PersistableException(errorMessage);
-                }
-
-                // how can I know what datatype it is for now?... just set it primitive string...
-                frs.appendColumn(new Column(innerJsonNode.textValue(), PrimitiveDataType.STRING));
-            }
-
-            // append rows
-            for (int i = 1; i < matrixNode.size(); i++){
-                JsonNode jsonNode = matrixNode.get(i);
-                if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
-                    String errorMessage = "Cannot parse response JSON from Hail: expecting an 2D array";
-                    result.setMessage(errorMessage);
-                    result.setResultStatus(ResultStatus.ERROR);
-                    throw new PersistableException(errorMessage);
-                }
-                frs.appendRow();
-
-                for (int j = 0; j<jsonNode.size(); j++){
-                    // column datatype could be reset here by checking the json NodeType,
-                    // but no PrimitiveDataType.NUMBER implemented yet, can't efficiently separate
-                    // integer, double, just store everything as STRING for now
-                    frs.updateString(frs.getColumn(j).getName(),
-                            jsonNode.get(j).asText());
-                }
-
-            }
-        } else {
-            frs.appendColumn(new Column("status", PrimitiveDataType.STRING));
-            frs.appendColumn(new Column("message", PrimitiveDataType.STRING));
-
+        for (int i = 1; i < allRows.length; i++){
+            String[] row = allRows[i].split("\t");
             frs.appendRow();
-            frs.updateString("status", responseStatus);
-            frs.updateString("message", responseJsonNode.get("message").textValue());
+            for (int j = 0; j < row.length; j++){
+                frs.updateString(j, row[j]);
+            }
         }
 
         result.setData(frs);
+        result.setDataType(ResultDataType.TABULAR);
+        result.setMessage("Data has been downloaded");
+
     }
 
     class PathElement {
@@ -629,9 +584,9 @@ public class HAIL implements QueryResourceImplementationInterface,
             logger.debug("HailResponse() constructor");
 
             if (rootNode.get("status") == null) {
-                logger.error("HailRespons() 'status' field is mandatory, but it is missing.");
+                logger.error("HailResponse() 'status' field is mandatory, but it is missing.");
             } else {
-                logger.debug("HailRespons() 'status' field has data in it.");
+                logger.debug("HailResponse() 'status' field has data in it.");
                 // Start parsing a Hail response
                 if (rootNode.get("status").textValue().equalsIgnoreCase("ok")) {
                     logger.debug("HailResponse() Success message from Hail.");
@@ -643,10 +598,6 @@ public class HAIL implements QueryResourceImplementationInterface,
                         this.jobUUID = rootNode.get("job").get("id").textValue();
                         this.hailMessage = rootNode.get("job").get("state").textValue();
                         this.jobStatus = rootNode.get("job").get("state").textValue();
-
-                    } else if (rootNode.get("data") != null) {
-                        // We need to handle the data response, and persist it to disk.
-                        rootNode.get("data");
 
                     } else {
                         logger.debug("HailResponse() parse data details.");

@@ -4,7 +4,7 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
-import edu.harvard.hms.dbmi.bd2k.irct.cl.util.IRCTResponse;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
@@ -151,7 +151,6 @@ public class QueryService implements Serializable {
 			JsonArray queryRequest = jsonQuery.getJsonArray("request");
 			response.add("status", "ok so far");
 			response.add("message", "got something "+queryRequest.toString());
-
 
 		} else {
 			logger.debug("GET /runQuery ORIGINAL query format.");
