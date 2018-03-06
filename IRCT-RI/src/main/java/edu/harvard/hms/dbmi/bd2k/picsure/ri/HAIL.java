@@ -498,15 +498,18 @@ public class HAIL implements QueryResourceImplementationInterface,
             HttpGet get = new HttpGet((urlString));
             restResponse = restClient.execute(get);
 
-            if (restResponse.getStatusLine().getStatusCode()!=200) {
-                throw new ResourceInterfaceException("Could not get Hail response ("+restResponse.getStatusLine().getStatusCode()+")");
-            }
             if (restResponse==null) {
                 logger.error("restResponse is null");
+                throw new ResourceInterfaceException("Could not get Hail response");
+            }
+
+            if (restResponse.getStatusLine().getStatusCode()!=200) {
+                throw new ResourceInterfaceException("Could not get Hail response ("+restResponse.getStatusLine().getStatusCode()+")");
             }
             HttpEntity restEntity = restResponse.getEntity();
             if (restEntity==null) {
                 logger.error("restEntity is null");
+                throw new ResourceInterfaceException("Could not get Hail response");
             }
 
             if (restEntity.getContentType().getValue().equalsIgnoreCase("application/json")) {
