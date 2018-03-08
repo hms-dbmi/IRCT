@@ -133,9 +133,12 @@ public class PathController {
 	 * @return Available Path Resources
 	 */
 	public List<Entity> getAllResourcePaths() {
+		logger.debug("getAllResourcePaths() Starting");
 		List<Entity> returns = new ArrayList<Entity>();
 
 		for (Resource resource : rc.getPathResources()) {
+			logger.debug("getAllResourcePaths() for resource:"+resource.getName());
+
 			Entity entity = new Entity("/" + resource.getName());
 			entity.setName(resource.getName());
 			entity.setDisplayName(resource.getName());

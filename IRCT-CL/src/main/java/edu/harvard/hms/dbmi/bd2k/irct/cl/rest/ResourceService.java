@@ -333,9 +333,8 @@ public class ResourceService {
 
         //This will contain all resources from all paths
         List<Entity> allResources = new ArrayList<>();
-
-
         for (String path : paths) {
+        	logger.debug("getEntitiesFromPaths() path:"+path);
             List<Entity> fetchedResources = null;
             Resource resource = null;
             Entity entity = null;
@@ -343,7 +342,6 @@ public class ResourceService {
             if (StringUtils.isNotBlank(path)) {
                 if (!path.startsWith("/"))
                     path = "/" + path;
-
                 resource = rc.getResource(path.split("/")[1]);
                 entity = new Entity(path);
             }
@@ -360,6 +358,7 @@ public class ResourceService {
                     return IRCTResponse.riError(e.getMessage());
                 }
             } else if (StringUtils.isBlank(path)) {
+            	logger.debug("getEntitiesFromPaths() path is blank, get all resource paths");
             	fetchedResources = pc.getAllResourcePaths();
             } else {
                 return IRCTResponse.protocolError(Response.Status.BAD_REQUEST, "Resource is null and Path is incorrect, nonexistent or malformed");
