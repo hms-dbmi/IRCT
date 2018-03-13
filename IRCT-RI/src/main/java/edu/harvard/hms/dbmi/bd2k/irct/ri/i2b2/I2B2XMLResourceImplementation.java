@@ -531,67 +531,85 @@ public class I2B2XMLResourceImplementation
 
 			// Is Query Master List Complete?
 			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
-			logger.debug("checkForResult() received `InstanceResponseType`");
 
-			String instanceResultStatusType = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
-			logger.debug("checkForResult() instanceResultStatusType:"+instanceResultStatusType!=null?instanceResultStatusType:"NULL");
+			String queryinstancelistStatus = null;
+			// Determine the preliminary query status
+			if (instanceResponse.getQueryInstance().size()>0) {
+                queryinstancelistStatus = instanceResponse.getQueryInstance().get(0).getQueryStatusType().getName();
+            } else {
+			    if (instanceResponse.getStatus().getCondition().size()>0) {
+			        // As an alternative, if there is no `QueryInstance` coming back, use the `Status` element, to determine the remote i2b2 query status
+                    queryinstancelistStatus = instanceResponse.getStatus().getCondition().get(0).getValue();
+                } else {
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage("Could not determine the remote query status.");
+                    return result;
+                }
+            }
 
-			switch (instanceResultStatusType) {
-			case "RUNNING":
-				result.setResultStatus(ResultStatus.RUNNING);
-				return result;
-			case "ERROR":
-			case "INCOMPLETE":
-				result.setResultStatus(ResultStatus.ERROR);
-				result.setMessage(instanceResultStatusType!=null?instanceResultStatusType:"no instResStatTyp");
-				return result;
-			default:
-				logger.warn("checkForResult() Unknown instanceResultStatusType:"+(instanceResultStatusType==null?"NULL":instanceResultStatusType));
-			}
+            switch (queryinstancelistStatus) {
+                case "RUNNING":
+                    result.setResultStatus(ResultStatus.RUNNING);
+                    return result;
+                case "ERROR":
+                case "INCOMPLETE":
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage("queryinstancelistStatus:"+(queryinstancelistStatus != null ? queryinstancelistStatus : "NULL"));
+                    return result;
+                default:
+                    logger.warn("checkForResult() queryinstancelistStatus:" + (queryinstancelistStatus == null ? "NULL" : queryinstancelistStatus));
+            }
 
-			// Is Query Result instance list complete?
+            // Is Query Result instance list complete?
+            QueryResultInstanceType queryResultInstance = crcCell
+                    .getQueryResultInstanceListFromQueryInstanceId(client, queryId).get(0);
 
-			QueryResultInstanceType queryResultInstance = crcCell
-					.getQueryResultInstanceListFromQueryInstanceId(client, queryId).get(0);
+            String queryResultInstanceStatusType = queryResultInstance.getQueryStatusType().getName();
+            logger.debug("checkForResult() queryResultInstanceStatusType:" + (queryResultInstanceStatusType == null ? "NULL" : queryResultInstanceStatusType));
+            switch (queryResultInstanceStatusType) {
+                case "RUNNING":
+                    result.setResultStatus(ResultStatus.RUNNING);
+                    return result;
+                case "ERROR":
+                    result.setResultStatus(ResultStatus.ERROR);
+                    return result;
+                default:
+                    result.setMessage("`queryResultInstanceStatusType` is:" + (queryResultInstanceStatusType == null ? "NULL" : queryResultInstanceStatusType));
+            }
 
-			String queryResultInstanceStatusType = queryResultInstance.getQueryStatusType().getName();
-			logger.debug("checkForResult() queryResultInstanceStatusType:"+(queryResultInstanceStatusType==null?"NULL":queryResultInstanceStatusType));
-			switch (queryResultInstanceStatusType) {
-			case "RUNNING":
-				result.setResultStatus(ResultStatus.RUNNING);
-				return result;
-			case "ERROR":
-				result.setResultStatus(ResultStatus.ERROR);
-				return result;
-			}
+            // check if only_count exist,
+            // if yes, will only retrieve counts from i2b2 and put it into result
+            // will not download all the data from i2b2 later (which is thousands millions of rows...)
+            if (result.getMetaData() != null
+                    && !result.getMetaData().isEmpty()
+                    && result.getMetaData().containsKey("only_count")) {
+                long counts = queryResultInstance.getSetSize();
+                FileResultSet frs = (FileResultSet) result.getData();
+                try {
+                    frs.appendColumn(new Column("patient_set_counts", PrimitiveDataType.STRING));
+                    frs.appendRow();
+                    frs.updateString("patient_set_counts", Long.toString(counts));
 
+                    result.setResultStatus(ResultStatus.COMPLETE);
+                    result.setMessage(getType() + " `only_count` query has finished.");
+                } catch (ResultSetException e) {
+                    logger.error("checkForResult() generating patient set counts file error: " + e.getMessage());
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage("generating patient set counts file error: " + e.getMessage());
+                } catch (PersistableException e) {
+                    logger.error("checkForResult() cannot persist FileResultSet: " + e.getMessage());
+                    result.setResultStatus(ResultStatus.ERROR);
+                    result.setMessage("cannot persist result file: " + e.getMessage());
+                }
 
-			// check if only_count exist,
-			// if yes, will only retrieve counts from i2b2 and put it into result
-			// will not download all the data from i2b2 later (which is thousands millions of rows...)
-			if (result.getMetaData() != null
-					&& !result.getMetaData().isEmpty()
-					&& result.getMetaData().containsKey("only_count")) {
-				long counts = queryResultInstance.getSetSize();
-				FileResultSet frs = (FileResultSet) result.getData();
-				try {
-					frs.appendColumn(new Column("patient_set_counts", PrimitiveDataType.STRING));
-					frs.appendRow();
-					frs.updateString("patient_set_counts", Long.toString(counts));
-				} catch (ResultSetException e) {
-					logger.error("checkForResult() generating patient set counts file error: " + e.getMessage());
-					result.setResultStatus(ResultStatus.ERROR);
-					result.setMessage("generating patient set counts file error: " + e.getMessage());
-				} catch (PersistableException e) {
-					logger.error("checkForResult() cannot persist FileResultSet: " + e.getMessage());
-					result.setResultStatus(ResultStatus.ERROR);
-					result.setMessage("cannot persist result file: " + e.getMessage());
-				}
+            }
 
-			}
+            // Stop checking and change the status to COMPLETE
+            if (queryResultInstanceStatusType.equalsIgnoreCase("FINISHED")) {
+                logger.debug("checkForResult() queryResultInstanceStatusType is "+queryResultInstanceStatusType+" so change result status to COMPLETE");
+                        result.setResultStatus(ResultStatus.COMPLETE);
+            }
 
-			result.setResultStatus(ResultStatus.COMPLETE);
-			result.setMessage("i2b2 query has finished.");
 
 		} catch (JAXBException | I2B2InterfaceException | IOException e) {
 			logger.error("checkForResult() OtherException:"+e.getMessage());
