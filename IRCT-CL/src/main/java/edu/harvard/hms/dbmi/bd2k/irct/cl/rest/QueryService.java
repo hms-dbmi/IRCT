@@ -372,9 +372,9 @@ public class QueryService implements Serializable {
             int size = resource.getSupportedPredicates().size();
             for (int i = 0; i<size; i++) {
             	if (i == 0)
-                	ptList += resource.getSupportedPredicates().get(i);
+                	ptList += resource.getSupportedPredicates().get(i).getName();
             	else
-            		ptList += ", " + resource.getSupportedPredicates().get(i);
+            		ptList += ", " + resource.getSupportedPredicates().get(i).getName();
             }
 			throw new QueryException("Unknown predicate type. Interface only supports `"+ptList+"` predicate(s).");
 		} else {
