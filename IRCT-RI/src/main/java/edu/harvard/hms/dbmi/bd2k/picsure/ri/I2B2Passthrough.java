@@ -192,7 +192,8 @@ public class I2B2Passthrough
 						}
 						basePath = pathComponents[0] + "/" + pathComponents[1] + "/" + pathComponents[2];
 
-						conceptsType = ontCell.getChildren(client, myPath, false, false, false, -1, "core");
+						// Issue #40 fix
+						conceptsType = ontCell.getChildren(client, myPath, false, true, false, -1, "core");
 
 					}
 					// Convert ConceptsType to Entities
