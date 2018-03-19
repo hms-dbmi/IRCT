@@ -9,7 +9,9 @@ import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.BodyType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.FacilityType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.HiveRequest;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ItemType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.MessageHeaderType;
+import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PanelType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PasswordType;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.Proxy;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.RequestHeaderType;
@@ -35,6 +37,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The CRC Cell communication class makes requests to the i2b2 CRC Cell via XML
@@ -542,6 +545,17 @@ public class CRCCell extends Cell {
 	// PDO Calls
 	// -------------------------------------------------------------------------
 
+    public PatientDataResponseType getPDOfromInputList(HttpClient client,
+                                                       String collectionId, int min, int max, boolean onlyKeys,
+                                                       boolean blob, boolean techdata, OutputOptionSelectType select)
+            throws JAXBException, ClientProtocolException,
+            I2B2InterfaceException, IOException {
+	    if (select == null){
+	        select = OutputOptionSelectType.USING_INPUT_LIST;
+        }
+	    return getPDOfromInputList(client, collectionId, min, max, onlyKeys, blob, techdata, select, null);
+    }
+
 	/**
 	 * Returns a list of PDOs from an Input List
 	 * 
@@ -573,49 +587,89 @@ public class CRCCell extends Cell {
 	 */
 	public PatientDataResponseType getPDOfromInputList(HttpClient client,
 			String collectionId, int min, int max, boolean onlyKeys,
-			boolean blob, boolean techdata, OutputOptionSelectType select)
+			boolean blob, boolean techdata, OutputOptionSelectType select, Map metaData)
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
 		
 		logger.debug("getPDOfromInputList() Starting...");
 		
 		RequestMessageType rmt = createMinimumPDOBaseMessage(PdoRequestTypeType.GET_PDO_FROM_INPUT_LIST, "/pdorequest");
+        logger.debug("getPDOfromInputList() created ```RequestMessageType```");
 
-		logger.debug("getPDOfromInputList() created ```RequestMessageType```");
-		
-		GetPDOFromInputListRequestType ilrt = pdoOF
-				.createGetPDOFromInputListRequestType();
-		logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
+        GetPDOFromInputListRequestType ilrt = pdoOF
+                .createGetPDOFromInputListRequestType();
+        logger.debug("getPDOfromInputList() created ```GetPDOFromInputListRequestType```");
 
-		InputOptionListType iolt = pdoOF.createInputOptionListType();
-		PatientListType plt = pdoOF.createPatientListType();
-		plt.setMin(min);
-		plt.setMax(max);
-		logger.debug("getPDOfromInputList() set min/max");
-		
-		plt.setPatientSetCollId(collectionId);
-		logger.debug("getPDOfromInputList() set collectionId to "+(collectionId!=null?collectionId:"NULL"));
-		iolt.setPatientList(plt);
-		ilrt.setInputList(iolt);
-		
-		logger.debug("getPDOfromInputList() set PatientList and InputList");
-		ilrt.setFilterList(pdoOF.createFilterListType());
-		logger.debug("getPDOfromInputList() set FilterList");
+        InputOptionListType iolt = pdoOF.createInputOptionListType();
+        PatientListType plt = pdoOF.createPatientListType();
+        plt.setMin(min);
+        plt.setMax(max);
+        logger.debug("getPDOfromInputList() set min/max");
+
+        plt.setPatientSetCollId(collectionId);
+        logger.debug("getPDOfromInputList() set collectionId to "+(collectionId!=null?collectionId:"NULL"));
+
+        iolt.setPatientList(plt);
+        ilrt.setInputList(iolt);
+        logger.debug("getPDOfromInputList() set PatientList and InputList");
+
+        if (metaData != null && metaData.containsKey("aliasMap")) {
+            select = OutputOptionSelectType.USING_FILTER_LIST;
+            FilterListType filterListType = pdoOF.createFilterListType();
+			ilrt.setFilterList(filterListType);
+			logger.debug("getPDOfromInputList() set FilterList");
+            List<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.PanelType> panels = filterListType.getPanel();
+            Map<String,String> selectMap = (Map<String,String>)metaData.get("aliasMap");
+
+            int panelNumber = 1;
+            for (Map.Entry entry : selectMap.entrySet()){
+                ItemType item = new ItemType();
+                item.setItemKey((String)entry.getKey());
+                item.setItemName((String)entry.getKey());
+
+                PanelType panelType = new PanelType();
+                panelType.setPanelNumber(panelNumber++);
+                panelType.setInvert(0);
+                panelType.setPanelTiming("ANY");
+
+                PanelType.TotalItemOccurrences tio = new PanelType.TotalItemOccurrences();
+                tio.setValue(1);
+                panelType.setTotalItemOccurrences(tio);
+                panelType.getItem().add(item);
+
+                panels.add(panelType);
+            }
+
+        } else {
+            if (select == null)
+                select = OutputOptionSelectType.USING_INPUT_LIST;
+
+        }
 
 
-		OutputOptionListType oolt = pdoOF.createOutputOptionListType();
-		OutputOptionType oot = pdoOF.createOutputOptionType();
-		oot.setOnlykeys(onlyKeys);
-		oot.setBlob(blob);
-		oot.setTechdata(techdata);
-		oot.setSelect(select);
+        OutputOptionListType oolt = pdoOF.createOutputOptionListType();
+        OutputOptionType oot = pdoOF.createOutputOptionType();
+        oot.setOnlykeys(onlyKeys);
+        oot.setBlob(blob);
+        oot.setTechdata(techdata);
 
-		oolt.setPatientSet(oot);
-		logger.debug("getPDOfromInputList() create OutputOptionType");
-		ilrt.setOutputOption(oolt);
-		logger.debug("getPDOfromInputList() set OutputOptionType");
 
-		rmt.getMessageBody().getAny().add(pdoOF.createRequest(ilrt));
+        oot.setSelect(select);
+        oolt.setPatientSet(oot);
+        oolt.setObserverSetUsingFilterList(oot);
+        oolt.setConceptSetUsingFilterList(oot);
+        oolt.setModifierSetUsingFilterList(oot);
+        oolt.setEventSet(oot);
+        oolt.setPidSet(oot);
+        oolt.setPidSet(oot);
+//        oolt.setObservationSet();
+
+
+        logger.debug("getPDOfromInputList() create OutputOptionType");
+        ilrt.setOutputOption(oolt);
+        logger.debug("getPDOfromInputList() set OutputOptionType");
+        rmt.getMessageBody().getAny().add(pdoOF.createRequest(ilrt));
+
 
 		logger.debug("getPDOfromInputList() reset ```RequestMessageType``` with ```GetPDOFromInputListRequestType```");
 

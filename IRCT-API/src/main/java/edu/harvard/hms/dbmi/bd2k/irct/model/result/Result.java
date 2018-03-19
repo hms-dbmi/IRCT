@@ -44,7 +44,7 @@ public class Result {
 
 	@Transient
 	@JsonIgnore
-	private Map<String, String> metaData;
+	private Map<String, Object> metaData;
 
 	@ManyToOne(cascade = CascadeType.MERGE)
 	private User user;
@@ -355,7 +355,7 @@ public class Result {
 	 * since currently, most of the time, metaData will not be used
 	 * @return
 	 */
-	public Map<String, String> getMetaData() {
+	public Map<String, Object> getMetaData() {
 		if (metaData == null)
 			metaData = new HashMap<>();
 		return metaData;
@@ -369,7 +369,7 @@ public class Result {
 	 * Notice: meta data will not be persisted, as well as JsonIgnored
 	 * @param metaData
 	 */
-	public void setMetaData(Map<String, String> metaData) {
+	public void setMetaData(Map<String, Object> metaData) {
 		this.metaData = metaData;
 	}
 }

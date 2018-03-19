@@ -12,6 +12,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -373,6 +374,49 @@ public class I2B2XMLResourceImplementation
 		result.setResultStatus(ResultStatus.CREATED);
 		String projectId = "";
 
+        // gather select clauses
+        // I don't care about the performance here!!
+        // and actually this gathering select clauses block is from I2B2TranSMARTResourceImplementation.java
+        // It is working which is the only thing that I know
+        Map<String, String> aliasMap = new LinkedHashMap<>();
+        for (SelectClause selectClause : query
+                .getClausesOfType(SelectClause.class)) {
+            String pui = selectClause.getParameter().getPui()
+                    .replaceAll("/" + this.resourceName + "/", "");
+
+            String rawPUI = selectClause.getParameter().getPui();
+            if (rawPUI.endsWith("*")) {
+                //Get the base PUI
+                String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
+                boolean compact = false;
+                String subPUI = null;
+
+                if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
+                    compact = true;
+                }
+                if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
+                    subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
+                }
+
+                //Loop through all the children and add them to the aliasMap
+                aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, user));
+
+            } else {
+                pui = convertPUItoI2B2Path(selectClause.getParameter()
+                        .getPui());
+                aliasMap.put(pui.replaceAll("%2[f,F]", "/") + "\\",
+                        selectClause.getAlias());
+            }
+        }
+        // The blob above is from TransmartResourceImplementation
+
+        result.getMetaData().put("aliasMap", aliasMap); // pass it down to the getResult() to retrieve selected data
+
+
+
+
+
+
 		// Create the query
 		ArrayList<PanelType> panels = new ArrayList<PanelType>();
 		int panelCount = 1;
@@ -441,6 +485,7 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
 		}
+
 		return result;
 	}
 
@@ -479,7 +524,7 @@ public class I2B2XMLResourceImplementation
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
 			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
-					OutputOptionSelectType.USING_INPUT_LIST);
+					null, result.getMetaData());
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
 			result = convertPatientSetToResultSet(pdrt, result);
@@ -1051,4 +1096,49 @@ public class I2B2XMLResourceImplementation
 
 		return HttpClients.custom().setConnectionManager(cm);
 	}
+
+
+    protected Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, User user) throws ResourceInterfaceException {
+        Map<String, String> returns = new HashMap<String, String>();
+
+        Entity baseEntity = new Entity(basePUI);
+        for(Entity entity : getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, user)) {
+
+            if(entity.getAttributes().containsKey("visualattributes")) {
+                String visualAttributes = entity.getAttributes().get("visualattributes");
+
+                if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
+                    returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, user));
+                } else if (visualAttributes.startsWith("L")) {
+                    String pui = convertPUItoI2B2Path(entity.getPui()).replaceAll("%2[f,F]", "/")  + "\\";
+                    String alias =  pui;
+                    if(compact) {
+                        alias = basePUI;
+                    }
+                    if(subPUI != null) {
+                        alias = alias.replaceAll(subPUI, "");
+                    }
+                    if(alias.endsWith("/")) {
+                        alias = alias.substring(0, alias.length() - 1);
+                    }
+                    returns.put(pui, alias);
+                }
+
+            }
+        }
+
+        return returns;
+    }
+
+    protected String convertPUItoI2B2Path(String pui) {
+        String[] singleReturnPathComponents = pui.split("/");
+        String singleReturnMyPath = "";
+        for (String pathComponent : Arrays.copyOfRange(
+                singleReturnPathComponents, 4,
+                singleReturnPathComponents.length)) {
+            singleReturnMyPath += "\\" + pathComponent;
+        }
+
+        return singleReturnMyPath;
+    }
 }
