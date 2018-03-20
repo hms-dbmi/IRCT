@@ -74,14 +74,16 @@ public class QueryAction implements Action {
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
 					.getImplementingInterface();
 
-			this.result = ActionUtilities.createResult(queryInterface
-					.getQueryDataType(query));
+			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
 			this.result.setUser(user);
-
+			logger.debug("run() starting query");
 			this.result = queryInterface.runQuery(user, query, result);
+			logger.debug("run() finished query");
 
 			// Update the result in the database
+			logger.debug("run() persisting result to database");
 			ActionUtilities.mergeResult(this.result);
+			logger.debug("run() persisted result to database");
 		} catch (Exception e) {
 			logger.error("run() Exception:"+e.getMessage());
 			
@@ -98,12 +100,14 @@ public class QueryAction implements Action {
 
 	@Override
 	public Result getResults(User user){
+		logger.debug("getResults() starting");
+
 		try {
 			this.result = ((QueryResourceImplementationInterface) resource
 					.getImplementingInterface()).getResults(user, result);
 
 			if (this.result == null)
-				throw new ResourceInterfaceException("QueryAction - getResults(user): after retrieving result, result is null");
+				throw new ResourceInterfaceException("getResults() after retrieving result, result is null");
 
 			while ((this.result.getResultStatus() != ResultStatus.ERROR)
 					&& (this.result.getResultStatus() != ResultStatus.COMPLETE)) {
@@ -130,6 +134,7 @@ public class QueryAction implements Action {
 		result.setEndTime(new Date());
 		// Save the query Action
 		try {
+			logger.debug("getResults() merge result to the database.");
 			ActionUtilities.mergeResult(result);
 			this.status = ActionStatus.COMPLETE;
 		} catch (NamingException e) {

@@ -194,12 +194,21 @@ public class ResourceService {
 
 		try {
 			logger.debug("GET /find params  :"+findInformation.getRequiredParameters());
-			logger.debug("GET /find resource:"+resource.getName());
-			logger.debug("GET /find path    :"+resourcePath.getName());
-			
-			List<Entity> entities = pc.searchForTerm(resource, resourcePath, findInformation, (User) session.getAttribute("user"));
+
+			List<Resource> resourceList = null;
+			if (resource == null) {
+				// Search all resources
+				resourceList = rc.getQueryResources();
+			} else {
+				resourceList.add(resource);
+			}
+
+            List<Entity> entities = new ArrayList<Entity>();
+			for (Resource res: resourceList) {
+                entities.addAll(pc.searchForTerm(res, resourcePath, findInformation, (User) session.getAttribute("user")));
+            }
 			if (entities == null || entities.size() == 0) {
-				return IRCTResponse.applicationError("No entities were found in `"+resource.getName()+"`");
+				return IRCTResponse.applicationError("No entities were found.");
 			} else {
 				logger.debug("GET /find There were `"+entities.size()+"` entities found.");
 				return IRCTResponse.success(entities);

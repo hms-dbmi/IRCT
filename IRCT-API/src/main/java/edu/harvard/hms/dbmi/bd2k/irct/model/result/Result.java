@@ -72,7 +72,7 @@ public class Result {
 	private String jobType;
 
 	public Result() {
-		message = "No message was provided";
+		message = "`Result` object is initialized.";
 	}
 
 	/**
@@ -330,8 +330,6 @@ public class Result {
             this.message = String.valueOf(message);
         }
     }
-
-
 	/**
 	 * Returns the type of Action created this Result
 	 *

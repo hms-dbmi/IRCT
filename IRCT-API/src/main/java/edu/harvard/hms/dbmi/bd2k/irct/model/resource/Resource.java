@@ -272,7 +272,7 @@ public class Resource implements Serializable {
 	 * @return the name
 	 */
 	public String getName() {
-		return name;
+		return name==null?"null":name;
 	}
 
 	/**

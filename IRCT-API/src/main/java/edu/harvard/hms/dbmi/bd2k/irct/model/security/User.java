@@ -29,17 +29,25 @@ public class User implements Principal, Serializable {
 
 	@JsonProperty("key")
 	private String accessKey;
-	
+
 	/**
 	 * Creates a new user
 	 */
 	public User() {
-		
+
+	}
+
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	public void setAccessKey(String accessKey) {
+		this.accessKey = accessKey;
 	}
 
 	/**
 	 * Creates a new user with the given User Id
-	 * 
+	 *
 	 * @param userId User Id
 	 */
 	public User(String userId) {
@@ -48,7 +56,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Returns the id of this User object
-	 * 
+	 *
 	 * @return Id
 	 */
 	public Long getId() {
@@ -57,7 +65,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Sets the id of this User object
-	 * 
+	 *
 	 * @param id Id
 	 */
 	public void setId(Long id) {
@@ -66,7 +74,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Returns the user id
-	 * 
+	 *
 	 * @return User Id
 	 */
 	public String getUserId() {
@@ -75,7 +83,7 @@ public class User implements Principal, Serializable {
 
 	/**
 	 * Sets the user id
-	 * 
+	 *
 	 * @param userId User Id
 	 */
 	public void setUserId(String userId) {
@@ -99,19 +107,5 @@ public class User implements Principal, Serializable {
 	 */
 	public void setToken(String token) {
 		this.token = token;
-	}
-
-	/**
-	 * @return the accessKey
-	 */
-	public String getAccessKey() {
-		return accessKey;
-	}
-
-	/**
-	 * @param accessKey the accessKey to set
-	 */
-	public void setAccessKey(String accessKey) {
-		this.accessKey = accessKey;
 	}
 }

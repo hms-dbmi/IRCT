@@ -28,6 +28,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.util.Utility;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -71,7 +72,7 @@ public class GNomeResourceImplementation implements
 	public void setup(Map<String, String> parameters)
 			throws ResourceInterfaceException{
 		if (logger.isDebugEnabled())
-			logger.debug("setup for " + resourceName +
+			logger.debug("setup for gNome"+
 				" Starting...");
 
 		String errorString = "";
@@ -81,10 +82,12 @@ public class GNomeResourceImplementation implements
 			errorString += " resourceName";
 		}
 
-		this.resourceRootURL = parameters.get("resourceRootURL");
-		if (this.resourceRootURL == null) {
-			logger.error( "setup() `rootURL` parameter is missing.");
+		String tempResourceRootURL = parameters.get("resourceRootURL");
+		if (tempResourceRootURL == null) {
+			logger.error( "setup() `resourceRootURL` parameter is missing.");
 			errorString += " resourceRootURL";
+		} else {
+			resourceRootURL = (tempResourceRootURL.endsWith("/"))?tempResourceRootURL.substring(0, tempResourceRootURL.length()-1):tempResourceRootURL;
 		}
 
 		this.gnomeUserName = parameters.get("gnomeUserName");
@@ -105,11 +108,10 @@ public class GNomeResourceImplementation implements
 
 //		retrieveToken();
 
-
+		resourceState = ResourceState.READY;
 		logger.debug( "setup for " + resourceName +
 				" Finished. " + resourceName +
 						" is in READY state.");
-		resourceState = ResourceState.READY;
 	}
 
 	@Override
@@ -137,7 +139,7 @@ public class GNomeResourceImplementation implements
 
 
 			// the response body is in a Json format with a field "token"
-			token = new ObjectMapper().readTree(entity
+			token = IRCTApplication.objectMapper.readTree(entity
 					.getContent())
 					.get("token")
 					.textValue();
@@ -177,13 +179,14 @@ public class GNomeResourceImplementation implements
 		List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
 
 		result.setResultStatus(ResultStatus.CREATED);
+		result.setMessage("Started running the query.");
 
 		for (WhereClause whereClause : whereClauses) {
 
 			// http request
-			String urlString = resourceRootURL + "/" + whereClause.getField().getPui().split("/")[2];
+			String urlString = resourceRootURL + Utility.getURLFromPui(whereClause.getField().getPui(),resourceName);
 
-			ObjectMapper objectMapper = new ObjectMapper();
+			ObjectMapper objectMapper = IRCTApplication.objectMapper;
 			ObjectNode objectNode = objectMapper.createObjectNode();
 			objectNode.put("token",token);
 
