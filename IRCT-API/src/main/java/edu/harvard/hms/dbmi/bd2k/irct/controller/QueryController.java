@@ -308,12 +308,14 @@ public class QueryController implements Serializable{
 		}
 
 		// Does the predicate support the entity?
-		/*if ((!predicate.getDataTypes().isEmpty())
+		if ((predicate != null
+				&& predicate.getDataTypes() != null
+				&& !predicate.getDataTypes().isEmpty())
 				&& (!predicate.getDataTypes().contains(field.getDataType()))) {
 
 			throw new QueryException(
 					"Predicate `"+predicate.getName()+"` does not support data type of field");
-		}*/
+		}
 		// Are all the fields valid?
 		validateFields(predicate.getFields(), queryFields, null);
 	}
