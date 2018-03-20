@@ -134,7 +134,7 @@ public class Utilities {
 
 			if (userSubject == null) {
                 logger.error("extractEmailFromJWT() No " + userField + " claim found");
-                throw new NotAuthorizedException("extractEmailFromJWT() Token is invalid, please request a new one with " +
+                throw new NotAuthorizedException("Token is invalid, please request a new one with " +
 						"userField " + userField + " included" );
 			}
 		}
