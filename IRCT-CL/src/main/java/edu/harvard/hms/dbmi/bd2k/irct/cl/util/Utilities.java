@@ -80,7 +80,7 @@ public class Utilities {
 		//No point in doing anything if there's no userField
         if (userField == null){
             logger.error("extractEmailFromJWT() No userField set for determining JWT claim");
-            return null;
+            throw new NotAuthorizedException("extractEmailFromJWT() application error: userField is null");
         }
 		
 		String tokenString = extractToken(req);
@@ -89,7 +89,7 @@ public class Utilities {
 		}
 
 
-		String userEmail = null;
+		String userSubject = null;
 		
 		DecodedJWT jwt = null;
 		try {
@@ -101,6 +101,7 @@ public class Utilities {
 					.verify(tokenString);
 		} catch (UnsupportedEncodingException e){
 			logger.error("extractEmailFromJWT() getting bytes for initialize jwt token algorithm error: " + e.getMessage());
+			throw new NotAuthorizedException("Token is invalid, please request a new one");
 		} catch (JWTVerificationException e) {
 			try{
 				jwt = com.auth0.jwt.JWT.require(Algorithm
@@ -110,6 +111,7 @@ public class Utilities {
 						.verify(tokenString);
 			} catch (UnsupportedEncodingException ex){
 				logger.error("extractEmailFromJWT() getting bytes for initialize jwt token algorithm error: " + e.getMessage());
+				throw new NotAuthorizedException("Token is invalid, please request a new one");
 			} catch (JWTVerificationException ex) {
 				logger.error("extractEmailFromJWT() token is invalid after tried with another algorithm: " + e.getMessage());
 				throw new NotAuthorizedException("Token is invalid, please request a new one");
@@ -121,22 +123,25 @@ public class Utilities {
 		if (jwt != null) {
 			// Just in case someone cares, this will list all the claims that are 
 			// attached to the incoming JWT.
-			Map<String, Claim> claims = jwt.getClaims();
-			for (String s: claims.keySet()) {
-				Claim myClaim = claims.get(s);
-				logger.debug("extractEmailFromJWT() claim: "+s+"="+myClaim.asString());
+			if (logger.isDebugEnabled()){
+				Map<String, Claim> claims = jwt.getClaims();
+				for (Map.Entry entry : claims.entrySet()){
+					logger.debug("extractEmailFromJWT() claim: "+entry.getKey()+"="+entry.getValue());
+				}
 			}
 
-            userEmail = jwt.getClaim(userField).asString();
+            userSubject = jwt.getClaim(userField).asString();
 
-			if (userEmail == null) {
+			if (userSubject == null) {
                 logger.error("extractEmailFromJWT() No " + userField + " claim found");
+                throw new NotAuthorizedException("extractEmailFromJWT() Token is invalid, please request a new one with " +
+						"userField " + userField + " included" );
 			}
 		}
 		
-		logger.debug("extractEmailFromJWT() Finished. Returning userEmail: "+userEmail);
-		return userEmail;
-
+		logger.debug("extractEmailFromJWT() Finished. Returning " + userField
+				": "+userSubject);
+		return userSubject;
 	}
 	
 	// TODO This is silly, but for backward compatibility
