@@ -139,7 +139,7 @@ public class Utilities {
 			}
 		}
 		
-		logger.debug("extractEmailFromJWT() Finished. Returning " + userField
+		logger.debug("extractEmailFromJWT() Finished. Returning " + userField +
 				": "+userSubject);
 		return userSubject;
 	}
