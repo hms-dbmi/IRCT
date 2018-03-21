@@ -404,7 +404,7 @@ public class I2B2XMLResourceImplementation
             } else {
                 pui = convertPUItoI2B2Path(selectClause.getParameter()
                         .getPui());
-                aliasMap.put(pui.replaceAll("%2[f,F]", "/") + "\\",
+                aliasMap.put("\\" + pui.replaceAll("%2[f,F]", "/") + "\\",
                         selectClause.getAlias());
             }
         }

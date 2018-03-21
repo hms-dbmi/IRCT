@@ -575,6 +575,8 @@ public class CRCCell extends Cell {
 	 *            Techdata
 	 * @param select
 	 *            Output option
+	 * @param metaData
+	 * 			  any additional data that will be used
 	 * @return An object containing the PDO
 	 * @throws JAXBException
 	 *             An Exception Occurred
@@ -613,6 +615,7 @@ public class CRCCell extends Cell {
         ilrt.setInputList(iolt);
         logger.debug("getPDOfromInputList() set PatientList and InputList");
 
+        // this aliasMap is coming from the irct-cl level which contains all the select clauses (parsed)
         if (metaData != null && metaData.containsKey("aliasMap")) {
             select = OutputOptionSelectType.USING_FILTER_LIST;
             FilterListType filterListType = pdoOF.createFilterListType();
@@ -625,9 +628,10 @@ public class CRCCell extends Cell {
             for (Map.Entry entry : selectMap.entrySet()){
                 ItemType item = new ItemType();
                 item.setItemKey((String)entry.getKey());
-                item.setItemName((String)entry.getKey());
+                item.setItemName((String)entry.getValue());
 
                 PanelType panelType = new PanelType();
+                panelType.setName((String)entry.getKey());
                 panelType.setPanelNumber(panelNumber++);
                 panelType.setInvert(0);
                 panelType.setPanelTiming("ANY");
@@ -661,7 +665,7 @@ public class CRCCell extends Cell {
         oolt.setModifierSetUsingFilterList(oot);
         oolt.setEventSet(oot);
         oolt.setPidSet(oot);
-        oolt.setPidSet(oot);
+        oolt.setEidSet(oot);
 //        oolt.setObservationSet();
 
 
