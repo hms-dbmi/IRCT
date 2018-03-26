@@ -25,6 +25,7 @@ public class User implements Principal, Serializable {
 
 	private String userId;
 
+	@Column(length = 8192)
 	private String token;
 
 	@JsonProperty("key")
