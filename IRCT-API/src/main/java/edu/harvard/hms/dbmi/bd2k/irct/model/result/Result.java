@@ -323,6 +323,9 @@ public class Result {
     public void setMessage(String message) {
         logger.debug("setMessage() " + String.valueOf(message));
 
+        if (message == null || message.isEmpty())
+        	return;
+
         if (message.length() > 255) {
             logger.debug("setMessage() message is too long. chopping off");
             this.message = message.substring(0, 252) + "...";
@@ -353,6 +356,13 @@ public class Result {
 	/**
 	 * this will lazy initialize metaData here,
 	 * since currently, most of the time, metaData will not be used
+	 * <p>
+	 * things currently are processed in the code using metaData:
+	 * <ul>
+	 *     <li>only_count - if contains key only_count, will retrieve only count in i2b2XML</li>
+	 * 	   <li>aliasMap - a Map, key is the path name, value is the alias name, for i2b2XML</li>
+	 * </ul>
+	 * </p>
 	 * @return
 	 */
 	public Map<String, Object> getMetaData() {

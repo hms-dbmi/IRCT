@@ -47,7 +47,7 @@ import javax.xml.bind.annotation.XmlType;
 public class OutputOptionListType {
 
     @XmlElement(name = "observation_set")
-    protected FactOutputOptionType observationSet;
+    protected OutputOptionType observationSet;
     @XmlElement(name = "patient_set")
     protected OutputOptionType patientSet;
     @XmlElement(name = "event_set")
@@ -76,10 +76,10 @@ public class OutputOptionListType {
      * 
      * @return
      *     possible object is
-     *     {@link FactOutputOptionType }
+     *     {@link OutputOptionType }
      *     
      */
-    public FactOutputOptionType getObservationSet() {
+    public OutputOptionType getObservationSet() {
         return observationSet;
     }
 
@@ -91,7 +91,7 @@ public class OutputOptionListType {
      *     {@link FactOutputOptionType }
      *     
      */
-    public void setObservationSet(FactOutputOptionType value) {
+    public void setObservationSet(OutputOptionType value) {
         this.observationSet = value;
     }
 

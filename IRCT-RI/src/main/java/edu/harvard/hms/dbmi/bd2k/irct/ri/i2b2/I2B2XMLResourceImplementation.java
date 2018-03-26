@@ -402,20 +402,16 @@ public class I2B2XMLResourceImplementation
                 aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, user));
 
             } else {
-                pui = convertPUItoI2B2Path(selectClause.getParameter()
+                pui = getPathFromString(selectClause.getParameter()
                         .getPui());
-                aliasMap.put("\\" + pui.replaceAll("%2[f,F]", "/") + "\\",
+                aliasMap.put(pui,
                         selectClause.getAlias());
             }
         }
         // The blob above is from TransmartResourceImplementation
 
-        result.getMetaData().put("aliasMap", aliasMap); // pass it down to the getResult() to retrieve selected data
-
-
-
-
-
+		if (aliasMap.size() != 0)
+        	result.getMetaData().put("aliasMap", aliasMap); // pass it down to the getResult() to retrieve selected data
 
 		// Create the query
 		ArrayList<PanelType> panels = new ArrayList<PanelType>();
@@ -523,8 +519,16 @@ public class I2B2XMLResourceImplementation
 			logger.debug("getResults() getting PDOFromInputList with "+
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
-			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
+
+			PatientDataResponseType pdrt = null;
+			if (result.getMetaData().containsKey("aliasMap"))
+				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
 					null, result.getMetaData());
+			else
+				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
+						OutputOptionSelectType.USING_INPUT_LIST);
+
+			convertPatientDataResponseTypeToResultSet(pdrt, result);
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
 			result = convertPatientSetToResultSet(pdrt, result);
@@ -763,6 +767,25 @@ public class I2B2XMLResourceImplementation
 	}
 
 	/**
+	 * to save i2b2 xml query response to FileResultSet
+	 * @param patientDataResponse
+	 * @param result
+	 * @return
+	 */
+	private void convertPatientDataResponseTypeToResultSet(PatientDataResponseType patientDataResponse, Result result){
+		logger.debug("convertPatientDataResponseTypeToResultSet() starting...");
+
+
+		FileResultSet mrs = (FileResultSet) result.getData();
+
+		if (result.getMetaData().containsKey("aliasMap")){
+
+		}
+
+
+	}
+
+	/**
 	 * FileResultSet will be used to store data
 	 * @param patientDataResponse
 	 * @param result
@@ -779,7 +802,7 @@ public class I2B2XMLResourceImplementation
 		FileResultSet mrs = (FileResultSet) result.getData();
 
 		if (patientSet.getPatient().size() == 0) {
-			logger.debug("convertPatientSetToResultSet() patient set size is 0.");
+			logger.warn("convertPatientSetToResultSet() patient set size is 0.");
 			return result;
 		} else {
 			logger.debug("convertPatientSetToResultSet() patient set size is "+patientSet.getPatient().size());
@@ -813,13 +836,18 @@ public class I2B2XMLResourceImplementation
 		return getPathFromString(field.getPui());
 	}
 
+	/**
+	 * convert string into pui
+	 * @param pathString
+	 * @return
+	 */
 	private String getPathFromString(String pathString) {
 		String[] pathComponents = pathString.split("/");
 		String myPath = "\\";
 		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3, pathComponents.length)) {
 			myPath += "\\" + pathComponent;
 		}
-		if (pathString.endsWith("/")) {
+		if (!pathString.endsWith("/")) {
 			myPath += "\\";
 		}
 
