@@ -649,7 +649,7 @@ public class CRCCell extends Cell {
             }
 
 			oolt.setConceptSetUsingFilterList(new OutputOptionType()
-					.setOnlykeys(true));
+					.setOnlykeys(false));
 			oolt.setModifierSetUsingFilterList(new OutputOptionType()
 					.setOnlykeys(true));
 

@@ -378,6 +378,7 @@ public class I2B2XMLResourceImplementation
         // I don't care about the performance here!!
         // and actually this gathering select clauses block is from I2B2TranSMARTResourceImplementation.java
         // It is working which is the only thing that I know
+		// please keep aliasMap as LinkedHashMap, because we need the sequence later
         Map<String, String> aliasMap = new LinkedHashMap<>();
         for (SelectClause selectClause : query
                 .getClausesOfType(SelectClause.class)) {
@@ -768,19 +769,129 @@ public class I2B2XMLResourceImplementation
 
 	/**
 	 * to save i2b2 xml query response to FileResultSet
+	 * This method is too complicated, which map the data from xml to Pojo
+	 * then creates the FileResultSet (the columns and rows). Hope no one will touch
+	 * this code again...
+	 *
 	 * @param patientDataResponse
 	 * @param result
 	 * @return
 	 */
-	private void convertPatientDataResponseTypeToResultSet(PatientDataResponseType patientDataResponse, Result result){
+	private void convertPatientDataResponseTypeToResultSet(PatientDataResponseType patientDataResponse, Result result)
+			throws ResultSetException, PersistableException{
 		logger.debug("convertPatientDataResponseTypeToResultSet() starting...");
 
+		if (patientDataResponse == null || patientDataResponse.getPatientData() == null){
+			logger.error("convertPatientDataResponseTypeToResultSet() patient data is null");
+			return;
+		}
 
+		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
+		if (patientSet == null
+				|| patientSet.getPatient() == null
+				|| patientSet.getPatient().isEmpty()){
+			result.setMessage("No patient retrieved from i2b2");
+			return;
+		}
+
+		// if no alias map, means no select blocks, just go with the old convert patientset method
+		if (!result.getMetaData().containsKey("aliasMap")){
+			convertPatientSetToResultSet(patientDataResponse, result);
+			return;
+		}
+
+		boolean isAllSelectInPatientMap = false;
 		FileResultSet mrs = (FileResultSet) result.getData();
 
-		if (result.getMetaData().containsKey("aliasMap")){
+		List<PatientType> patientTypeList = patientSet.getPatient();
+		PatientType patientTypeSample = patientTypeList.get(0);
 
+		List<ObservationSet> observationSetList = patientDataResponse.getPatientData().getObservationSet();
+
+		// generate columns and check if all aliasMap only in patient set
+		// if any data in patient set, will mark it down into a map, later will retrieve it directly
+		// Notice: pleae make sure this map is a linkedHashMap, since we need the sequence
+		Map<String, String> selectMap = (Map<String, String>) result.getMetaData().get("aliasMap");
+
+		int[] aliasPatientMapping = new int[selectMap.size()];
+		int[] aliasObservationFactMapping = new int[selectMap.size()];
+		int index = 0;
+
+		for (Map.Entry<String, String> entry : selectMap.entrySet()){
+			String value = (entry.getValue()==null)? entry.getKey():entry.getValue();
+			// 1. no matter what, append column first, we will need it anyways
+			mrs.appendColumn(
+					new Column(value, PrimitiveDataType.STRING));
+
+			// 2. check what the mapping from alias to the actual data
+			// set default index to -1, means no mapping, a column is no mapping should log a warning later
+			aliasPatientMapping[index] = -1;
+			aliasObservationFactMapping[index] = -1;
+
+			String[] keyPaths = entry.getKey().split("\\\\");
+			String name = keyPaths[keyPaths.length - 1].toLowerCase();
+
+
+			// Notice: the name is possibly not the last block in the path
+			// so check last two
+			// if found possibly last three or more, find another solution
+			String possibleName = "";
+			if (keyPaths.length > 1)
+				 possibleName = keyPaths[keyPaths.length - 2].toLowerCase();
+
+			boolean isInObservationSet = false;
+
+			// 2-1. first check the observation set mapping, since the size of observation set is usually
+			// smaller than the size of patient set.
+			for (int i = 0; i<observationSetList.size(); i++){
+				ObservationSet observationSet = observationSetList.get(i);
+
+				// if the observation set mapping is correct, the panel name should be the same
+				// as the keyPath String in the list
+				if (observationSet.getPanelName().equals(entry.getKey())){
+					aliasObservationFactMapping[index] = i;
+					isInObservationSet = true;
+					break;
+				}
+
+			}
+
+			if (isInObservationSet) {
+				index++;
+				continue;
+			}
+
+			// 2-2. then check the paitent set mapping
+			for (int i = 0; i<patientTypeSample.getParam().size(); i++ ){
+				ParamType paramType = patientTypeSample.getParam().get(i);
+				String columnDescriptor = paramType.getColumnDescriptor().toLowerCase();
+
+				// maybe we should use reg here, but need more data to see what the regulation should be
+				if (name.equals(columnDescriptor)
+						|| name.contains(columnDescriptor)
+						|| columnDescriptor.contains(name)
+						|| possibleName.equals(columnDescriptor)
+						|| possibleName.contains(columnDescriptor)
+						|| columnDescriptor.contains(possibleName)){
+					aliasPatientMapping[index] = i;
+					break;
+				}
+			}
+
+			index++;
 		}
+
+
+		// 3. retrieve data and store it into each row;
+		int indexII = 0;
+//		for (PatientType : patientSet.getPatient())
+//
+//
+//		for (String alias : selectMap.values()){
+//
+//			if (aliasObservationFactMapping[indexII] > -1)
+//				mrs.updateString(alias, observationSetList.get(aliasObservationFactMapping[indexII]).getObservation());
+//		}
 
 
 	}
