@@ -405,6 +405,9 @@ public class I2B2XMLResourceImplementation
             } else {
                 pui = getPathFromString(selectClause.getParameter()
                         .getPui());
+                if (!pui.endsWith("\\")){
+                	pui = pui + "\\";
+				}
                 aliasMap.put(pui,
                         selectClause.getAlias());
             }
@@ -532,7 +535,7 @@ public class I2B2XMLResourceImplementation
 			convertPatientDataResponseTypeToResultSet(pdrt, result);
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
-			result = convertPatientSetToResultSet(pdrt, result);
+//			result = convertPatientSetToResultSet(pdrt, result);
 
 			logger.debug("getResults() Setting ```ResultStatus``` to COMPLETE.");
 			result.setResultStatus(ResultStatus.COMPLETE);
@@ -854,16 +857,25 @@ public class I2B2XMLResourceImplementation
 		Map<String, String> conceptCD_aliasName_Map = new HashMap<>();
  		for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList){
 			// check if the conceptType is in alias map
-			if (selectMap.containsKey(conceptType.getConceptPath())){
-				String aliasName = selectMap.get(conceptType
-						.getConceptPath());
-				mrs.appendColumn(
-						new Column(aliasName, PrimitiveDataType.STRING));
-				conceptCD_aliasName_Map.put(conceptType.getConceptCd(), aliasName);
-			} else
-				mrs.appendColumn(
-						new Column(conceptType
-								.getConceptCd(), PrimitiveDataType.STRING));
+
+			// pre-process conceptPath, the format of conceptPath is \xxx\xxxx\xxxxxx\
+			// but format of the key in aliasMap is \\domainname\xxx\xxxx\xxxxx
+
+			for (String key : selectMap.keySet()) {
+				if (key.contains(conceptType.getConceptPath())
+						&& selectMap.get(key)!=null) {
+					String aliasName = selectMap.get(key);
+					mrs.appendColumn(
+							new Column(aliasName, PrimitiveDataType.STRING));
+					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), aliasName);
+				} else {
+					mrs.appendColumn(
+							new Column(conceptType
+									.getNameChar(), PrimitiveDataType.STRING));
+					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), conceptType
+							.getNameChar());
+				}
+			}
 		}
 
 
@@ -882,10 +894,10 @@ public class I2B2XMLResourceImplementation
 
  			for (ObservationType observationType : observationSet.getObservation()){
  				String patientId = observationType.getPatientId().getValue();
- 				String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().toString()))?
-						conceptCD_aliasName_Map.get(observationType.getConceptCd().toString())
-						:observationType.getConceptCd().toString();
- 				String value = (observationType.getNvalNum() == null)?
+ 				String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().getValue()))?
+						conceptCD_aliasName_Map.get(observationType.getConceptCd().getValue())
+						:observationType.getConceptCd().getValue();
+ 				String value = (observationType.getNvalNum().getValue() == null)?
 						observationType.getConceptCd().getValue()
 						:observationType.getNvalNum().getValue().toPlainString() + " " + observationType.getUnitsCd();
  				if (whateverStorage.containsKey(patientId)) {

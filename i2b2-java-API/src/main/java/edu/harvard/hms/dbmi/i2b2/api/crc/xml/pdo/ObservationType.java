@@ -783,11 +783,6 @@ public class ObservationType {
         public void setName(String value) {
             this.name = value;
         }
-
-        @Override
-        public String toString() {
-            return this.name + ":" + this.value;
-        }
     }
 
 
