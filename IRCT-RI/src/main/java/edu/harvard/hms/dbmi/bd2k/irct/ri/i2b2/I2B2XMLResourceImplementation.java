@@ -783,6 +783,8 @@ public class I2B2XMLResourceImplementation
 
 		if (patientDataResponse == null || patientDataResponse.getPatientData() == null){
 			logger.error("convertPatientDataResponseTypeToResultSet() patient data is null");
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No patient data retrieved from i2b2");
 			return;
 		}
 
@@ -790,7 +792,9 @@ public class I2B2XMLResourceImplementation
 		if (patientSet == null
 				|| patientSet.getPatient() == null
 				|| patientSet.getPatient().isEmpty()){
-			result.setMessage("No patient retrieved from i2b2");
+			logger.error("convertPatientDataResponseTypeToResultSet() patient set is null or empty");
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No patient set retrieved from i2b2");
 			return;
 		}
 
@@ -800,99 +804,112 @@ public class I2B2XMLResourceImplementation
 			return;
 		}
 
-		boolean isAllSelectInPatientMap = false;
-		FileResultSet mrs = (FileResultSet) result.getData();
-
-		List<PatientType> patientTypeList = patientSet.getPatient();
-		PatientType patientTypeSample = patientTypeList.get(0);
-
 		List<ObservationSet> observationSetList = patientDataResponse.getPatientData().getObservationSet();
+		ConceptSet conceptSet = patientDataResponse.getPatientData().getConceptSet();
 
 		// generate columns and check if all aliasMap only in patient set
 		// if any data in patient set, will mark it down into a map, later will retrieve it directly
 		// Notice: pleae make sure this map is a linkedHashMap, since we need the sequence
 		Map<String, String> selectMap = (Map<String, String>) result.getMetaData().get("aliasMap");
 
-		int[] aliasPatientMapping = new int[selectMap.size()];
-		int[] aliasObservationFactMapping = new int[selectMap.size()];
-		int index = 0;
+		if (observationSetList.isEmpty()) {
+			logger.error("convertPatientDataResponseTypeToResultSet() observation set is empty with select blocks size: " +
+					selectMap.size());
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No observation set retrieved from i2b2");
+			return;
+		}
 
-		for (Map.Entry<String, String> entry : selectMap.entrySet()){
-			String value = (entry.getValue()==null)? entry.getKey():entry.getValue();
-			// 1. no matter what, append column first, we will need it anyways
-			mrs.appendColumn(
-					new Column(value, PrimitiveDataType.STRING));
+		if (conceptSet == null || conceptSet.getConcept().isEmpty()){
+			logger.error("convertPatientDataResponseTypeToResultSet() concept set is empty with select blocks size: " +
+					selectMap.size());
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No concept set retrieved from i2b2");
+			return;
+		}
 
-			// 2. check what the mapping from alias to the actual data
-			// set default index to -1, means no mapping, a column is no mapping should log a warning later
-			aliasPatientMapping[index] = -1;
-			aliasObservationFactMapping[index] = -1;
+		List<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType> conceptTypeList = conceptSet.getConcept();
+		FileResultSet mrs = (FileResultSet) result.getData();
 
-			String[] keyPaths = entry.getKey().split("\\\\");
-			String name = keyPaths[keyPaths.length - 1].toLowerCase();
+		// append column here from ConceptType and create a map between alias name and concept_cd
+		// first append patient Id
+		mrs.appendColumn(
+				new Column("Patient Id", PrimitiveDataType.STRING));
 
-
-			// Notice: the name is possibly not the last block in the path
-			// so check last two
-			// if found possibly last three or more, find another solution
-			String possibleName = "";
-			if (keyPaths.length > 1)
-				 possibleName = keyPaths[keyPaths.length - 2].toLowerCase();
-
-			boolean isInObservationSet = false;
-
-			// 2-1. first check the observation set mapping, since the size of observation set is usually
-			// smaller than the size of patient set.
-			for (int i = 0; i<observationSetList.size(); i++){
-				ObservationSet observationSet = observationSetList.get(i);
-
-				// if the observation set mapping is correct, the panel name should be the same
-				// as the keyPath String in the list
-				if (observationSet.getPanelName().equals(entry.getKey())){
-					aliasObservationFactMapping[index] = i;
-					isInObservationSet = true;
-					break;
-				}
-
-			}
-
-			if (isInObservationSet) {
-				index++;
-				continue;
-			}
-
-			// 2-2. then check the paitent set mapping
-			for (int i = 0; i<patientTypeSample.getParam().size(); i++ ){
-				ParamType paramType = patientTypeSample.getParam().get(i);
-				String columnDescriptor = paramType.getColumnDescriptor().toLowerCase();
-
-				// maybe we should use reg here, but need more data to see what the regulation should be
-				if (name.equals(columnDescriptor)
-						|| name.contains(columnDescriptor)
-						|| columnDescriptor.contains(name)
-						|| possibleName.equals(columnDescriptor)
-						|| possibleName.contains(columnDescriptor)
-						|| columnDescriptor.contains(possibleName)){
-					aliasPatientMapping[index] = i;
-					break;
-				}
-			}
-
-			index++;
+		// #############################################################################################################
+		// ########## anyone who want to modify the code below, please be sure you read the following notice first #####
+		// #############################################################################################################
+		// Following is explaining how i2b2 xml response works with FileResultSet.
+		// Notice: aliasMap may not be a leaf node !!!!!!!!!
+		// means the size of conceptType list might not be the same as the size of aliasMap
+		// because... the path of given selects in aliasMap might not be a leaf node,
+		// which might contain multiple concept, maybe hundreds or even more,
+		// depends on which level the given selects are at.
+		// In this not-leaf-node situation, the alias map might be even not include into the conceptType list.
+		// Therefore, the solution is that just showing whatever
+		// in the concept list, put all of them into the FileResultSet column,
+		// if aliasMap is included, then change the name to the alias,
+		// if not, just put concept_cd as the column name
+		// So we need a alias name and concept_cd mapping as well for later append rows....
+		Map<String, String> conceptCD_aliasName_Map = new HashMap<>();
+ 		for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList){
+			// check if the conceptType is in alias map
+			if (selectMap.containsKey(conceptType.getConceptPath())){
+				String aliasName = selectMap.get(conceptType
+						.getConceptPath());
+				mrs.appendColumn(
+						new Column(aliasName, PrimitiveDataType.STRING));
+				conceptCD_aliasName_Map.put(conceptType.getConceptCd(), aliasName);
+			} else
+				mrs.appendColumn(
+						new Column(conceptType
+								.getConceptCd(), PrimitiveDataType.STRING));
 		}
 
 
-		// 3. retrieve data and store it into each row;
-		int indexII = 0;
-//		for (PatientType : patientSet.getPatient())
-//
-//
-//		for (String alias : selectMap.values()){
-//
-//			if (aliasObservationFactMapping[indexII] > -1)
-//				mrs.updateString(alias, observationSetList.get(aliasObservationFactMapping[indexII]).getObservation());
-//		}
+		// appending rows....
+		// ############ please read notice if you are going to change the code ############
+		// Notice: in the i2b2 xml response, all patient are in observationSet list grouped by patient number
+		// but, each observationSet will have its own patient no.1 group, no.2 group...
+		// which will cause problem... because FileResultSet seems can only append row by row??
+		// means if you finished row 1, you cannot go back to add data to it??? <- needs confirm
 
+		// didn't figure out the best performance way of handling this, now go nuts...
+		// 1. save everything into a temprary storage which is Map<StringOfPatientId, Map<StringOfColumnName, StringOfValue>>
+		// 2. after everthing retrieved from observationSet, start to append row by row
+		Map<String, Map<String,String>> whateverStorage = new HashMap<>();
+ 		for (ObservationSet observationSet : observationSetList){
+
+ 			for (ObservationType observationType : observationSet.getObservation()){
+ 				String patientId = observationType.getPatientId().getValue();
+ 				String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().toString()))?
+						conceptCD_aliasName_Map.get(observationType.getConceptCd().toString())
+						:observationType.getConceptCd().toString();
+ 				String value = (observationType.getNvalNum() == null)?
+						observationType.getConceptCd().getValue()
+						:observationType.getNvalNum().getValue().toPlainString() + " " + observationType.getUnitsCd();
+ 				if (whateverStorage.containsKey(patientId)) {
+ 					whateverStorage.get(patientId)
+							.put(columnName, value);
+				} else {
+ 					Map<String, String> temp = new HashMap<>();
+ 					temp.put(columnName, value);
+ 					whateverStorage.put(patientId, temp);
+				}
+			}
+		}
+
+		// ok... now start to append rows... the whole thing is terrible... anyways... too much words... get things done
+		for (Map.Entry<String, Map<String, String>> entry : whateverStorage.entrySet()){
+			mrs.appendRow();
+			mrs.updateString("Patient Id", entry.getKey());
+			for (Map.Entry<String, String> innerEntry : entry.getValue().entrySet()){
+				mrs.updateString(innerEntry.getKey(), innerEntry.getValue());
+			}
+		}
+		result.setData(mrs);
+
+ 		logger.info("FileResultSet generated with column size: "+ mrs.getColumnSize());
 
 	}
 
