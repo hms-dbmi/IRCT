@@ -47,6 +47,9 @@ public class OutputOptionType {
     @XmlAttribute(name = "select")
     protected OutputOptionSelectType select;
 
+    public OutputOptionType() {
+    }
+
     /**
      * Gets the value of the onlykeys property.
      * 
@@ -71,8 +74,9 @@ public class OutputOptionType {
      *     {@link Boolean }
      *     
      */
-    public void setOnlykeys(Boolean value) {
+    public OutputOptionType setOnlykeys(Boolean value) {
         this.onlykeys = value;
+        return this;
     }
 
     /**
@@ -99,8 +103,9 @@ public class OutputOptionType {
      *     {@link Boolean }
      *     
      */
-    public void setBlob(Boolean value) {
+    public OutputOptionType setBlob(Boolean value) {
         this.blob = value;
+        return this;
     }
 
     /**
@@ -127,8 +132,9 @@ public class OutputOptionType {
      *     {@link Boolean }
      *     
      */
-    public void setTechdata(Boolean value) {
+    public OutputOptionType setTechdata(Boolean value) {
         this.techdata = value;
+        return this;
     }
 
     /**
@@ -155,8 +161,9 @@ public class OutputOptionType {
      *     {@link OutputOptionSelectType }
      *     
      */
-    public void setSelect(OutputOptionSelectType value) {
+    public OutputOptionType setSelect(OutputOptionSelectType value) {
         this.select = value;
+        return this;
     }
 
 }

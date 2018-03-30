@@ -12,6 +12,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.ClauseAbstract;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
+import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
@@ -373,6 +374,49 @@ public class I2B2XMLResourceImplementation
 		result.setResultStatus(ResultStatus.CREATED);
 		String projectId = "";
 
+        // gather select clauses
+        // I don't care about the performance here!!
+        // and actually this gathering select clauses block is from I2B2TranSMARTResourceImplementation.java
+        // It is working which is the only thing that I know
+		// please keep aliasMap as LinkedHashMap, because we need the sequence later
+        Map<String, String> aliasMap = new LinkedHashMap<>();
+        for (SelectClause selectClause : query
+                .getClausesOfType(SelectClause.class)) {
+            String pui = selectClause.getParameter().getPui()
+                    .replaceAll("/" + this.resourceName + "/", "");
+
+            String rawPUI = selectClause.getParameter().getPui();
+            if (rawPUI.endsWith("*")) {
+                //Get the base PUI
+                String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
+                boolean compact = false;
+                String subPUI = null;
+
+                if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
+                    compact = true;
+                }
+                if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
+                    subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
+                }
+
+                //Loop through all the children and add them to the aliasMap
+                aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, user));
+
+            } else {
+                pui = getPathFromString(selectClause.getParameter()
+                        .getPui());
+                if (!pui.endsWith("\\")){
+                	pui = pui + "\\";
+				}
+                aliasMap.put(pui,
+                        selectClause.getAlias());
+            }
+        }
+        // The blob above is from TransmartResourceImplementation
+
+		if (aliasMap.size() != 0)
+        	result.getMetaData().put("aliasMap", aliasMap); // pass it down to the getResult() to retrieve selected data
+
 		// Create the query
 		ArrayList<PanelType> panels = new ArrayList<PanelType>();
 		int panelCount = 1;
@@ -441,6 +485,7 @@ public class I2B2XMLResourceImplementation
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage(getType()+".runQuery() OtherException: "+e.getMessage());
 		}
+
 		return result;
 	}
 
@@ -478,11 +523,19 @@ public class I2B2XMLResourceImplementation
 			logger.debug("getResults() getting PDOFromInputList with "+
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
-			PatientDataResponseType pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
-					OutputOptionSelectType.USING_INPUT_LIST);
+
+			PatientDataResponseType pdrt = null;
+			if (result.getMetaData().containsKey("aliasMap"))
+				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
+					null, result.getMetaData());
+			else
+				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
+						OutputOptionSelectType.USING_INPUT_LIST);
+
+			convertPatientDataResponseTypeToResultSet(pdrt, result);
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
-			result = convertPatientSetToResultSet(pdrt, result);
+//			result = convertPatientSetToResultSet(pdrt, result);
 
 			logger.debug("getResults() Setting ```ResultStatus``` to COMPLETE.");
 			result.setResultStatus(ResultStatus.COMPLETE);
@@ -718,6 +771,161 @@ public class I2B2XMLResourceImplementation
 	}
 
 	/**
+	 * to save i2b2 xml query response to FileResultSet
+	 * This method is too complicated, which map the data from xml to Pojo
+	 * then creates the FileResultSet (the columns and rows). Hope no one will touch
+	 * this code again...
+	 *
+	 * @param patientDataResponse
+	 * @param result
+	 * @return
+	 */
+	private void convertPatientDataResponseTypeToResultSet(PatientDataResponseType patientDataResponse, Result result)
+			throws ResultSetException, PersistableException{
+		logger.debug("convertPatientDataResponseTypeToResultSet() starting...");
+
+		if (patientDataResponse == null || patientDataResponse.getPatientData() == null){
+			logger.error("convertPatientDataResponseTypeToResultSet() patient data is null");
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No patient data retrieved from i2b2");
+			return;
+		}
+
+		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
+		if (patientSet == null
+				|| patientSet.getPatient() == null
+				|| patientSet.getPatient().isEmpty()){
+			logger.error("convertPatientDataResponseTypeToResultSet() patient set is null or empty");
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No patient set retrieved from i2b2");
+			return;
+		}
+
+		// if no alias map, means no select blocks, just go with the old convert patientset method
+		if (!result.getMetaData().containsKey("aliasMap")){
+			convertPatientSetToResultSet(patientDataResponse, result);
+			return;
+		}
+
+		List<ObservationSet> observationSetList = patientDataResponse.getPatientData().getObservationSet();
+		ConceptSet conceptSet = patientDataResponse.getPatientData().getConceptSet();
+
+		// generate columns and check if all aliasMap only in patient set
+		// if any data in patient set, will mark it down into a map, later will retrieve it directly
+		// Notice: pleae make sure this map is a linkedHashMap, since we need the sequence
+		Map<String, String> selectMap = (Map<String, String>) result.getMetaData().get("aliasMap");
+
+		if (observationSetList.isEmpty()) {
+			logger.error("convertPatientDataResponseTypeToResultSet() observation set is empty with select blocks size: " +
+					selectMap.size());
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No observation set retrieved from i2b2");
+			return;
+		}
+
+		if (conceptSet == null || conceptSet.getConcept().isEmpty()){
+			logger.error("convertPatientDataResponseTypeToResultSet() concept set is empty with select blocks size: " +
+					selectMap.size());
+			result.setResultStatus(ResultStatus.ERROR);
+			result.setMessage("No concept set retrieved from i2b2");
+			return;
+		}
+
+		List<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType> conceptTypeList = conceptSet.getConcept();
+		FileResultSet mrs = (FileResultSet) result.getData();
+
+		// append column here from ConceptType and create a map between alias name and concept_cd
+		// first append patient Id
+		mrs.appendColumn(
+				new Column("Patient Id", PrimitiveDataType.STRING));
+
+		// #############################################################################################################
+		// ########## anyone who want to modify the code below, please be sure you read the following notice first #####
+		// #############################################################################################################
+		// Following is explaining how i2b2 xml response works with FileResultSet.
+		// Notice: aliasMap may not be a leaf node !!!!!!!!!
+		// means the size of conceptType list might not be the same as the size of aliasMap
+		// because... the path of given selects in aliasMap might not be a leaf node,
+		// which might contain multiple concept, maybe hundreds or even more,
+		// depends on which level the given selects are at.
+		// In this not-leaf-node situation, the alias map might be even not include into the conceptType list.
+		// Therefore, the solution is that just showing whatever
+		// in the concept list, put all of them into the FileResultSet column,
+		// if aliasMap is included, then change the name to the alias,
+		// if not, just put concept_cd as the column name
+		// So we need a alias name and concept_cd mapping as well for later append rows....
+		Map<String, String> conceptCD_aliasName_Map = new HashMap<>();
+ 		for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList){
+			// check if the conceptType is in alias map
+
+			// pre-process conceptPath, the format of conceptPath is \xxx\xxxx\xxxxxx\
+			// but format of the key in aliasMap is \\domainname\xxx\xxxx\xxxxx
+
+			for (String key : selectMap.keySet()) {
+				if (key.contains(conceptType.getConceptPath())
+						&& selectMap.get(key)!=null) {
+					String aliasName = selectMap.get(key);
+					mrs.appendColumn(
+							new Column(aliasName, PrimitiveDataType.STRING));
+					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), aliasName);
+				} else {
+					mrs.appendColumn(
+							new Column(conceptType
+									.getNameChar(), PrimitiveDataType.STRING));
+					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), conceptType
+							.getNameChar());
+				}
+			}
+		}
+
+
+		// appending rows....
+		// ############ please read notice if you are going to change the code ############
+		// Notice: in the i2b2 xml response, all patient are in observationSet list grouped by patient number
+		// but, each observationSet will have its own patient no.1 group, no.2 group...
+		// which will cause problem... because FileResultSet seems can only append row by row??
+		// means if you finished row 1, you cannot go back to add data to it??? <- needs confirm
+
+		// didn't figure out the best performance way of handling this, now go nuts...
+		// 1. save everything into a temprary storage which is Map<StringOfPatientId, Map<StringOfColumnName, StringOfValue>>
+		// 2. after everthing retrieved from observationSet, start to append row by row
+		Map<String, Map<String,String>> whateverStorage = new HashMap<>();
+ 		for (ObservationSet observationSet : observationSetList){
+
+ 			for (ObservationType observationType : observationSet.getObservation()){
+ 				String patientId = observationType.getPatientId().getValue();
+ 				String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().getValue()))?
+						conceptCD_aliasName_Map.get(observationType.getConceptCd().getValue())
+						:observationType.getConceptCd().getValue();
+ 				String value = (observationType.getNvalNum().getValue() == null)?
+						observationType.getConceptCd().getValue()
+						:observationType.getNvalNum().getValue().toPlainString() + " " + observationType.getUnitsCd();
+ 				if (whateverStorage.containsKey(patientId)) {
+ 					whateverStorage.get(patientId)
+							.put(columnName, value);
+				} else {
+ 					Map<String, String> temp = new HashMap<>();
+ 					temp.put(columnName, value);
+ 					whateverStorage.put(patientId, temp);
+				}
+			}
+		}
+
+		// ok... now start to append rows... the whole thing is terrible... anyways... too much words... get things done
+		for (Map.Entry<String, Map<String, String>> entry : whateverStorage.entrySet()){
+			mrs.appendRow();
+			mrs.updateString("Patient Id", entry.getKey());
+			for (Map.Entry<String, String> innerEntry : entry.getValue().entrySet()){
+				mrs.updateString(innerEntry.getKey(), innerEntry.getValue());
+			}
+		}
+		result.setData(mrs);
+
+ 		logger.info("FileResultSet generated with column size: "+ mrs.getColumnSize());
+
+	}
+
+	/**
 	 * FileResultSet will be used to store data
 	 * @param patientDataResponse
 	 * @param result
@@ -734,7 +942,7 @@ public class I2B2XMLResourceImplementation
 		FileResultSet mrs = (FileResultSet) result.getData();
 
 		if (patientSet.getPatient().size() == 0) {
-			logger.debug("convertPatientSetToResultSet() patient set size is 0.");
+			logger.warn("convertPatientSetToResultSet() patient set size is 0.");
 			return result;
 		} else {
 			logger.debug("convertPatientSetToResultSet() patient set size is "+patientSet.getPatient().size());
@@ -768,13 +976,18 @@ public class I2B2XMLResourceImplementation
 		return getPathFromString(field.getPui());
 	}
 
+	/**
+	 * convert string into pui
+	 * @param pathString
+	 * @return
+	 */
 	private String getPathFromString(String pathString) {
 		String[] pathComponents = pathString.split("/");
 		String myPath = "\\";
 		for (String pathComponent : Arrays.copyOfRange(pathComponents, 3, pathComponents.length)) {
 			myPath += "\\" + pathComponent;
 		}
-		if (pathString.endsWith("/")) {
+		if (!pathString.endsWith("/")) {
 			myPath += "\\";
 		}
 
@@ -1051,4 +1264,49 @@ public class I2B2XMLResourceImplementation
 
 		return HttpClients.custom().setConnectionManager(cm);
 	}
+
+
+    protected Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, User user) throws ResourceInterfaceException {
+        Map<String, String> returns = new HashMap<String, String>();
+
+        Entity baseEntity = new Entity(basePUI);
+        for(Entity entity : getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, user)) {
+
+            if(entity.getAttributes().containsKey("visualattributes")) {
+                String visualAttributes = entity.getAttributes().get("visualattributes");
+
+                if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
+                    returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, user));
+                } else if (visualAttributes.startsWith("L")) {
+                    String pui = convertPUItoI2B2Path(entity.getPui()).replaceAll("%2[f,F]", "/")  + "\\";
+                    String alias =  pui;
+                    if(compact) {
+                        alias = basePUI;
+                    }
+                    if(subPUI != null) {
+                        alias = alias.replaceAll(subPUI, "");
+                    }
+                    if(alias.endsWith("/")) {
+                        alias = alias.substring(0, alias.length() - 1);
+                    }
+                    returns.put(pui, alias);
+                }
+
+            }
+        }
+
+        return returns;
+    }
+
+    protected String convertPUItoI2B2Path(String pui) {
+        String[] singleReturnPathComponents = pui.split("/");
+        String singleReturnMyPath = "";
+        for (String pathComponent : Arrays.copyOfRange(
+                singleReturnPathComponents, 4,
+                singleReturnPathComponents.length)) {
+            singleReturnMyPath += "\\" + pathComponent;
+        }
+
+        return singleReturnMyPath;
+    }
 }

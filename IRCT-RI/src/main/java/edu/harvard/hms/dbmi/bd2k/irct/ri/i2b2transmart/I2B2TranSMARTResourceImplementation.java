@@ -20,7 +20,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.ResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -211,39 +210,6 @@ public class I2B2TranSMARTResourceImplementation extends
 			}
 		}
 		return result;
-	}
-
-	private Map<String, String> getAllChildrenAsAliasMap(String basePUI, String subPUI, boolean compact, User user) throws ResourceInterfaceException {
-		Map<String, String> returns = new HashMap<String, String>();
-
-		Entity baseEntity = new Entity(basePUI);
-		for(Entity entity : super.getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, user)) {
-
-			if(entity.getAttributes().containsKey("visualattributes")) {
-				String visualAttributes = entity.getAttributes().get("visualattributes");
-
-				if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
-					returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, user));
-				} else if (visualAttributes.startsWith("L")) {
-					String pui = convertPUItoI2B2Path(entity.getPui()).replaceAll("%2[f,F]", "/")  + "\\";
-					String alias =  pui;
-					if(compact) {
-						alias = basePUI;
-					}
-					if(subPUI != null) {
-						alias = alias.replaceAll(subPUI, "");
-					}
-					if(alias.endsWith("/")) {
-						alias = alias.substring(0, alias.length() - 1);
-					}
-					returns.put(pui, alias);
-				}
-
-			}
-		}
-
-
-		return returns;
 	}
 
 	private Result runClinicalDataQuery(User user, Result result,
@@ -526,18 +492,6 @@ public class I2B2TranSMARTResourceImplementation extends
 		}
 
 		return entities;
-	}
-
-	private String convertPUItoI2B2Path(String pui) {
-		String[] singleReturnPathComponents = pui.split("/");
-		String singleReturnMyPath = "";
-		for (String pathComponent : Arrays.copyOfRange(
-				singleReturnPathComponents, 4,
-				singleReturnPathComponents.length)) {
-			singleReturnMyPath += "\\" + pathComponent;
-		}
-
-		return singleReturnMyPath;
 	}
 	
 	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
