@@ -14,6 +14,7 @@ import javax.persistence.Convert;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -36,7 +37,7 @@ public class Field implements Serializable {
 	private static final long serialVersionUID = -2150406406694041615L;
 
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	private String name;

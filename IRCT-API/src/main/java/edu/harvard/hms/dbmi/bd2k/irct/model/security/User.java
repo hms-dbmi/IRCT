@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.security.Principal;
-
 /**
  * A basic user representation. It can be associated with a session in EE 7. The
  * userId, and name are the same in this implementation.
@@ -19,8 +18,7 @@ public class User implements Principal, Serializable {
 	private static final long serialVersionUID = 225027371671010450L;
 
 	@Id
-	@GeneratedValue(generator = "userSequencer")
-	@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
 
 	private String userId;

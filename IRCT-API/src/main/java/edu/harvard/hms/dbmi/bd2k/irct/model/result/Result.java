@@ -4,7 +4,6 @@
 package edu.harvard.hms.dbmi.bd2k.irct.model.result;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.harvard.hms.dbmi.bd2k.irct.executable.Executable;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataConverter;
@@ -31,9 +30,8 @@ import java.util.Map;
 @Entity
 public class Result {
 	@Id
-	@GeneratedValue(generator = "resultSequencer")
-	@SequenceGenerator(name = "resultSequencer", sequenceName = "resSeq")
-	@JsonProperty("resultId")
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+
 	private Long id;
 
 	@Transient

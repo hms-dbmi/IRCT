@@ -6,8 +6,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
-
 import javax.persistence.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -27,7 +25,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.OntologyRelationshipConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConverter;
-import org.apache.commons.logging.impl.Log4JLogger;
 
 /**
  * The resource class provides a way for the IRCT application to keep track of
@@ -38,7 +35,7 @@ public class Resource implements Serializable {
 	private static final long serialVersionUID = 8099637983212553759L;
 
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 
 	@Column(unique = true)
