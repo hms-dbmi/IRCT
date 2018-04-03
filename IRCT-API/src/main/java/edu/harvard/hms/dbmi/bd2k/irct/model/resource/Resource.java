@@ -6,7 +6,6 @@ package edu.harvard.hms.dbmi.bd2k.irct.model.resource;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.persistence.*;
 
@@ -27,7 +26,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.DataTypeConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.OntologyRelationshipConverter;
 import edu.harvard.hms.dbmi.bd2k.irct.util.converter.ResourceImplementationConverter;
-import org.apache.commons.logging.impl.Log4JLogger;
+import org.apache.log4j.Logger;
 
 /**
  * The resource class provides a way for the IRCT application to keep track of
@@ -36,6 +35,9 @@ import org.apache.commons.logging.impl.Log4JLogger;
 @Entity
 public class Resource implements Serializable {
 	private static final long serialVersionUID = 8099637983212553759L;
+
+	@Transient
+	private Logger logger = Logger.getLogger(this.getClass().getName());
 
 	@Id
 	@GeneratedValue
@@ -116,11 +118,11 @@ public class Resource implements Serializable {
 			if (implementingInterface != null)
 				implementingInterface.setup(this.parameters);
 			else
-				org.apache.log4j.Logger.getLogger(this.getClass()).warn("Resource.setup() resource implementation is null, resource name:  " +
+				logger.warn("Resource.setup() resource implementation is null, resource name:  " +
 						this.name);
 			isDoneSettingUp = true;
 		} catch (Exception e) {
-			org.apache.log4j.Logger.getLogger(this.getClass()).error("Resource.setup() Exception: "+e.getMessage());
+			logger.error("Resource.setup() Exception: "+e.getMessage());
 		}
 		this.setSetup(isDoneSettingUp);
 	}
