@@ -840,13 +840,13 @@ public class I2B2XMLResourceImplementation
 				new Column("Patient Id", PrimitiveDataType.STRING));
 
 		// #############################################################################################################
-		// ########## anyone who want to modify the code below, please be sure you read the following notice first #####
+		// ######## anyone who want to modify the code below, please be sure you read the following notice first #######
 		// #############################################################################################################
 		// Following is explaining how i2b2 xml response works with FileResultSet.
 		// Notice: aliasMap may not be a leaf node !!!!!!!!!
 		// means the size of conceptType list might not be the same as the size of aliasMap
 		// because... the path of given selects in aliasMap might not be a leaf node,
-		// which might contain multiple concept, maybe hundreds or even more,
+		// which might contain multiple concepts, maybe hundreds or even more,
 		// depends on which level the given selects are at.
 		// In this not-leaf-node situation, the alias map might be even not include into the conceptType list.
 		// Therefore, the solution is that just showing whatever
@@ -881,14 +881,14 @@ public class I2B2XMLResourceImplementation
 
 		// appending rows....
 		// ############ please read notice if you are going to change the code ############
-		// Notice: in the i2b2 xml response, all patient are in observationSet list grouped by patient number
+		// Notice: in the i2b2 xml response, all patients are in observationSet list grouped by patient number
 		// but, each observationSet will have its own patient no.1 group, no.2 group...
 		// which will cause problem... because FileResultSet seems can only append row by row??
-		// means if you finished row 1, you cannot go back to add data to it??? <- needs confirm
+		// means if you finished row 1, you cannot go back to add data to it??? <- needs to confirm
 
 		// didn't figure out the best performance way of handling this, now go nuts...
-		// 1. save everything into a temprary storage which is Map<StringOfPatientId, Map<StringOfColumnName, StringOfValue>>
-		// 2. after everthing retrieved from observationSet, start to append row by row
+		// 1. save everything into a temporary storage which is Map<StringOfPatientId, Map<StringOfColumnName, StringOfValue>>
+		// 2. after everything retrieved from observationSet, start to append row by row
 		Map<String, Map<String,String>> whateverStorage = new HashMap<>();
  		for (ObservationSet observationSet : observationSetList){
 
@@ -899,7 +899,7 @@ public class I2B2XMLResourceImplementation
 						:observationType.getConceptCd().getValue();
  				String value = (observationType.getNvalNum().getValue() == null)?
 						observationType.getConceptCd().getValue()
-						:observationType.getNvalNum().getValue().toPlainString() + " " + observationType.getUnitsCd();
+						:observationType.getNvalNum().getValue().toPlainString();
  				if (whateverStorage.containsKey(patientId)) {
  					whateverStorage.get(patientId)
 							.put(columnName, value);
@@ -911,7 +911,7 @@ public class I2B2XMLResourceImplementation
 			}
 		}
 
-		// ok... now start to append rows... the whole thing is terrible... anyways... too much words... get things done
+		// ok... now start to append rows... the whole thing is terrible... anyways... too many words... get things done
 		for (Map.Entry<String, Map<String, String>> entry : whateverStorage.entrySet()){
 			mrs.appendRow();
 			mrs.updateString("Patient Id", entry.getKey());
