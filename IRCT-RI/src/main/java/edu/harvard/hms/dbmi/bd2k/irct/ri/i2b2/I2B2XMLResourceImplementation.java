@@ -520,7 +520,7 @@ public class I2B2XMLResourceImplementation
 			String resultId = resultInstanceId.split("\\|")[2];
 
 			// Get PDO List
-			logger.debug("getResults() getting PDOFromInputList with "+
+			logger.info("getResults() getting PDOFromInputList with "+
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
 
@@ -811,8 +811,8 @@ public class I2B2XMLResourceImplementation
 		ConceptSet conceptSet = patientDataResponse.getPatientData().getConceptSet();
 
 		// generate columns and check if all aliasMap only in patient set
-		// if any data in patient set, will mark it down into a map, later will retrieve it directly
-		// Notice: pleae make sure this map is a linkedHashMap, since we need the sequence
+		// if any data in patient set, will mark it into a map, later will retrieve it
+		// Notice: please make sure this map is a linkedHashMap, since we need the sequence
 		Map<String, String> selectMap = (Map<String, String>) result.getMetaData().get("aliasMap");
 
 		if (observationSetList.isEmpty()) {
@@ -855,25 +855,42 @@ public class I2B2XMLResourceImplementation
 		// if not, just put concept_cd as the column name
 		// So we need a alias name and concept_cd mapping as well for later append rows....
 		Map<String, String> conceptCD_aliasName_Map = new HashMap<>();
+
+		// conceptPath, the format of conceptPath is \xxx\xxxx\xxxxxx\
+		// but format of the key in aliasMap is \\domainname\xxx\xxxx\xxxxx\
+		// we need to pre-process the selectMap to make key match the format of conceptPath
+		Map<String, String> preProcessedSelectMap = new LinkedHashMap<>();
+
+		for (Map.Entry<String, String> entry : selectMap.entrySet()){
+			String preProcessedKey = "\\";
+			String[] splitKeys = entry.getKey().split("\\\\");
+			for (int i = 3 ; i<splitKeys.length; i++){
+				if (!splitKeys[i].equals(""))
+					preProcessedKey += splitKeys[i]+"\\";
+			}
+			preProcessedSelectMap.put(preProcessedKey, entry.getValue());
+		}
+
  		for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList){
 			// check if the conceptType is in alias map
 
-			// pre-process conceptPath, the format of conceptPath is \xxx\xxxx\xxxxxx\
-			// but format of the key in aliasMap is \\domainname\xxx\xxxx\xxxxx
+			for (String key : preProcessedSelectMap.keySet()) {
 
-			for (String key : selectMap.keySet()) {
 				if (key.contains(conceptType.getConceptPath())
-						&& selectMap.get(key)!=null) {
-					String aliasName = selectMap.get(key);
+						|| conceptType.getConceptPath().contains(key)){
+					String aliasName = key;
+					if (preProcessedSelectMap.get(key)!=null)
+						aliasName = preProcessedSelectMap.get(key);
 					mrs.appendColumn(
 							new Column(aliasName, PrimitiveDataType.STRING));
 					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), aliasName);
 				} else {
+					String name = conceptType.getNameChar();
+					if (name == null)
+						name = conceptType.getConceptPath();
 					mrs.appendColumn(
-							new Column(conceptType
-									.getNameChar(), PrimitiveDataType.STRING));
-					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), conceptType
-							.getNameChar());
+							new Column(name, PrimitiveDataType.STRING));
+					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), name);
 				}
 			}
 		}
@@ -897,9 +914,25 @@ public class I2B2XMLResourceImplementation
  				String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().getValue()))?
 						conceptCD_aliasName_Map.get(observationType.getConceptCd().getValue())
 						:observationType.getConceptCd().getValue();
- 				String value = (observationType.getNvalNum().getValue() == null)?
-						observationType.getConceptCd().getValue()
-						:observationType.getNvalNum().getValue().toPlainString();
+
+
+ 				// handle where to retrieve the value
+				// several cases:
+				// 1. value type is T (means text), Tval has data
+				// 2. value type is N (means number), Nval has data
+				// 3. value type is null (maybe value is not a observation fact), Tval, Nval both are null
+				String value = "";
+				String valueType = observationType.getValuetypeCd();
+				if (valueType == null){
+					value = observationType.getConceptCd().getValue(); // like female, male something
+				} else if (valueType.equals("T")){
+					value = observationType.getTvalChar();
+				} else if (valueType.equals("N")){
+					value = observationType.getNvalNum().getValue().toPlainString();
+				}
+				if (value == null)
+					value = "";
+
  				if (whateverStorage.containsKey(patientId)) {
  					whateverStorage.get(patientId)
 							.put(columnName, value);

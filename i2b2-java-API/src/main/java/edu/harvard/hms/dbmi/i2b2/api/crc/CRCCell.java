@@ -1036,6 +1036,8 @@ public class CRCCell extends Cell {
 		
 		if (!rmt.getResponseHeader().getResultStatus().getStatus().getType()
 				.equals("DONE")) {
+			logger.error("getPDOResponseType() with status: " + rmt.getResponseHeader().getResultStatus().getStatus().getType()
+							+ ". The status message: " + rmt.getResponseHeader().getResultStatus().getStatus().getValue());
 			throw new I2B2InterfaceException(rmt.getResponseHeader()
 					.getResultStatus().getStatus().getValue());
 		}
