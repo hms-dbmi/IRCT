@@ -40,29 +40,26 @@ public class SecurityController implements Serializable{
 	public User ensureUserExists(String userId) {
 		logger.info("ensureUserExists() Starting " + userId);
 		
-		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-		CriteriaQuery<User> cq = cb.createQuery(User.class);
-		Root<User> userRoot = cq.from(User.class);
-		cq.where(cb.equal(userRoot.get("userId"), userId));
-		cq.select(userRoot);
+
 		User user;
 		try{
-			user = entityManager.createQuery(cq).getSingleResult();
+			user = findUserByUserId(userId);
 			logger.debug("ensureUserExists() User found. Already existed.");
 			
 		} catch(NoResultException e){
 			logger.error("ensureUserExists() UserId could not be found by `entityManager`");
-			
-			user = new User(userId);
+
 			logger.debug("ensureUserExists() Created new `user` object.");
 						
 			logger.debug("ensureUserExists() Call persist() on `entityManager`");
-			entityManager.persist(user);
+			entityManager.persist(new User(userId));
 			logger.debug("ensureUserExists() New `user` object persisted.");
+
+			user = findUserByUserId(userId);
 			
 		} catch(NonUniqueResultException e){
 			logger.error("ensureUserExists() Exception:" + e.getMessage());
-			throw new RuntimeException("Duplicate User Found : " + userId, e);
+			throw new NotAuthorizedException("Duplicate User Found : " + userId, e);
 		}
 		
 		logger.debug("ensureUserExists() Finished");
@@ -98,7 +95,7 @@ public class SecurityController implements Serializable{
 		entityManager.merge(user);
 		entityManager.flush();
 
-		return user;
+		return findUserByUserId(user.getUserId());
 	}
 	
 	// TODO: This is a temporary solution. While we store the "key" information 
@@ -124,5 +121,16 @@ public class SecurityController implements Serializable{
 		return user;
 
 	}
+
+	public User findUserByUserId(String userId) {
+		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+		CriteriaQuery<User> cq = cb.createQuery(User.class);
+		Root<User> userRoot = cq.from(User.class);
+		cq.where(cb.equal(userRoot.get("userId"), userId));
+		cq.select(userRoot);
+
+		return entityManager.createQuery(cq).getSingleResult();
+	}
+
 
 }
