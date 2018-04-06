@@ -2,11 +2,11 @@
   "openapi": "3.0.0",
   "info": {
     "contact": {
-      "url": "https://avillach-lab.hms.harvard.edu/",
-      "name": "Paul Avillach",
-      "email": "paul_avillach@hms.harvard.edu",
-      "x-role": "responsible developer"
-    },
+     "x-role": "responsible developer team",
+     "name": "AvillachLab",
+     "url": "https://avillach-lab.hms.harvard.edu/",
+     "email": "avillach_lab_developers@googlegroups.com"
+   },
     "version": "1.4",
     "termsOfService": "https://raw.githubusercontent.com/hms-dbmi/IRCT/DI-931_NoHTMLResponse/IRCT-API/termsofservice.html?token=ARJ4SRLWirZlWhUKWEBG8XqdkwbNMGpYks5aJs0kwA%3D%3D",
     "description": "Meta API to provide access to multiple data sources",
@@ -15,6 +15,12 @@
         "url": "http://dbmi.hms.harvard.edu/person/faculty/zak-kohane",
         "name": "Isaac Kohane",
         "email": "isaac_kohane@harvard.edu",
+        "x-role": "responsible developer"
+      },
+      "contact": {
+        "url": "https://avillach-lab.hms.harvard.edu/",
+        "name": "Paul Avillach",
+        "email": "paul_avillach@hms.harvard.edu",
         "x-role": "responsible developer"
       },
       {
@@ -34,7 +40,7 @@
         "name": "Gabor Korodi",
         "email": "gabor_korodi@hms.harvard.edu",
         "x-role": "responsible developer"
-      }
+      },
     ],
     "title": "NHANES via PIC-SURE API"
   },
