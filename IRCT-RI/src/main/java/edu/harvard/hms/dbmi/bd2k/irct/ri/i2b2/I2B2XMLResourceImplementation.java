@@ -874,25 +874,63 @@ public class I2B2XMLResourceImplementation
  		for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList){
 			// check if the conceptType is in alias map
 
+			// Notice: there is a small chance that the same concept code data is
+			// in two totally not related places(paths).
+			// in that case, this is how we handle it here:
+			// 1. we check if the concept code is already in the conceptCD_aliasName_map
+			// 2. if not, we identify this is a new concept, add it into the map
+			// 3. if yes, we check if the current nameValue is in aliasMap's value set,
+			// 4. if yes, means this conceptCD is already perfectly matched, do nothing
+			// 5. if no, we check if current processing concept code has a
+			//    matched alias
+			// 6. if yes, we put the alias there
+			// 7. if no, we just leave ignore it - keep the original one there
+			// Notice: we don't add columns here, after the conceptCD_aliasName_map is completed
+			//         we will add columns
 			for (String key : preProcessedSelectMap.keySet()) {
+				String conceptCD = conceptType.getConceptCd();
 
-				if (key.contains(conceptType.getConceptPath())
+
+				 if (key.contains(conceptType.getConceptPath())
 						|| conceptType.getConceptPath().contains(key)){
 					String aliasName = key;
 					if (preProcessedSelectMap.get(key)!=null)
 						aliasName = preProcessedSelectMap.get(key);
-					mrs.appendColumn(
-							new Column(aliasName, PrimitiveDataType.STRING));
-					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), aliasName);
+
+					// check if the conceptCD is already in the c_a_map
+					if (conceptCD_aliasName_Map.containsKey(conceptCD)){
+						// check if the name is in aliasMap
+						// notice: this is in bad performance to search the value in a HashMap
+						if (preProcessedSelectMap.containsValue(conceptCD_aliasName_Map
+								.get(conceptCD))){
+							continue;
+						}
+						// check if the aliasName actually from user input alias
+						// key of selectMap/aliasMap is a path not alias
+						else if (aliasName.equals(key)){
+							continue;
+						}
+					}
+
+					conceptCD_aliasName_Map.put(conceptCD, aliasName);
 				} else {
+
+				 	// still need to check if the concept code is already there
+				 	if (conceptCD_aliasName_Map.containsKey(conceptCD)){
+						continue;
+					}
+
 					String name = conceptType.getNameChar();
 					if (name == null)
 						name = conceptType.getConceptPath();
-					mrs.appendColumn(
-							new Column(name, PrimitiveDataType.STRING));
-					conceptCD_aliasName_Map.put(conceptType.getConceptCd(), name);
+					conceptCD_aliasName_Map.put(conceptCD, name);
 				}
 			}
+		}
+
+		for (String conceptName: conceptCD_aliasName_Map.values()){
+			mrs.appendColumn(
+				new Column(conceptName, PrimitiveDataType.STRING));
 		}
 
 
@@ -923,8 +961,8 @@ public class I2B2XMLResourceImplementation
 				// 3. value type is null (maybe value is not a observation fact), Tval, Nval both are null
 				String value = "";
 				String valueType = observationType.getValuetypeCd();
-				if (valueType == null){
-					value = observationType.getConceptCd().getValue(); // like female, male something
+				if (valueType == null || valueType.equals("@")){
+					value = observationType.getConceptCd().getValue(); // like Gender, Age something
 				} else if (valueType.equals("T")){
 					value = observationType.getTvalChar();
 				} else if (valueType.equals("N")){
