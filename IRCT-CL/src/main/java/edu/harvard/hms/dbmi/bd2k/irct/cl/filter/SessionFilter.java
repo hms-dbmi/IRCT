@@ -60,14 +60,27 @@ public class SessionFilter implements Filter {
 			// Do Nothing
 			logger.debug("doFilter() securityService URL is NOT filtered.");
 		} else {
+			String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
+			if (headerValue.isEmpty()){
+				logger.debug("doFilter() No token in user object, so let's add one.");
+				throw new RuntimeException("No `Authorization` header was provided");
+			}
+			String tokenString = headerValue.split(" ")[1];
+
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
 			
 			try {
 				User user = (User) session.getAttribute("user");
 
-				if (user == null)
+				if (user == null
+						|| user.getToken() == null
+						|| !user.getToken().equals(tokenString))
 					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
+
+				if (user == null)
+					throw new NotAuthorizedException("Cannot create user for the token: " + tokenString);
+
 				logger.debug("doFilter() User(userId:"+user.getUserId()+")");
 				
 				//DI-994: email whitelist for authorization without a token
@@ -86,16 +99,8 @@ public class SessionFilter implements Filter {
 				// for future playtime.
 				if (user.getToken() == null) {
 					logger.debug("doFilter() No token in user object, so let's add one.");
-					String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
-					if (headerValue == null || headerValue.isEmpty()) {
-						logger.debug("doFilter() No token in user object, so let's add one.");
-						throw new RuntimeException("No `Authorization` header was provided");
-					} else {
-						logger.debug("doFilter() Found a token in the HTTP header.");
-						// TODO Check if this split produces two element list, actually.
-						String tokenString = headerValue.split(" ")[1];
-						user.setToken(tokenString);
-					}
+					user.setToken(tokenString);
+					sc.updateUserRecord(user);
 				}
 				logger.debug("doFilter() User(token:"+user.getToken()+")");
 				
