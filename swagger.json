@@ -67,7 +67,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QueryRecord"
+                  "$ref": "#/components/schemas/QueryRespRecord"
                 }
               }
             }
