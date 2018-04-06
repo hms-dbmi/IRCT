@@ -50,6 +50,11 @@
       "description": "Open access development server"
     }
   ],
+  "tags": [
+    {
+      "name": "NIHdatacommons"
+    }
+  ],
   "paths": {
     "/query": {
       "get": {
