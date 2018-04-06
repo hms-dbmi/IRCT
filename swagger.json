@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "contact": {
-     "x-role": "responsible developer team",
+     "x-role": "responsible developer",
      "name": "AvillachLab",
      "url": "https://avillach-lab.hms.harvard.edu/",
      "email": "avillach_lab_developers@googlegroups.com"
