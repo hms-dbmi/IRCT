@@ -17,7 +17,7 @@
         "email": "isaac_kohane@harvard.edu",
         "x-role": "responsible developer"
       },
-      "contact": {
+      {
         "url": "https://avillach-lab.hms.harvard.edu/",
         "name": "Paul Avillach",
         "email": "paul_avillach@hms.harvard.edu",
