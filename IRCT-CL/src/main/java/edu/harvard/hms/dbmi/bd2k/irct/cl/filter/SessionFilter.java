@@ -60,23 +60,39 @@ public class SessionFilter implements Filter {
 			// Do Nothing
 			logger.debug("doFilter() securityService URL is NOT filtered.");
 		} else {
-			String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
-			if (headerValue.isEmpty()){
-				logger.debug("doFilter() No token in user object, so let's add one.");
-				throw new RuntimeException("No `Authorization` header was provided");
-			}
-			String tokenString = headerValue.split(" ")[1];
-
 			HttpSession session = ((HttpServletRequest) req).getSession();
 			logger.debug("doFilter() got session from request.");
 			
 			try {
-				User user = (User) session.getAttribute("user");
+				User user = null;
+				String tokenString = null;
 
-				if (user == null
-						|| user.getToken() == null
-						|| !user.getToken().equals(tokenString))
-					user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
+				String headerValue = ((HttpServletRequest)req).getHeader("Authorization");
+				if (headerValue == null) {
+					/*
+					 * When Authorization header is missing, we can still check if the session contains a valid
+					 * user. This is required, for now, because startSession can establish one, and notebooks should
+					 * still be able to send requests without a token.
+					 *
+					 * In the future (as of now 2018-April-10) the session should be eliminated and
+					 * the the "Authorization" header can be made mandatory on every request.
+					 */
+					 user = (User) session.getAttribute("user");
+				} else {
+					if (headerValue.isEmpty()){
+						logger.debug("doFilter() No token in user object, so let's add one.");
+						throw new RuntimeException("No `Authorization` header was provided");
+					}
+					tokenString = headerValue.split(" ")[1];
+
+					/*
+					 * Check if the user has the same token that the session was established with.
+					 */
+					if (user == null
+							|| user.getToken() == null
+							|| !user.getToken().equals(tokenString))
+						user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
+				}
 
 				if (user == null)
 					throw new NotAuthorizedException("Cannot create user for the token: " + tokenString);
