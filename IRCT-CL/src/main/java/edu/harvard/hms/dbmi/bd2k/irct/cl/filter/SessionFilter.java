@@ -109,21 +109,16 @@ public class SessionFilter implements Filter {
 						throw new NotAuthorizedException("User `"+user.getUserId()+"` not in white list", res);
 					}
 				}
-				
-				// TODO DI-896 change. Since the user above gets created without an actual token, we need 
-				// to re-extract the token, from the header and parse it and place it inside the user object, 
-				// for future playtime.
-				if (user.getToken() == null) {
-					logger.debug("doFilter() No token in user object, so let's add one.");
-					user.setToken(tokenString);
-					sc.updateUserRecord(user);
-				}
-				logger.debug("doFilter() User(token:"+user.getToken()+")");
+
+				logger.debug("doFilter() Replacing token field of user object.");
+				user.setToken(tokenString);
+				logger.debug("doFilter() About to update `User` object");
+				sc.updateUserRecord(user);
+				logger.debug("doFilter() `User` object is updated.");
 				
 				session.setAttribute("user", user);
 				req.setAttribute("user", user);
-
-				logger.debug("doFilter() set session attributes.");
+				logger.debug("doFilter() Session object attribute `user` is updated.");
 
 			} catch (NotAuthorizedException e) {
 				logger.error("doFilter() "+e.getMessage());

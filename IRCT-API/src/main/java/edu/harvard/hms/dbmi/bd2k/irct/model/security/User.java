@@ -20,7 +20,7 @@ public class User implements Principal, Serializable {
 
 	@Id
 	@GeneratedValue(generator = "userSequencer")
-	@SequenceGenerator(name = "userSequencer", sequenceName = "userSeq")
+	@SequenceGenerator(name = "userSequencer")
 	private Long id;
 
 	private String userId;
