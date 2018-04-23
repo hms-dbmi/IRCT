@@ -6,11 +6,13 @@
 .classpath
 .DS_Store
 .factorypath
+.gradle
 .idea
 .metadata
 .project
 .settings
 bin/
+build/
 deploy.sh
 hs_err_pid*
 scratch/
