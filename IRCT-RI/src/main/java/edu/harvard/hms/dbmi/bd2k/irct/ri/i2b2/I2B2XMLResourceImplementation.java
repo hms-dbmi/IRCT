@@ -524,12 +524,12 @@ public class I2B2XMLResourceImplementation
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
 
-			PatientDataResponseType pdrt = null;
+			PatientDataResponseType pdrt;
 			if (result.getMetaData().containsKey("aliasMap"))
-				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
+				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, null, false, false, false,
 					null, result.getMetaData());
 			else
-				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
+				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, null, false, false, false,
 						OutputOptionSelectType.USING_INPUT_LIST);
 
 			convertPatientDataResponseTypeToResultSet(pdrt, result);

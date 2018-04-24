@@ -546,7 +546,7 @@ public class CRCCell extends Cell {
 	// -------------------------------------------------------------------------
 
     public PatientDataResponseType getPDOfromInputList(HttpClient client,
-                                                       String collectionId, int min, int max, boolean onlyKeys,
+                                                       String collectionId, int min, Integer max, boolean onlyKeys,
                                                        boolean blob, boolean techdata, OutputOptionSelectType select)
             throws JAXBException, ClientProtocolException,
             I2B2InterfaceException, IOException {
@@ -588,7 +588,7 @@ public class CRCCell extends Cell {
 	 *             An Exception Occurred
 	 */
 	public PatientDataResponseType getPDOfromInputList(HttpClient client,
-			String collectionId, int min, int max, boolean onlyKeys,
+			String collectionId, int min, Integer max, boolean onlyKeys,
 			boolean blob, boolean techdata, OutputOptionSelectType select, Map metaData)
 			throws JAXBException, ClientProtocolException,
 			I2B2InterfaceException, IOException {
@@ -605,7 +605,10 @@ public class CRCCell extends Cell {
         InputOptionListType iolt = pdoOF.createInputOptionListType();
         PatientListType plt = pdoOF.createPatientListType();
         plt.setMin(min);
-        plt.setMax(max);
+
+        if (max != null)
+        	plt.setMax(max);
+
         logger.debug("getPDOfromInputList() set min/max");
 
         plt.setPatientSetCollId(collectionId);
