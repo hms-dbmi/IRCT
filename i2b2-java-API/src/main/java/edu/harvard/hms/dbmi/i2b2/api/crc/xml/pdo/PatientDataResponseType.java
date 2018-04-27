@@ -91,4 +91,45 @@ public class PatientDataResponseType
         this.patientData = value;
     }
 
+    public void addPatientData(PatientDataType additionalData){
+        if (this.patientData == null){
+            this.patientData = additionalData;
+        }
+        else {
+            //TODO Do any of these need to be changed to sets?
+            if (this.patientData.getConceptSet() != null)
+                this.patientData.getConceptSet().getConcept().addAll(additionalData.getConceptSet().getConcept());
+            else
+                this.patientData.setConceptSet(additionalData.getConceptSet());
+            if (this.patientData.getPatientSet() != null)
+                this.patientData.getPatientSet().getPatient().addAll(additionalData.getPatientSet().getPatient());
+            else
+                this.patientData.setPatientSet(additionalData.getPatientSet());
+            if (this.patientData.getEidSet() != null)
+                this.patientData.getEidSet().getEid().addAll(additionalData.getEidSet().getEid());
+            else
+                this.patientData.setEidSet(additionalData.getEidSet());
+            if (this.patientData.getEventSet() != null)
+                this.patientData.getEventSet().getEvent().addAll(additionalData.getEventSet().getEvent());
+            else
+                this.patientData.setEventSet(additionalData.getEventSet());
+            if (this.patientData.getModifierSet() != null)
+                this.patientData.getModifierSet().getModifier().addAll(additionalData.getModifierSet().getModifier());
+            else
+                this.patientData.setModifierSet(additionalData.getModifierSet());
+            if (this.patientData.getObservationSet() != null)
+                this.patientData.getObservationSet().addAll(additionalData.getObservationSet());
+            else
+                this.patientData.setObservationSet(additionalData.getObservationSet());
+            if (this.patientData.getObserverSet() != null)
+                this.patientData.getObserverSet().getObserver().addAll(additionalData.getObserverSet().getObserver());
+            else
+                this.patientData.setObserverSet(additionalData.getObserverSet());
+            if (this.patientData.getPidSet() != null)
+                this.patientData.getPidSet().getPid().addAll(additionalData.getPidSet().getPid());
+            else
+                this.patientData.setPidSet(additionalData.getPidSet());
+        }
+    }
+
 }

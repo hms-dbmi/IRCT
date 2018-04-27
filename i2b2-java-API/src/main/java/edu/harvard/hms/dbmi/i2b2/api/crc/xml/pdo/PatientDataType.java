@@ -264,4 +264,7 @@ public class PatientDataType {
         return this.observationSet;
     }
 
+    public void setObservationSet(List<ObservationSet> observationSet) {
+        this.observationSet = observationSet;
+    }
 }

@@ -524,18 +524,28 @@ public class I2B2XMLResourceImplementation
 					"resultInstanceId:"+(resultInstanceId==null?"NULL":resultInstanceId)+
 					" and resultId:"+(resultId==null?"NULL":resultId));
 
-			PatientDataResponseType pdrt;
-			if (result.getMetaData().containsKey("aliasMap"))
-				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, null, false, false, false,
-					null, result.getMetaData());
-			else
-				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, null, false, false, false,
-						OutputOptionSelectType.USING_INPUT_LIST);
+			PatientDataResponseType pdrt = null;
+			PatientDataResponseType oneBigPdrt = new PatientDataResponseType();
 
-			convertPatientDataResponseTypeToResultSet(pdrt, result);
+			int min = 0;
+
+			while( pdrt == null){
+                if (result.getMetaData().containsKey("aliasMap"))
+                    pdrt = crcCell.getPDOfromInputList(client, resultId, min, null, false, false, false,
+                            null, result.getMetaData());
+                else
+                    pdrt = crcCell.getPDOfromInputList(client, resultId, min, null, false, false, false,
+                            OutputOptionSelectType.USING_INPUT_LIST);
+
+                oneBigPdrt.addPatientData(pdrt.getPatientData());
+				if (pdrt.getPage() != null){
+					min = pdrt.getPage().getPagingByPatients().getPatientsReturned().getLastIndex();
+					pdrt = null;
+				}
+            }
 
 			logger.debug("getResults() calling *convertPatientSetToResultSet*");
-//			result = convertPatientSetToResultSet(pdrt, result);
+			convertPatientDataResponseTypeToResultSet(oneBigPdrt, result);
 
 			logger.debug("getResults() Setting ```ResultStatus``` to COMPLETE.");
 			result.setResultStatus(ResultStatus.COMPLETE);
@@ -780,7 +790,7 @@ public class I2B2XMLResourceImplementation
 	 * @param result
 	 * @return
 	 */
-	private void convertPatientDataResponseTypeToResultSet(PatientDataResponseType patientDataResponse, Result result)
+	private void 	convertPatientDataResponseTypeToResultSet(PatientDataResponseType patientDataResponse, Result result)
 			throws ResultSetException, PersistableException{
 		logger.debug("convertPatientDataResponseTypeToResultSet() starting...");
 
@@ -802,7 +812,7 @@ public class I2B2XMLResourceImplementation
 		}
 
 		// if no alias map, means no select blocks, just go with the old convert patientset method
-		if (!result.getMetaData().containsKey("aliasMap")){
+ 		if (!result.getMetaData().containsKey("aliasMap")){
 			convertPatientSetToResultSet(patientDataResponse, result);
 			return;
 		}
@@ -831,7 +841,7 @@ public class I2B2XMLResourceImplementation
 			return;
 		}
 
-		List<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType> conceptTypeList = conceptSet.getConcept();
+		Set<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType> conceptTypeList = conceptSet.getConcept();
 		FileResultSet mrs = (FileResultSet) result.getData();
 
 		// append column here from ConceptType and create a map between alias name and concept_cd
