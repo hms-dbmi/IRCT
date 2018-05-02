@@ -525,9 +525,10 @@ public class I2B2XMLResourceImplementation
 					" and resultId:"+(resultId==null?"NULL":resultId));
 
 			PatientDataResponseType pdrt = null;
-			PatientDataResponseType oneBigPdrt = new PatientDataResponseType();
+			PatientDataResponseType oneBigPdrt = null;
 
 			int min = 0;
+
 
 			while( pdrt == null){
                 if (result.getMetaData().containsKey("aliasMap"))
@@ -537,7 +538,11 @@ public class I2B2XMLResourceImplementation
                     pdrt = crcCell.getPDOfromInputList(client, resultId, min, null, false, false, false,
                             OutputOptionSelectType.USING_INPUT_LIST);
 
-                oneBigPdrt.addPatientData(pdrt.getPatientData());
+                if (oneBigPdrt == null){
+                    oneBigPdrt = pdrt;
+                } else {
+                    oneBigPdrt.addPatientData(pdrt.getPatientData());
+                }
 				if (pdrt.getPage() != null){
 					min = pdrt.getPage().getPagingByPatients().getPatientsReturned().getLastIndex();
 					pdrt = null;
@@ -817,7 +822,7 @@ public class I2B2XMLResourceImplementation
 			return;
 		}
 
-		List<ObservationSet> observationSetList = patientDataResponse.getPatientData().getObservationSet();
+		Set<ObservationSet> observationSetList = patientDataResponse.getPatientData().getObservationSet();
 		ConceptSet conceptSet = patientDataResponse.getPatientData().getConceptSet();
 
 		// generate columns and check if all aliasMap only in patient set

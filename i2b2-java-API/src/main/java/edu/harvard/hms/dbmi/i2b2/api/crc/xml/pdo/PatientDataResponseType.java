@@ -96,7 +96,6 @@ public class PatientDataResponseType
             this.patientData = additionalData;
         }
         else {
-            //TODO Do any of these need to be changed to sets?
             if (this.patientData.getConceptSet() != null)
                 this.patientData.getConceptSet().getConcept().addAll(additionalData.getConceptSet().getConcept());
             else
@@ -118,7 +117,7 @@ public class PatientDataResponseType
             else
                 this.patientData.setModifierSet(additionalData.getModifierSet());
             if (this.patientData.getObservationSet() != null)
-                this.patientData.getObservationSet().addAll(additionalData.getObservationSet());
+                this.patientData.combineObservationSet(additionalData.getObservationSet());
             else
                 this.patientData.setObservationSet(additionalData.getObservationSet());
             if (this.patientData.getObserverSet() != null)
