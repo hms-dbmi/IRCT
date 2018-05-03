@@ -437,6 +437,9 @@ public class I2B2XMLResourceImplementation
 					// FIRST
 					if (panels.isEmpty() && currentPanel.getItem().isEmpty()) {
 						currentPanel.getItem().add(itemType);
+						if (whereClause.getLogicalOperator() == LogicalOperator.NOT)
+							currentPanel.setInvert(1);
+
 					} else if (whereClause.getLogicalOperator() == LogicalOperator.AND) {
 						panels.add(currentPanel);
 						currentPanel = createPanel(panelCount++);
