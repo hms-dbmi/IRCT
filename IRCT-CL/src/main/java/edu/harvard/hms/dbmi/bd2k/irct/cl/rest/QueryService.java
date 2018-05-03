@@ -4,10 +4,10 @@
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
-import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ExecutionController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.QueryController;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResourceController;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ProtocolException;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.QueryException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.*;
@@ -18,6 +18,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.PersistableException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import org.apache.log4j.Logger;
 
 import javax.enterprise.context.ConversationScoped;
@@ -27,7 +28,8 @@ import javax.json.*;
 import javax.json.JsonValue.ValueType;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.util.HashMap;
@@ -329,11 +331,18 @@ public class QueryService implements Serializable {
 			if (!path.startsWith("/"))
 				path = "/" + path;
 
-            logger.info("addJsonWhereClauseToQuery() resource name: "+path.split("/")[1]);
-			resource = rc.getResource(path.split("/")[1]);
+			String resourceName = path.split("/")[1];
+            logger.info("addJsonWhereClauseToQuery() resource name: "+ resourceName);
+			resource = rc.getResource(resourceName);
 
             logger.info("addJsonWhereClauseToQuery() entity: "+path);
 			entity = new Entity(path);
+
+			if (resource == null) {
+				logger.error("QueryService() cannot find the resource: " + resourceName);
+				throw new ProtocolException("Cannot find the resource: " + path.split("/")[1] +
+						". Please check your pui.");
+			}
 
 			if (dataType != null) {
 				entity.setDataType(resource.getDataTypeByName(dataType));
