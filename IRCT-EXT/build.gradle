@@ -1,0 +1,14 @@
+description = 'PIC-SURE API: EXTENSION'
+
+dependencies {
+	compile 'com.amazonaws:aws-java-sdk:1.11.46'
+	compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.8.1'
+	compile 'com.google.guava:guava:20.0'
+	compile 'joda-time:joda-time:2.9.4'
+	compile 'oracle:ojdbc6:11.2.0.3' // License Terms : http://www.oracle.com/technetwork/licenses/distribution-license-152002.html
+	compile 'org.apache.commons:commons-csv:1.1'
+	compile 'org.apache.poi:poi-ooxml:3.12'
+	compile 'org.apache.poi:poi:3.12'
+	compile 'org.glassfish:javax.json:1.0.4'
+	compile project(':IRCT-API')
+}

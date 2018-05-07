@@ -1,0 +1,47 @@
+subprojects {
+
+	apply plugin: 'java'
+
+	group 'edu.harvard.hms.dbmi.bd2k.irct'
+
+	File versionFile = file('version.txt')
+	if (!versionFile.exists()) versionFile = file('../version.txt')
+	version versionFile.text.trim()
+
+	repositories {
+		mavenLocal()
+		jcenter()
+		maven {
+			url 'http://www.datanucleus.org/downloads/maven2/' // for Oracle ojdbc6
+		}
+	}
+
+	dependencies {
+		compileOnly 'javax:javaee-api:7.0'
+		testCompile 'javax:javaee-api:7.0'
+		testCompile 'junit:junit:4.12'
+	}
+
+	sourceCompatibility = 1.7
+	targetCompatibility = 1.7
+
+	jar {
+		manifest {
+			attributes(
+				'Built-By': System.getProperty('user.name'),
+				'Build-Jdk': System.getProperty('java.version') + ' (' + System.getProperty('java.vendor') + ')',
+				'Created-By': 'Gradle ' + project.gradle.gradleVersion,
+				'Implementation-Version': version,
+				'GroupId': project.group,
+				'ArtifactId': project.name)
+		}
+	}
+
+	project(':i2b2-java-API') {
+		group = 'edu.harvard.hms.dbmi.i2b2'
+	}
+
+	project(':SciDB-Java') {
+		group 'edu.harvard.hms.dbmi'
+	}
+}

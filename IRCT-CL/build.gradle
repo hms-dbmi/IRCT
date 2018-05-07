@@ -1,0 +1,29 @@
+apply plugin: 'war'
+
+description = 'INTER-RESOURCE COMMUNICATION TOOL : Communication Layer'
+
+dependencies {
+	compile 'com.auth0:auth0-servlet:2.1'
+	compile 'com.auth0:java-jwt:3.2.0'
+	compile 'com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.8.9'
+	compile project(':IRCT-API')
+	compile project(':IRCT-EXT')
+	compile project(':IRCT-RI')
+	compileOnly 'javax:javaee-api:7.0'
+	testCompile 'org.powermock:powermock-api-mockito:1.6.6'
+	testCompile 'org.powermock:powermock-module-junit4:1.6.6'
+}
+
+war {
+	archiveName = project.name + '.war'
+
+	manifest {
+		attributes(
+			'Built-By': System.getProperty('user.name'),
+			'Build-Jdk': System.getProperty('java.version') + ' (' + System.getProperty('java.vendor') + ')',
+			'Created-By': 'Gradle ' + project.gradle.gradleVersion,
+			'Implementation-Version': version,
+			'GroupId': project.group,
+			'ArtifactId': project.name)
+	}
+}

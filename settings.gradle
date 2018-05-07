@@ -1,0 +1,1 @@
+include 'i2b2-java-API', 'IRCT-API', 'IRCT-CL', 'IRCT-EXT', 'IRCT-RI', 'SciDB-Java'
