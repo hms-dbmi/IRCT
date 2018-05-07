@@ -7,23 +7,34 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.MultivaluedMap;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A collection of static methods that provide shared functionality throughout
  * the IRCT-CL
  */
 public class Utilities {
-	
+
 	private static Logger logger = Logger.getLogger(Utilities.class);
 
 	/**
@@ -189,5 +200,39 @@ public class Utilities {
 		}
 		logger.debug("extractToken() Finished.");
 		return token;
+	}
+
+
+	/**
+	 *
+	 * @param req ServletRequest that contains the token
+	 * @param userField Name of key to extract from token endpoint result
+	 * @param token_introspection_url Url to call for token introspection
+	 * @param token_introspection_token Token to validate into endpoint
+	 * @return user id
+	 * @throws IOException
+	 */
+	public static String extractUserFromTokenIntrospection(HttpServletRequest req, String userField, String token_introspection_url, String token_introspection_token)
+			throws IOException {
+		ObjectMapper json = new ObjectMapper();
+		HttpClient client = HttpClients.createDefault();
+		HttpPost post = new HttpPost(token_introspection_url);
+		String token = extractToken(req);
+		Map<String, String> tokenMap = new HashMap<String, String>();
+		tokenMap.put("token", token);
+		post.setEntity(new StringEntity(json.writeValueAsString(tokenMap)));
+		post.setHeader("Content-Type", "application/json");
+		//Authorize into the token introspection endpoint
+		post.setHeader("Authorization", "Bearer " + token_introspection_token);
+		HttpResponse response = client.execute(post);
+		if (response.getStatusLine().getStatusCode() != 200){
+			throw new RuntimeException("Server Error");
+		}
+		JsonNode responseMessage = json.readTree(response.getEntity().getContent());
+		if (!responseMessage.get("active").asBoolean()){
+			throw new NotAuthorizedException("Token invalid or expired");
+		}
+
+		return responseMessage.get(userField) != null ? responseMessage.get(userField).asText() : null;
 	}
 }
