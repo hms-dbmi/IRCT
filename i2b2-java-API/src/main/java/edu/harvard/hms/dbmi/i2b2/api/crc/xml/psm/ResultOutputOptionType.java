@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.*;
 
 
 /**
@@ -32,6 +29,24 @@ import javax.xml.bind.annotation.XmlType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "result_output_optionType")
 public class ResultOutputOptionType {
+
+    @XmlTransient
+    public static String PATIENTSET = "PATIENTSET";
+
+    @XmlTransient
+    public static String PATIENT_COUNT_XML = "PATIENT_COUNT_XML";
+
+    @XmlTransient
+    public static String PATIENT_GENDER_COUNT_XML = "PATIENT_GENDER_COUNT_XML";
+
+    @XmlTransient
+    public static String PATIENT_AGE_COUNT_XML = "PATIENT_AGE_COUNT_XML";
+
+    @XmlTransient
+    public static String PATIENT_VITALSTATUS_COUNT_XML = "PATIENT_VITALSTATUS_COUNT_XML";
+
+    @XmlTransient
+    public static String PATIENT_RACE_COUNT_XML = "PATIENT_RACE_COUNT_XML";
 
     @XmlAttribute(name = "name", required = true)
     protected String name;
