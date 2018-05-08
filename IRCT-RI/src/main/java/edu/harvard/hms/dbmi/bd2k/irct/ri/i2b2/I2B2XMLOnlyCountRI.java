@@ -24,6 +24,8 @@ public class I2B2XMLOnlyCountRI
 	@Override
 	public Result runQuery(User user, Query query, Result result) throws ResourceInterfaceException {
 		query.getMetaData().put("only_count", "");
+
+		// to support multiple ResultOutputOptionType, need to add more
 		return i2b2XMLRIRunQuery_runRequest(user, query, result, ResultOutputOptionType.PATIENT_COUNT_XML);
 	}
 
