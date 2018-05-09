@@ -4,7 +4,9 @@
 package edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -39,7 +41,7 @@ import javax.xml.bind.annotation.XmlType;
 public class PidSet {
 
     @XmlElement(required = true)
-    protected List<PidType> pid;
+    protected Set<PidType> pid;
 
     /**
      * Gets the value of the pid property.
@@ -63,9 +65,9 @@ public class PidSet {
      * 
      * 
      */
-    public List<PidType> getPid() {
+    public Set<PidType> getPid() {
         if (pid == null) {
-            pid = new ArrayList<PidType>();
+            pid = new HashSet<>();
         }
         return this.pid;
     }

@@ -4,7 +4,9 @@
 package edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -39,7 +41,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ConceptSet {
 
     @XmlElement(required = true)
-    protected List<ConceptType> concept;
+    protected Set<ConceptType> concept;
 
     /**
      * Gets the value of the concept property.
@@ -63,9 +65,9 @@ public class ConceptSet {
      * 
      * 
      */
-    public List<ConceptType> getConcept() {
+    public Set<ConceptType> getConcept() {
         if (concept == null) {
-            concept = new ArrayList<ConceptType>();
+            concept = new HashSet<ConceptType>();
         }
         return this.concept;
     }
