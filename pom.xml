@@ -18,7 +18,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<version.wildfly.maven.plugin>1.0.2.Final</version.wildfly.maven.plugin>
 		<version.jboss.bom>8.2.1.Final</version.jboss.bom>
-		<version.compiler.plugin>3.1</version.compiler.plugin>
+		<version.compiler.plugin>3.7.0</version.compiler.plugin>
 		<version.surefire.plugin>2.16</version.surefire.plugin>
 		<version.war.plugin>2.5</version.war.plugin>
 		<maven.compiler.target>1.7</maven.compiler.target>
@@ -38,6 +38,21 @@
 		<jenkins.build.job_url>${env.JOB_URL}</jenkins.build.job_url>
 		
 	</properties>
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>${version.compiler.plugin}</version>
+					<configuration>
+						<source>${maven.compiler.source}</source>
+						<target>${maven.compiler.target}</target>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 	<dependencies>
 		<dependency>
 			<groupId>log4j</groupId>
