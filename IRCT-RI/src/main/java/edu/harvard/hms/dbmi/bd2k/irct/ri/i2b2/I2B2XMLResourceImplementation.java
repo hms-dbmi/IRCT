@@ -46,6 +46,7 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
+import edu.harvard.hms.dbmi.i2b2.api.util.ResultOutputOptionTypeNames;
 import org.apache.http.Header;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -364,7 +365,10 @@ public class I2B2XMLResourceImplementation
 
 	@Override
 	public Result runQuery(User user, Query query, Result result) throws ResourceInterfaceException {
+		return i2b2XMLRIRunQuery_runRequest(user, query, result);
+	}
 
+	public Result i2b2XMLRIRunQuery_runRequest(User user, Query query, Result result, String... resultOuputOptionTypeNames){
 		if (query.getMetaData()!= null
 				&& !query.getMetaData().isEmpty())
 			result.getMetaData().putAll(query.getMetaData());
@@ -374,48 +378,48 @@ public class I2B2XMLResourceImplementation
 		result.setResultStatus(ResultStatus.CREATED);
 		String projectId = "";
 
-        // gather select clauses
-        // I don't care about the performance here!!
-        // and actually this gathering select clauses block is from I2B2TranSMARTResourceImplementation.java
-        // It is working which is the only thing that I know
+		// gather select clauses
+		// I don't care about the performance here!!
+		// and actually this gathering select clauses block is from I2B2TranSMARTResourceImplementation.java
+		// It is working which is the only thing that I know
 		// please keep aliasMap as LinkedHashMap, because we need the sequence later
-        Map<String, String> aliasMap = new LinkedHashMap<>();
-        for (SelectClause selectClause : query
-                .getClausesOfType(SelectClause.class)) {
-            String pui = selectClause.getParameter().getPui()
-                    .replaceAll("/" + this.resourceName + "/", "");
+		Map<String, String> aliasMap = new LinkedHashMap<>();
+		for (SelectClause selectClause : query
+				.getClausesOfType(SelectClause.class)) {
+			String pui = selectClause.getParameter().getPui()
+					.replaceAll("/" + this.resourceName + "/", "");
 
-            String rawPUI = selectClause.getParameter().getPui();
-            if (rawPUI.endsWith("*")) {
-                //Get the base PUI
-                String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
-                boolean compact = false;
-                String subPUI = null;
+			String rawPUI = selectClause.getParameter().getPui();
+			if (rawPUI.endsWith("*")) {
+				//Get the base PUI
+				String basePUI = rawPUI.substring(0, rawPUI.length() - 1);
+				boolean compact = false;
+				String subPUI = null;
 
-                if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
-                    compact = true;
-                }
-                if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
-                    subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
-                }
-
-                //Loop through all the children and add them to the aliasMap
-                aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, user));
-
-            } else {
-                pui = getPathFromString(selectClause.getParameter()
-                        .getPui());
-                if (!pui.endsWith("\\")){
-                	pui = pui + "\\";
+				if(selectClause.getStringValues().containsKey("COMPACT") && selectClause.getStringValues().get("COMPACT").equalsIgnoreCase("true")) {
+					compact = true;
 				}
-                aliasMap.put(pui,
-                        selectClause.getAlias());
-            }
-        }
-        // The blob above is from TransmartResourceImplementation
+				if(selectClause.getStringValues().containsKey("REMOVEPREPEND") && selectClause.getStringValues().get("REMOVEPREPEND").equalsIgnoreCase("true")) {
+					subPUI = basePUI.substring(0, basePUI.substring(0, basePUI.length() - 1).lastIndexOf("/"));
+				}
+
+				//Loop through all the children and add them to the aliasMap
+				aliasMap.putAll(getAllChildrenAsAliasMap(basePUI, subPUI, compact, user));
+
+			} else {
+				pui = getPathFromString(selectClause.getParameter()
+						.getPui());
+				if (!pui.endsWith("\\")){
+					pui = pui + "\\";
+				}
+				aliasMap.put(pui,
+						selectClause.getAlias());
+			}
+		}
+		// The blob above is from TransmartResourceImplementation
 
 		if (aliasMap.size() != 0)
-        	result.getMetaData().put("aliasMap", aliasMap); // pass it down to the getResult() to retrieve selected data
+			result.getMetaData().put("aliasMap", aliasMap); // pass it down to the getResult() to retrieve selected data
 
 		// Create the query
 		ArrayList<PanelType> panels = new ArrayList<PanelType>();
@@ -468,10 +472,23 @@ public class I2B2XMLResourceImplementation
 		}
 
 		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
-		ResultOutputOptionType root = new ResultOutputOptionType();
-		root.setPriorityIndex(10);
-		root.setName("PATIENTSET");
-		roolt.getResultOutput().add(root);
+
+
+		String defaultResultOutputOptionTypeName = ResultOutputOptionTypeNames.PATIENTSET;
+
+		if (resultOuputOptionTypeNames != null && resultOuputOptionTypeNames.length>0){
+			for (String rootName : resultOuputOptionTypeNames) {
+				ResultOutputOptionType root = new ResultOutputOptionType();
+				root.setPriorityIndex(10);
+				root.setName(rootName);
+				roolt.getResultOutput().add(root);
+			}
+		} else {
+			ResultOutputOptionType root = new ResultOutputOptionType();
+			root.setPriorityIndex(10);
+			root.setName(defaultResultOutputOptionTypeName);
+			roolt.getResultOutput().add(root);
+		}
 
 		try {
 			crcCell = createCRCCell(projectId, user.getName());
@@ -494,6 +511,10 @@ public class I2B2XMLResourceImplementation
 
 	@Override
 	public Result getResults(User user, Result result) throws ResourceInterfaceException {
+		return i2b2XMLRI_getResults(user, result);
+	}
+
+	public Result i2b2XMLRI_getResults(User user, Result result){
 		logger.debug("getResults() Starting...");
 		try {
 			result = checkForResult(user, result);
