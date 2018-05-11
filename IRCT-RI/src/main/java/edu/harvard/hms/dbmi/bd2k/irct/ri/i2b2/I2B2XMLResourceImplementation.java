@@ -46,6 +46,7 @@ import edu.harvard.hms.dbmi.i2b2.api.ont.xml.ModifiersType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.PMCell;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ConfigureType;
 import edu.harvard.hms.dbmi.i2b2.api.pm.xml.ProjectType;
+import edu.harvard.hms.dbmi.i2b2.api.util.ResultOutputOptionTypeNames;
 import org.apache.http.Header;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -473,7 +474,7 @@ public class I2B2XMLResourceImplementation
 		ResultOutputOptionListType roolt = new ResultOutputOptionListType();
 
 
-		String defaultResultOutputOptionTypeName = ResultOutputOptionType.PATIENTSET;
+		String defaultResultOutputOptionTypeName = ResultOutputOptionTypeNames.PATIENTSET;
 
 		if (resultOuputOptionTypeNames != null && resultOuputOptionTypeNames.length>0){
 			for (String rootName : resultOuputOptionTypeNames) {

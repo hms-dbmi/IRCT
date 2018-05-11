@@ -7,7 +7,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
-import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ResultOutputOptionType;
+import edu.harvard.hms.dbmi.i2b2.api.util.ResultOutputOptionTypeNames;
 
 /**
  * A resource implementation of a resource that communicates with the i2b2
@@ -26,7 +26,7 @@ public class I2B2XMLOnlyCountRI
 		query.getMetaData().put("only_count", "");
 
 		// to support multiple ResultOutputOptionType, need to add more
-		return i2b2XMLRIRunQuery_runRequest(user, query, result, ResultOutputOptionType.PATIENT_COUNT_XML);
+		return i2b2XMLRIRunQuery_runRequest(user, query, result, ResultOutputOptionTypeNames.PATIENT_COUNT_XML);
 	}
 
 }

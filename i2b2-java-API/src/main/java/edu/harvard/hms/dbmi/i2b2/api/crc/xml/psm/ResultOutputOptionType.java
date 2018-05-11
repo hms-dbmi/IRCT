@@ -30,24 +30,6 @@ import javax.xml.bind.annotation.*;
 @XmlType(name = "result_output_optionType")
 public class ResultOutputOptionType {
 
-    @XmlTransient
-    public static String PATIENTSET = "PATIENTSET";
-
-    @XmlTransient
-    public static String PATIENT_COUNT_XML = "PATIENT_COUNT_XML";
-
-    @XmlTransient
-    public static String PATIENT_GENDER_COUNT_XML = "PATIENT_GENDER_COUNT_XML";
-
-    @XmlTransient
-    public static String PATIENT_AGE_COUNT_XML = "PATIENT_AGE_COUNT_XML";
-
-    @XmlTransient
-    public static String PATIENT_VITALSTATUS_COUNT_XML = "PATIENT_VITALSTATUS_COUNT_XML";
-
-    @XmlTransient
-    public static String PATIENT_RACE_COUNT_XML = "PATIENT_RACE_COUNT_XML";
-
     @XmlAttribute(name = "name", required = true)
     protected String name;
     @XmlAttribute(name = "priority_index")
