@@ -98,6 +98,8 @@ public class I2B2XMLResourceImplementation
 	protected CRCCell crcCell;
 	protected PMCell pmCell;
 	protected ONTCell ontCell;
+	protected boolean returnFullSet = true;
+	protected List<String> sourceWhiteList;
 
 	protected ResourceState resourceState;
 
@@ -513,6 +515,8 @@ public class I2B2XMLResourceImplementation
 				return result;
 			}
 
+			result.getMetaData().put("returnFullSet", this.returnFullSet);
+
 			// after checking i2b2's result status
 			// go to retrieve data
 			result.setResultStatus(ResultStatus.RUNNING);
@@ -533,7 +537,7 @@ public class I2B2XMLResourceImplementation
 					null, result.getMetaData());
 			else
 				pdrt = crcCell.getPDOfromInputList(client, resultId, 0, 100000, false, false, false,
-						OutputOptionSelectType.USING_INPUT_LIST);
+						OutputOptionSelectType.USING_INPUT_LIST, result.getMetaData());
 
 			convertPatientDataResponseTypeToResultSet(pdrt, result);
 
@@ -795,9 +799,9 @@ public class I2B2XMLResourceImplementation
 		}
 
 		PatientSet patientSet = patientDataResponse.getPatientData().getPatientSet();
-		if (patientSet == null
+		if ( (patientSet == null
 				|| patientSet.getPatient() == null
-				|| patientSet.getPatient().isEmpty()){
+				|| patientSet.getPatient().isEmpty()) && this.returnFullSet){
 			logger.error("convertPatientDataResponseTypeToResultSet() patient set is null or empty");
 			result.setResultStatus(ResultStatus.ERROR);
 			result.setMessage("No patient set retrieved from i2b2");
@@ -805,7 +809,7 @@ public class I2B2XMLResourceImplementation
 		}
 
 		// if no alias map, means no select blocks, just go with the old convert patientset method
-		if (!result.getMetaData().containsKey("aliasMap")){
+		if (!result.getMetaData().containsKey("aliasMap") && this.returnFullSet){
 			convertPatientSetToResultSet(patientDataResponse, result);
 			return;
 		}
@@ -818,7 +822,7 @@ public class I2B2XMLResourceImplementation
 		// Notice: please make sure this map is a linkedHashMap, since we need the sequence
 		Map<String, String> selectMap = (Map<String, String>) result.getMetaData().get("aliasMap");
 
-		if (observationSetList.isEmpty()) {
+		if (observationSetList.isEmpty() && this.returnFullSet) {
 			logger.error("convertPatientDataResponseTypeToResultSet() observation set is empty with select blocks size: " +
 					selectMap.size());
 			result.setResultStatus(ResultStatus.ERROR);
@@ -826,7 +830,7 @@ public class I2B2XMLResourceImplementation
 			return;
 		}
 
-		if (conceptSet == null || conceptSet.getConcept().isEmpty()){
+		if ( (conceptSet == null || conceptSet.getConcept().isEmpty()) && this.returnFullSet){
 			logger.error("convertPatientDataResponseTypeToResultSet() concept set is empty with select blocks size: " +
 					selectMap.size());
 			result.setResultStatus(ResultStatus.ERROR);
@@ -834,7 +838,6 @@ public class I2B2XMLResourceImplementation
 			return;
 		}
 
-		List<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType> conceptTypeList = conceptSet.getConcept();
 		FileResultSet mrs = (FileResultSet) result.getData();
 
 		// append column here from ConceptType and create a map between alias name and concept_cd
@@ -863,134 +866,145 @@ public class I2B2XMLResourceImplementation
 		// but format of the key in aliasMap is \\domainname\xxx\xxxx\xxxxx\
 		// we need to pre-process the selectMap to make key match the format of conceptPath
 		Map<String, String> preProcessedSelectMap = new LinkedHashMap<>();
-
-		for (Map.Entry<String, String> entry : selectMap.entrySet()){
-			String preProcessedKey = "\\";
-			String[] splitKeys = entry.getKey().split("\\\\");
-			for (int i = 3 ; i<splitKeys.length; i++){
-				if (!splitKeys[i].equals(""))
-					preProcessedKey += splitKeys[i]+"\\";
-			}
-			preProcessedSelectMap.put(preProcessedKey, entry.getValue());
-		}
-
- 		for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList){
-			// check if the conceptType is in alias map
-
-			// Notice: there is a small chance that the same concept code data is
-			// in two totally not related places(paths).
-			// in that case, this is how we handle it here:
-			// 1. we check if the concept code is already in the conceptCD_aliasName_map
-			// 2. if not, we identify this is a new concept, add it into the map
-			// 3. if yes, we check if the current nameValue is in aliasMap's value set,
-			// 4. if yes, means this conceptCD is already perfectly matched, do nothing
-			// 5. if no, we check if current processing concept code has a
-			//    matched alias
-			// 6. if yes, we put the alias there
-			// 7. if no, we just leave ignore it - keep the original one there
-			// Notice: we don't add columns here, after the conceptCD_aliasName_map is completed
-			//         we will add columns
-			for (String key : preProcessedSelectMap.keySet()) {
-				String conceptCD = conceptType.getConceptCd();
-
-
-				 if (key.contains(conceptType.getConceptPath())
-						|| conceptType.getConceptPath().contains(key)){
-					String aliasName = key;
-					if (preProcessedSelectMap.get(key)!=null)
-						aliasName = preProcessedSelectMap.get(key);
-
-					// check if the conceptCD is already in the c_a_map
-					if (conceptCD_aliasName_Map.containsKey(conceptCD)){
-						// check if the name is in aliasMap
-						// notice: this is in bad performance to search the value in a HashMap
-						if (preProcessedSelectMap.containsValue(conceptCD_aliasName_Map
-								.get(conceptCD))){
-							continue;
-						}
-						// check if the aliasName actually from user input alias
-						// key of selectMap/aliasMap is a path not alias
-						else if (aliasName.equals(key)){
-							continue;
-						}
-					}
-
-					conceptCD_aliasName_Map.put(conceptCD, aliasName);
-				} else {
-
-				 	// still need to check if the concept code is already there
-				 	if (conceptCD_aliasName_Map.containsKey(conceptCD)){
-						continue;
-					}
-
-					String name = conceptType.getNameChar();
-					if (name == null)
-						name = conceptType.getConceptPath();
-					conceptCD_aliasName_Map.put(conceptCD, name);
-				}
-			}
-		}
-
-		for (String conceptName: conceptCD_aliasName_Map.values()){
-			mrs.appendColumn(
-				new Column(conceptName, PrimitiveDataType.STRING));
-		}
-
-
-		// appending rows....
-		// ############ please read notice if you are going to change the code ############
-		// Notice: in the i2b2 xml response, all patients are in observationSet list grouped by patient number
-		// but, each observationSet will have its own patient no.1 group, no.2 group...
-		// which will cause problem... because FileResultSet seems can only append row by row??
-		// means if you finished row 1, you cannot go back to add data to it??? <- needs to confirm
-
-		// didn't figure out the best performance way of handling this, now go nuts...
-		// 1. save everything into a temporary storage which is Map<StringOfPatientId, Map<StringOfColumnName, StringOfValue>>
-		// 2. after everything retrieved from observationSet, start to append row by row
 		Map<String, Map<String,String>> whateverStorage = new HashMap<>();
- 		for (ObservationSet observationSet : observationSetList){
 
- 			for (ObservationType observationType : observationSet.getObservation()){
- 				String patientId = observationType.getPatientId().getValue();
- 				String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().getValue()))?
-						conceptCD_aliasName_Map.get(observationType.getConceptCd().getValue())
-						:observationType.getConceptCd().getValue();
+		if (this.returnFullSet) {
+			List<edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType> conceptTypeList = conceptSet.getConcept();
 
-
- 				// handle where to retrieve the value
-				// several cases:
-				// 1. value type is T (means text), Tval has data
-				// 2. value type is N (means number), Nval has data
-				// 3. value type is null (maybe value is not a observation fact), Tval, Nval both are null
-				String value = "";
-				String valueType = observationType.getValuetypeCd();
-				if (valueType == null || valueType.equals("@")){
-					value = observationType.getConceptCd().getValue(); // like Gender, Age something
-				} else if (valueType.equals("T")){
-					value = observationType.getTvalChar();
-				} else if (valueType.equals("N")){
-					value = observationType.getNvalNum().getValue().toPlainString();
+			for (Map.Entry<String, String> entry : selectMap.entrySet()) {
+				String preProcessedKey = "\\";
+				String[] splitKeys = entry.getKey().split("\\\\");
+				for (int i = 3; i < splitKeys.length; i++) {
+					if (!splitKeys[i].equals(""))
+						preProcessedKey += splitKeys[i] + "\\";
 				}
-				if (value == null)
-					value = "";
+				preProcessedSelectMap.put(preProcessedKey, entry.getValue());
+			}
 
- 				if (whateverStorage.containsKey(patientId)) {
- 					whateverStorage.get(patientId)
-							.put(columnName, value);
-				} else {
- 					Map<String, String> temp = new HashMap<>();
- 					temp.put(columnName, value);
- 					whateverStorage.put(patientId, temp);
+
+			for (edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.ConceptType conceptType : conceptTypeList) {
+				// check if the conceptType is in alias map
+
+				// Notice: there is a small chance that the same concept code data is
+				// in two totally not related places(paths).
+				// in that case, this is how we handle it here:
+				// 1. we check if the concept code is already in the conceptCD_aliasName_map
+				// 2. if not, we identify this is a new concept, add it into the map
+				// 3. if yes, we check if the current nameValue is in aliasMap's value set,
+				// 4. if yes, means this conceptCD is already perfectly matched, do nothing
+				// 5. if no, we check if current processing concept code has a
+				//    matched alias
+				// 6. if yes, we put the alias there
+				// 7. if no, we just leave ignore it - keep the original one there
+				// Notice: we don't add columns here, after the conceptCD_aliasName_map is completed
+				//         we will add columns
+				for (String key : preProcessedSelectMap.keySet()) {
+					String conceptCD = conceptType.getConceptCd();
+
+
+					if (key.contains(conceptType.getConceptPath())
+							|| conceptType.getConceptPath().contains(key)) {
+						String aliasName = key;
+						if (preProcessedSelectMap.get(key) != null)
+							aliasName = preProcessedSelectMap.get(key);
+
+						// check if the conceptCD is already in the c_a_map
+						if (conceptCD_aliasName_Map.containsKey(conceptCD)) {
+							// check if the name is in aliasMap
+							// notice: this is in bad performance to search the value in a HashMap
+							if (preProcessedSelectMap.containsValue(conceptCD_aliasName_Map
+									.get(conceptCD))) {
+								continue;
+							}
+							// check if the aliasName actually from user input alias
+							// key of selectMap/aliasMap is a path not alias
+							else if (aliasName.equals(key)) {
+								continue;
+							}
+						}
+
+						conceptCD_aliasName_Map.put(conceptCD, aliasName);
+					} else {
+
+						// still need to check if the concept code is already there
+						if (conceptCD_aliasName_Map.containsKey(conceptCD)) {
+							continue;
+						}
+
+						String name = conceptType.getNameChar();
+						if (name == null)
+							name = conceptType.getConceptPath();
+						conceptCD_aliasName_Map.put(conceptCD, name);
+					}
 				}
 			}
-		}
 
-		// ok... now start to append rows... the whole thing is terrible... anyways... too many words... get things done
-		for (Map.Entry<String, Map<String, String>> entry : whateverStorage.entrySet()){
-			mrs.appendRow();
-			mrs.updateString("Patient Id", entry.getKey());
-			for (Map.Entry<String, String> innerEntry : entry.getValue().entrySet()){
-				mrs.updateString(innerEntry.getKey(), innerEntry.getValue());
+			for (String conceptName : conceptCD_aliasName_Map.values()) {
+				mrs.appendColumn(
+						new Column(conceptName, PrimitiveDataType.STRING));
+			}
+
+			// appending rows....
+			// ############ please read notice if you are going to change the code ############
+			// Notice: in the i2b2 xml response, all patients are in observationSet list grouped by patient number
+			// but, each observationSet will have its own patient no.1 group, no.2 group...
+			// which will cause problem... because FileResultSet seems can only append row by row??
+			// means if you finished row 1, you cannot go back to add data to it??? <- needs to confirm
+
+			// didn't figure out the best performance way of handling this, now go nuts...
+			// 1. save everything into a temporary storage which is Map<StringOfPatientId, Map<StringOfColumnName, StringOfValue>>
+			// 2. after everything retrieved from observationSet, start to append row by row
+			for (ObservationSet observationSet : observationSetList){
+
+				for (ObservationType observationType : observationSet.getObservation()){
+					String patientId = observationType.getPatientId().getValue();
+					String columnName = (conceptCD_aliasName_Map.containsKey(observationType.getConceptCd().getValue()))?
+							conceptCD_aliasName_Map.get(observationType.getConceptCd().getValue())
+							:observationType.getConceptCd().getValue();
+
+
+					// handle where to retrieve the value
+					// several cases:
+					// 1. value type is T (means text), Tval has data
+					// 2. value type is N (means number), Nval has data
+					// 3. value type is null (maybe value is not a observation fact), Tval, Nval both are null
+					String value = "";
+					String valueType = observationType.getValuetypeCd();
+					if (valueType == null || valueType.equals("@")){
+						value = observationType.getConceptCd().getValue(); // like Gender, Age something
+					} else if (valueType.equals("T")){
+						value = observationType.getTvalChar();
+					} else if (valueType.equals("N")){
+						value = observationType.getNvalNum().getValue().toPlainString();
+					}
+					if (value == null)
+						value = "";
+
+					if (whateverStorage.containsKey(patientId)) {
+						whateverStorage.get(patientId)
+								.put(columnName, value);
+					} else {
+						Map<String, String> temp = new HashMap<>();
+						temp.put(columnName, value);
+						whateverStorage.put(patientId, temp);
+					}
+				}
+			}
+
+			// ok... now start to append rows... the whole thing is terrible... anyways... too many words... get things done
+			for (Map.Entry<String, Map<String, String>> entry : whateverStorage.entrySet()){
+				mrs.appendRow();
+				mrs.updateString("Patient Id", entry.getKey());
+				for (Map.Entry<String, String> innerEntry : entry.getValue().entrySet()){
+					mrs.updateString(innerEntry.getKey(), innerEntry.getValue());
+				}
+			}
+			} else {
+			for (PidType ps : patientDataResponse.getPatientData().getPidSet().getPid()){
+				if (this.sourceWhiteList.contains(ps.getPatientId().getSource())){
+					mrs.appendRow();
+					mrs.updateString("Patient Id", ps.getPatientId().getValue());
+				}
 			}
 		}
 		result.setData(mrs);
