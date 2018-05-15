@@ -72,7 +72,7 @@ public class Result {
 	private String jobType;
 
 	public Result() {
-		message = "`Result` object is initialized.";
+		message = "`Result` has been initialized.";
 	}
 
 	/**
