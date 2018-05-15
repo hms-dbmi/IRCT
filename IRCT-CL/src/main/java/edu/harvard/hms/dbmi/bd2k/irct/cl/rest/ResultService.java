@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 
-import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import edu.harvard.hms.dbmi.bd2k.irct.controller.ResultController;
 import edu.harvard.hms.dbmi.bd2k.irct.dataconverter.ResultDataStream;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.util.IRCTResponse;
 import org.apache.log4j.Logger;
 
 import javax.ejb.TransactionAttribute;
@@ -89,6 +88,7 @@ public class ResultService {
 		Result result = rc.getResult(user, resultId);
 		if (result == null) {
 			response.add("message", "Unable to get result for that id");
+
 		} else {
 			response.add("resultId", result.getId());
 			response.add("riActionId", String.valueOf(result.getResourceActionId()));
