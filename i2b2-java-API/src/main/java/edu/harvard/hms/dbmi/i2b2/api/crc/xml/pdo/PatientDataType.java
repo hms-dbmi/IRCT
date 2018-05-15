@@ -4,7 +4,9 @@
 package edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -65,7 +67,7 @@ public class PatientDataType {
     @XmlElement(name = "patient_set", namespace = "http://www.i2b2.org/xsd/hive/pdo/1.1/", required = true)
     protected PatientSet patientSet;
     @XmlElement(name = "observation_set", namespace = "http://www.i2b2.org/xsd/hive/pdo/1.1/", required = true)
-    protected List<ObservationSet> observationSet;
+    protected Set<ObservationSet> observationSet;
 
     /**
      * Gets the value of the eventSet property.
@@ -257,11 +259,31 @@ public class PatientDataType {
      * 
      * 
      */
-    public List<ObservationSet> getObservationSet() {
+    public Set<ObservationSet> getObservationSet() {
         if (observationSet == null) {
-            observationSet = new ArrayList<ObservationSet>();
+            observationSet = new HashSet<ObservationSet>();
         }
         return this.observationSet;
     }
 
+    public void setObservationSet(Set<ObservationSet> observationSet) {
+        this.observationSet = observationSet;
+    }
+
+    public void combineObservationSet(Set<ObservationSet> observationSet){
+        for (ObservationSet os : observationSet){
+            boolean found = false;
+            for(ObservationSet os2: this.observationSet){
+                if (os.getPanelName().equalsIgnoreCase(os2.getPanelName())){
+                    os2.getObservation().addAll(os.getObservation());
+                    found = true;
+                    break;
+                }
+            }
+            if (!found){
+                this.observationSet.add(os);
+            }
+        }
+
+    }
 }

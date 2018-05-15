@@ -20,8 +20,6 @@ import javax.servlet.http.HttpSession;
 import javax.ws.rs.NotAuthorizedException;
 import java.io.IOException;
 
-//import javax.servlet.ServletContext;
-
 /**
  * Creates a session filter for ensuring secure access
  */
@@ -33,12 +31,16 @@ public class SessionFilter implements Filter {
 	@Inject
 	private IRCTApplication irctApp;
 
-	@javax.annotation.Resource(mappedName = "java:global/client_id")
-	private String clientId;
 	@javax.annotation.Resource(mappedName = "java:global/client_secret")
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
+	@javax.annotation.Resource(mappedName = "java:global/verify_user_method")
+    private String verify_user_method;
+    @javax.annotation.Resource(mappedName = "java:global/token_introspection_url")
+    private String token_introspection_url;
+    @javax.annotation.Resource(mappedName = "java:global/token_introspection_token")
+	private String token_introspection_token;
 
 	@PersistenceContext(unitName = "primary")
 	EntityManager entityManager;
@@ -91,7 +93,12 @@ public class SessionFilter implements Filter {
 					if (user == null
 							|| user.getToken() == null
 							|| !user.getToken().equals(tokenString))
-						user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
+					    if ("tokenIntrospection".equals(verify_user_method)){
+                            //Get information from token introspection endpoint in 2.0
+                            user = sc.ensureUserExists(Utilities.extractUserFromTokenIntrospection((HttpServletRequest) req, this.userField, token_introspection_url, token_introspection_token));
+                        } else{
+    						user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
+                        }
 				}
 
 				if (user == null)

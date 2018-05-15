@@ -10,6 +10,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.datatype.XMLGregorianCalendar;
+import java.util.Objects;
 
 
 /**
@@ -282,4 +283,17 @@ public class ConceptType {
         this.uploadId = value;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ConceptType that = (ConceptType) o;
+        return Objects.equals(conceptCd, that.conceptCd);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(conceptCd);
+    }
 }
