@@ -10,8 +10,9 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
@@ -35,22 +36,27 @@ public class SessionFilter implements Filter {
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
-	@javax.annotation.Resource(mappedName = "java:global/verify_user_method")
     private String verify_user_method;
-    @javax.annotation.Resource(mappedName = "java:global/token_introspection_url")
     private String token_introspection_url;
-    @javax.annotation.Resource(mappedName = "java:global/token_introspection_token")
 	private String token_introspection_token;
-
-	@PersistenceContext(unitName = "primary")
-	EntityManager entityManager;
 
 	@Inject
 	private SecurityController sc;
 
 	@Override
 	public void init(FilterConfig fliterConfig) throws ServletException {
-	}
+        try {
+            Context ctx = new InitialContext();
+            verify_user_method = (String) ctx.lookup("global/verify_user_method");
+            token_introspection_url = (String) ctx.lookup("global/token_introspection_url");
+            token_introspection_token = (String) ctx.lookup("global/token_introspection_token");
+            ctx.close();
+        } catch (NamingException e) {
+            verify_user_method = "sessionFilter";
+            return;
+        }
+
+    }
 
 	@Override
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain fc) throws IOException, ServletException {
