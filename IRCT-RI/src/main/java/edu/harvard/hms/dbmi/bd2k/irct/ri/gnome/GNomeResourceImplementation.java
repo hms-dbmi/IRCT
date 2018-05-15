@@ -195,6 +195,11 @@ public class GNomeResourceImplementation implements
 				objectNode.put(key, queries.get(key));
 			}
 
+			Map<String, Object> objectQueries = whereClause.getObjectValues();
+			for (Map.Entry<String, Object> entry: objectQueries.entrySet()){
+				objectNode.putPOJO(entry.getKey(), entry.getValue());
+			}
+
 			CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 			HttpPost post = new HttpPost(urlString);
 			try {
@@ -219,6 +224,7 @@ public class GNomeResourceImplementation implements
 						.getContent()));
 
 				result.setResultStatus(ResultStatus.COMPLETE);
+				result.setMessage("Finished parsing data from gNome");
 
 				EntityUtils.consume(entity);
 
@@ -341,6 +347,9 @@ public class GNomeResourceImplementation implements
 				new Entity("/" + resourceName +"/analyze_genes_rest.cgi", "For genes analyze"));
 		entities.add(
 				new Entity("/" + resourceName + "/analyze_variants_rest.cgi", "For variants analyze"));
+		entities.add(
+				new Entity("/" + resourceName + "/query_rest.cgi", "Query rest api for both genes and variants"));
+
 
 		return entities;
 	}

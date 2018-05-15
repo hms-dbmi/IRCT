@@ -582,9 +582,11 @@ public class QueryService implements Serializable {
 			ValueType vt = fieldObject.get(key).getValueType();
 
 			if ((vt == ValueType.ARRAY)) {
-				if (clauseFields.containsKey(key)
-						&& (clauseFields.get(key).getDataTypes()
-								.contains(PrimitiveDataType.ARRAY))) {
+//				if (!clauseFields.containsKey(key))
+//					throw new QueryException("Doses not support key: " + key);
+//
+//				if ((clauseFields.get(key).getDataTypes()
+//								.contains(PrimitiveDataType.ARRAY))) {
 
 					JsonArray array = fieldObject.getJsonArray(key);
 					String[] stringArray = new String[array.size()];
@@ -592,14 +594,16 @@ public class QueryService implements Serializable {
 						stringArray[sa_i] = array.getString(sa_i);
 					}
 					objectFields.put(key, stringArray);
-				} else {
-					throw new QueryException(key
-							+ " field does not support arrays.");
-				}
+//				} else {
+//					throw new QueryException(key
+//							+ " field does not support arrays.");
+//				}
 
 			} else if (vt == ValueType.OBJECT) {
-				if (clauseFields.containsKey(key)
-						&& (clauseFields.get(key).getDataTypes()
+				if (!clauseFields.containsKey(key))
+					throw new QueryException("Doses not support key: " + key);
+
+				if ((clauseFields.get(key).getDataTypes()
 								.contains(PrimitiveDataType.SUBQUERY))) {
 
 					objectFields.put(
