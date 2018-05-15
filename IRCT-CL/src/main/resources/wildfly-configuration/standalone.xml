@@ -361,9 +361,13 @@
 				<simple name="java:global/client_secret" value="<Client Secret for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
 				<simple name="java:global/client_id" value="<Client ID for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
 				<simple name="java:global/KeyTimeOutInMinutes" value="720" />
-				<simple name="java:global/token_introspection_url" value="<URL for the PICSURE-2.0 instance token introspection endpoint you wish to verify tokens>" />
+
+				<!-- If any of these three are missing, the system will default to sessionFilter.
+				      token_introspection_url and token_introspection_token are only needed if verify_user_method is set to 'tokenIntrospection' -->
 				<simple name="java:global/verify_user_method" value="<'tokenIntrospection' to use URL above, else 'sessionFilter' to use session filter to validate tokens>"/>
+				<simple name="java:global/token_introspection_url" value="<URL for the PICSURE-2.0 instance token introspection endpoint you wish to verify tokens>" />
 				<simple name="java:global/token_introspection_token" value="<token granting access to URL above>"/>
+
 				<!-- if don't need this whitelist functionality, just put false in the value field below.
 					currently only support absolute location -->
 				<simple name="java:global/whitelist_config_file" value="<Client whitelist config file location>" />
