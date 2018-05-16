@@ -1035,11 +1035,26 @@ public class I2B2XMLResourceImplementation
 					mrs.updateString(innerEntry.getKey(), innerEntry.getValue());
 				}
 			}
-			} else {
+		} else {
+			Set<String> mapSources = new HashSet<>();
+			for (PidType pt : patientDataResponse.getPatientData().getPidSet().getPid()){
+				for (PidType.PatientMapId mapId : pt.getPatientMapId()){
+					if (this.sourceWhiteList.contains(mapId.getSource())) {
+						mapSources.add(mapId.getSource());
+					}
+				}
+			}
+			for (String mapSource : mapSources){
+				mrs.appendColumn(
+						new Column(mapSource, PrimitiveDataType.STRING));
+			}
 			for (PidType ps : patientDataResponse.getPatientData().getPidSet().getPid()){
-				if (this.sourceWhiteList.contains(ps.getPatientId().getSource())){
-					mrs.appendRow();
-					mrs.updateString("Patient Id", ps.getPatientId().getValue());
+				mrs.appendRow();
+				mrs.updateString("Patient Id", ps.getPatientId().getValue());
+				for (PidType.PatientMapId mapId : ps.getPatientMapId()){
+					if (mapSources.contains(mapId.getSource())){
+						mrs.updateString(mapId.getSource(), mapId.getValue());
+					}
 				}
 			}
 		}

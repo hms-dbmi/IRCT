@@ -15,7 +15,6 @@ public class I2B2XMLPatientMappingRI extends I2B2XMLResourceImplementation {
         return "i2b2XML_patientMapping";
     }
 
-    @Override
     public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
         if (!parameters.keySet().contains("sourceWhiteList")) {
             throw new ResourceInterfaceException("Missing ```sourceWhiteList``` parameter. It is mandatory");
