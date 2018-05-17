@@ -623,7 +623,6 @@ public class CRCCell extends Cell {
         FilterListType filterListType = pdoOF.createFilterListType();
         ilrt.setFilterList(filterListType);
         logger.debug("getPDOfromInputList() created FilterList");
-
         // this aliasMap is coming from the irct-cl level which contains all the select clauses (parsed)
         if (metaData != null && metaData.containsKey("aliasMap")) {
             select = OutputOptionSelectType.USING_FILTER_LIST;
@@ -651,11 +650,12 @@ public class CRCCell extends Cell {
                 panels.add(panelType);
             }
 
-			oolt.setConceptSetUsingFilterList(new OutputOptionType()
-					.setOnlykeys(false));
-			oolt.setModifierSetUsingFilterList(new OutputOptionType()
-					.setOnlykeys(true));
-
+            if(Boolean.parseBoolean(metaData.get("returnFullSet").toString())){
+				oolt.setConceptSetUsingFilterList(new OutputOptionType()
+						.setOnlykeys(false));
+				oolt.setModifierSetUsingFilterList(new OutputOptionType()
+						.setOnlykeys(true));
+			}
         } else {
             if (select == null)
                 select = OutputOptionSelectType.USING_INPUT_LIST;
@@ -663,26 +663,32 @@ public class CRCCell extends Cell {
         }
 
 
-        oolt.setObservationSet(new OutputOptionType()
-				.setOnlykeys(onlyKeys)
-				.setBlob(blob)
-				.setTechdata(techdata));
-
-
-        oolt.setPatientSet(new OutputOptionType()
-				.setOnlykeys(onlyKeys)
-				.setSelect(select));
-
-
-        oolt.setEventSet(new OutputOptionType()
+       oolt.setPidSet(new OutputOptionType()
 				.setOnlykeys(true)
 				.setSelect(select));
-        oolt.setPidSet(new OutputOptionType()
-				.setOnlykeys(true)
-				.setSelect(select));
-        oolt.setEidSet(new OutputOptionType()
-				.setOnlykeys(true)
-				.setSelect(select));
+
+		if(metaData == null || (metaData.containsKey("returnFullSet") && Boolean.parseBoolean(metaData.get("returnFullSet").toString()))){
+			oolt.setObservationSet(new OutputOptionType()
+					.setOnlykeys(onlyKeys)
+					.setBlob(blob)
+					.setTechdata(techdata));
+			oolt.setPidSet(new OutputOptionType()
+					.setOnlykeys(true)
+					.setSelect(select));
+			oolt.setPatientSet(new OutputOptionType()
+					.setOnlykeys(onlyKeys)
+					.setSelect(select));
+			oolt.setEventSet(new OutputOptionType()
+					.setOnlykeys(true)
+					.setSelect(select));
+		    oolt.setEidSet(new OutputOptionType()
+					.setOnlykeys(true)
+					.setSelect(select));
+		} else {
+			oolt.setPidSet(new OutputOptionType()
+					.setOnlykeys(true)
+					.setSelect(OutputOptionSelectType.USING_INPUT_LIST));
+		}
 
 
         logger.debug("getPDOfromInputList() create OutputOptionType");
