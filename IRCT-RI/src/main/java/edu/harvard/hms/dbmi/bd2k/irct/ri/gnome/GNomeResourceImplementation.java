@@ -29,6 +29,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.util.Utility;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -168,6 +169,7 @@ public class GNomeResourceImplementation implements
 
 	@Override
 	public Result runQuery(User user, Query query, Result result) {
+	    logger.debug("runQuery() starting.");
 
 		retrieveToken();
 		if (!isTokenExists()) {
@@ -182,6 +184,10 @@ public class GNomeResourceImplementation implements
 		result.setMessage("Started running the query.");
 
 		for (WhereClause whereClause : whereClauses) {
+
+		    // Get the remote endpoint and put it in the result metadata field, as the endpointType
+            String[] p = whereClause.getField().getPui().split("/");
+            String endpointname = p[p.length-1];
 
 			// http request
 			String urlString = resourceRootURL + Utility.getURLFromPui(whereClause.getField().getPui(),resourceName);
@@ -206,7 +212,7 @@ public class GNomeResourceImplementation implements
 				post.setEntity(new StringEntity(objectMapper
 						.writeValueAsString(objectNode), ContentType.APPLICATION_JSON));
 			} catch (JsonProcessingException ex) {
-				logger.error("gNome - Error when generating Json post body: " + ex.getMessage());
+				logger.error("runQuery() gNome - Error when generating Json post body: " + ex.getMessage());
 			}
 
 			CloseableHttpResponse response = null;
@@ -216,12 +222,35 @@ public class GNomeResourceImplementation implements
 				result.setResultStatus(ResultStatus.RUNNING);
 
 				response = client.execute(post);
+
+				// Add error handling if the remote system does not respond with a 200 status code.
+				if (response.getStatusLine().getStatusCode()!=200) {
+				    logger.error("runQuery() the remote system responded with a non 200 status code.");
+				    result.setResultStatus(ResultStatus.ERROR);
+				    result.setMessage(response.getStatusLine().getReasonPhrase());
+				    return result;
+                }
 				HttpEntity entity = response.getEntity();
 
-				// parsing data
-				parseData(result, objectMapper
-						.readTree(entity
-						.getContent()));
+				// PICSURE-79 Special handing for subset endpoint. It does NOT create a `matrix` field in the
+                // response, so we have to parse it differently
+                if (endpointname.equalsIgnoreCase("subset_api.cgi")) {
+                    // In the old days, GNOME would return a `status` field and a `matrix` field. and it would get returned to
+                    // the requestor,
+                    // in case there was no parsing of the response. As a fallback. This is NOT true for some endpoints, which
+                    // require some special handling, and ignoring whether the "status" field returns anything
+                    FileResultSet frs = (FileResultSet) result.getData();
+                    handleEndpointResponse(endpointname,objectMapper
+                            .readTree(entity
+                                    .getContent()),frs);
+                    result.setData(frs);
+
+                } else {
+                    // parsing data
+                    parseData(result, objectMapper
+                            .readTree(entity
+                                    .getContent()));
+                }
 
 				result.setResultStatus(ResultStatus.COMPLETE);
 				result.setMessage("Finished parsing data from gNome");
@@ -253,65 +282,104 @@ public class GNomeResourceImplementation implements
 
 
 		}
-
 		return result;
 	}
 
+	private void handleEndpointResponse(String endpointName, JsonNode endpointResponse, FileResultSet frs) {
+	    logger.debug("handleEndpointResponse() starting...");
+
+        logger.debug("handleEndpointResponse() processing:"+endpointName);
+        switch (endpointName) {
+            case "subset_api.cgi":
+                try {
+                    frs.appendColumn(new Column("subset_type", PrimitiveDataType.STRING));
+                    frs.appendColumn(new Column("subset_name", PrimitiveDataType.STRING));
+                    frs.appendRow();
+                    frs.updateString("subset_type", "A");
+                    frs.updateString("subset_name", endpointResponse.get("project_type_A").asText());
+                    frs.appendRow();
+                    frs.updateString("subset_type", "B");
+                    frs.updateString("subset_name", endpointResponse.get("project_type_B").asText());
+                } catch (ResultSetException e) {
+                    e.printStackTrace();
+                } catch (PersistableException e) {
+                    e.printStackTrace();
+                }
+                break;
+            default:
+                try {
+                    frs.appendColumn(new Column("status", PrimitiveDataType.STRING));
+                    frs.appendColumn(new Column("message", PrimitiveDataType.STRING));
+                    frs.appendRow();
+                    frs.updateString("status", "error");
+                    frs.updateString("message", "Unknown endpoint '"+endpointName+"', the response from remote datasource is not handled.");
+                } catch (ResultSetException e) {
+                    e.printStackTrace();
+                } catch (PersistableException e) {
+                    e.printStackTrace();
+                }
+        }
+    }
+
 	private void parseData(Result result, JsonNode responseJsonNode)
 			throws PersistableException, ResultSetException{
+		logger.debug("parseData() starting...");
+
 		FileResultSet frs = (FileResultSet) result.getData();
 
-		String responseStatus = responseJsonNode.get("status").textValue();
+        logger.debug("parseData() parsing response with `status` field in it.");
+        // This is the original handling, when a so called `matrix` datastructure is returned.
+        String responseStatus = responseJsonNode.get("status").textValue();
 
-		JsonNode matrixNode = responseJsonNode.get("matrix");
-		if (responseStatus.equalsIgnoreCase("success")){
-			if (!matrixNode.getNodeType().equals(JsonNodeType.ARRAY)
-					|| !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
-				String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
-				result.setMessage(errorMessage);
-				throw new PersistableException(errorMessage);
-			}
+        JsonNode matrixNode = responseJsonNode.get("matrix");
+        logger.debug("parseData() parsing `matrix` object of the response.");
+            if (responseStatus.equalsIgnoreCase("success")){
+                if (!matrixNode.getNodeType().equals(JsonNodeType.ARRAY)
+                        || !matrixNode.get(0).getNodeType().equals(JsonNodeType.ARRAY)){
+                    String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
+                    result.setMessage(errorMessage);
+                    throw new PersistableException(errorMessage);
+                }
 
-			// append columns
-			for (JsonNode innerJsonNode : matrixNode.get(0)){
-				if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
-					String errorMessage = "Cannot parse response JSON from gnome: expecting a String in header array";
-					result.setMessage(errorMessage);
-					throw new PersistableException(errorMessage);
-				}
+                // append columns
+                for (JsonNode innerJsonNode : matrixNode.get(0)){
+                    if (!innerJsonNode.getNodeType().equals(JsonNodeType.STRING)){
+                        String errorMessage = "Cannot parse response JSON from gnome: expecting a String in header array";
+                        result.setMessage(errorMessage);
+                        throw new PersistableException(errorMessage);
+                    }
 
-				// how can I know what datatype it is for now?... just set it primitive string...
-				frs.appendColumn(new Column(innerJsonNode.textValue(), PrimitiveDataType.STRING));
-			}
+                    // how can I know what datatype it is for now?... just set it primitive string...
+                    frs.appendColumn(new Column(innerJsonNode.textValue(), PrimitiveDataType.STRING));
+                }
 
-			// append rows
-			for (int i = 1; i < matrixNode.size(); i++){
-				JsonNode jsonNode = matrixNode.get(i);
-				if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
-					String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
-					result.setMessage(errorMessage);
-					throw new PersistableException(errorMessage);
-				}
+                // append rows
+                for (int i = 1; i < matrixNode.size(); i++){
+                    JsonNode jsonNode = matrixNode.get(i);
+                    if (!jsonNode.getNodeType().equals(JsonNodeType.ARRAY)){
+                        String errorMessage = "Cannot parse response JSON from gnome: expecting an 2D array";
+                        result.setMessage(errorMessage);
+                        throw new PersistableException(errorMessage);
+                    }
 
-				frs.appendRow();
+                    frs.appendRow();
 
-				for (int j = 0; j<jsonNode.size(); j++){
-					// column datatype could be reset here by checking the json NodeType,
-					// but no PrimitiveDataType.NUMBER implemented yet, can't efficiently separate
-					// integer, double, just store everything as STRING for now
-					frs.updateString(frs.getColumn(j).getName(),
-							jsonNode.get(j).asText());
-				}
+                    for (int j = 0; j<jsonNode.size(); j++){
+                        // column datatype could be reset here by checking the json NodeType,
+                        // but no PrimitiveDataType.NUMBER implemented yet, can't efficiently separate
+                        // integer, double, just store everything as STRING for now
+                        frs.updateString(frs.getColumn(j).getName(),
+                                jsonNode.get(j).asText());
+                    }
 
-			}
-		} else {
-			frs.appendColumn(new Column("status", PrimitiveDataType.STRING));
-			frs.appendColumn(new Column("message", PrimitiveDataType.STRING));
-
-			frs.appendRow();
-			frs.updateString("status", responseStatus);
-			frs.updateString("message", responseJsonNode.get("message").textValue());
-		}
+                }
+            } else {
+                frs.appendColumn(new Column("status", PrimitiveDataType.STRING));
+                frs.appendColumn(new Column("message", PrimitiveDataType.STRING));
+                frs.appendRow();
+                frs.updateString("status", responseStatus);
+                frs.updateString("message", responseJsonNode.get("message").textValue());
+            }
 
 		result.setData(frs);
 	}
@@ -349,7 +417,8 @@ public class GNomeResourceImplementation implements
 				new Entity("/" + resourceName + "/analyze_variants_rest.cgi", "For variants analyze"));
 		entities.add(
 				new Entity("/" + resourceName + "/query_rest.cgi", "Query rest api for both genes and variants"));
-
+		entities.add(
+				new Entity( "/" + resourceName + "/subset_api.cgi", "Return subset ID for a given list of patient IDs"));
 
 		return entities;
 	}
