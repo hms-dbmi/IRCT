@@ -29,7 +29,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import edu.harvard.hms.dbmi.bd2k.util.Utility;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -225,7 +224,8 @@ public class GNomeResourceImplementation implements
 
 				// Add error handling if the remote system does not respond with a 200 status code.
 				if (response.getStatusLine().getStatusCode()!=200) {
-				    logger.error("runQuery() the remote system responded with a non 200 status code.");
+				    logger.error("runQuery() the remote system responded with a non 200 status code, the response content is: " +
+							EntityUtils.toString(response.getEntity()));
 				    result.setResultStatus(ResultStatus.ERROR);
 				    result.setMessage(response.getStatusLine().getReasonPhrase());
 				    return result;

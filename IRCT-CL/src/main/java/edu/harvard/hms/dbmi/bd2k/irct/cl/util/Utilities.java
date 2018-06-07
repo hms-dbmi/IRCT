@@ -7,9 +7,9 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.harvard.hms.dbmi.bd2k.irct.exception.ApplicationException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
@@ -24,10 +24,8 @@ import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A collection of static methods that provide shared functionality throughout
@@ -214,6 +212,15 @@ public class Utilities {
 	 */
 	public static String extractUserFromTokenIntrospection(HttpServletRequest req, String userField, String token_introspection_url, String token_introspection_token)
 			throws IOException {
+		logger.debug("TokenIntrospection - extractUserFromTokenIntrospection() starting...");
+
+		if (token_introspection_url.isEmpty())
+			throw new ApplicationException("token_introspection_url is empty");
+
+		if (token_introspection_token.isEmpty()){
+			throw new ApplicationException("token_introspection_token is empty");
+		}
+
 		ObjectMapper json = new ObjectMapper();
 		HttpClient client = HttpClients.createDefault();
 		HttpPost post = new HttpPost(token_introspection_url);
