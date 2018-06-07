@@ -39,7 +39,10 @@ public class SecurityController implements Serializable{
 	 */
 	public User ensureUserExists(String userId) {
 		logger.info("ensureUserExists() Starting " + userId);
-		
+		if (userId == null){
+			logger.error("ensureUserExists() userId is null");
+			return null;
+		}
 
 		User user;
 		try{
