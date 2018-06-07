@@ -53,9 +53,9 @@ public class SessionFilter implements Filter {
             ctx.close();
         } catch (NamingException e) {
             verify_user_method = "sessionFilter";
-            return;
         }
 
+		logger.info("verify_user_method setup as: " + verify_user_method);
     }
 
 	@Override
@@ -144,6 +144,17 @@ public class SessionFilter implements Filter {
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+e.getChallenges()+"\"}";
 
 				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+				res.setContentType("application/json");
+				res.getOutputStream()
+						.write(errorMessage.getBytes());
+				res.getOutputStream().close();
+				return;
+			} catch (Exception e) {
+				logger.error("doFilter() "+e.getMessage());
+
+				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+ e.getClass().getName() + " " +e.getMessage()+"\"}";
+
+				((HttpServletResponse) res).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				res.setContentType("application/json");
 				res.getOutputStream()
 						.write(errorMessage.getBytes());
