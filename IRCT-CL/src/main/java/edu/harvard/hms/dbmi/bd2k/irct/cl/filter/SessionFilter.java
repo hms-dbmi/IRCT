@@ -132,7 +132,7 @@ public class SessionFilter implements Filter {
 					sc.updateUserRecord(user);
 				}
 				logger.debug("doFilter() User(token:"+user.getToken()+")");
-				
+
 				session.setAttribute("user", user);
 				req.setAttribute("user", user);
 
@@ -151,6 +151,8 @@ public class SessionFilter implements Filter {
 				return;
 			} catch (Exception e) {
 				logger.error("doFilter() "+e.getMessage());
+
+				e.printStackTrace();
 
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+ e.getClass().getName() + " " +e.getMessage()+"\"}";
 
