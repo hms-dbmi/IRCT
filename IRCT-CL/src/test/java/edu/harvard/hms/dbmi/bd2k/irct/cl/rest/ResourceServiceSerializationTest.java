@@ -3,36 +3,26 @@ package edu.harvard.hms.dbmi.bd2k.irct.cl.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.DataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.JoinType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.PredicateType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SelectOperationType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.SortOperationType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Field;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.LogicalOperator;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ProcessType;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.Resource;
+import edu.harvard.hms.dbmi.bd2k.irct.model.resource.*;
 import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationReturnType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.visualization.VisualizationType;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.exac.EXACOntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2transmart.I2B2TranSMARTResourceImplementation;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.*;
+
 import static java.util.Collections.binarySearch;
+import static org.junit.Assert.*;
 
 public class ResourceServiceSerializationTest {
 
@@ -170,7 +160,7 @@ public class ResourceServiceSerializationTest {
 		visualizationType.setName("viz name");
 		visualizationType.setReturns(VisualizationReturnType.HTML);
 		r.setSupportedVisualizations(ImmutableList.of(visualizationType));
-		ObjectMapper mapper = new ObjectMapper();
+		ObjectMapper mapper = IRCTApplication.objectMapper;
 		serializedResource = mapper.writeValueAsString(r);
 		deserializedResource = mapper.readValue(serializedResource, Map.class);	
 	}
