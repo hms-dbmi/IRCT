@@ -9,6 +9,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ApplicationException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
@@ -17,6 +18,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -221,7 +223,7 @@ public class Utilities {
 			throw new ApplicationException("token_introspection_token is empty");
 		}
 
-		ObjectMapper json = new ObjectMapper();
+		ObjectMapper json = IRCTApplication.objectMapper;
 		HttpClient client = HttpClients.createDefault();
 		HttpPost post = new HttpPost(token_introspection_url);
 		String token = extractToken(req);
@@ -233,13 +235,15 @@ public class Utilities {
 		post.setHeader("Authorization", "Bearer " + token_introspection_token);
 		HttpResponse response = client.execute(post);
 		if (response.getStatusLine().getStatusCode() != 200){
-			throw new RuntimeException("Server Error");
+			logger.error("extractUserFromTokenIntrospection() error back from token intro host server ["
+					+ token_introspection_url + "]: " + EntityUtils.toString(response.getEntity()));
+			throw new ApplicationException("Token Introspection host server return non 200 error. Please see the log");
 		}
-		JsonNode responseMessage = json.readTree(response.getEntity().getContent());
-		if (!responseMessage.get("active").asBoolean()){
+		JsonNode responseContent = json.readTree(response.getEntity().getContent());
+		if (!responseContent.get("active").asBoolean()){
 			throw new NotAuthorizedException("Token invalid or expired");
 		}
 
-		return responseMessage.get(userField) != null ? responseMessage.get(userField).asText() : null;
+		return responseContent.get(userField) != null ? responseContent.get(userField).asText() : null;
 	}
 }

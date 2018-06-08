@@ -62,6 +62,12 @@ public class IRCTApplication {
 	private Map<String, IRCTJoin> supportedJoinTypes;
 	private Map<ResultDataType, List<DataConverterImplementation>> resultDataConverters;
 
+	// token introspection configuration parameters
+	private String verify_user_method;
+	private String token_introspection_url;
+	private String token_introspection_token;
+
+
 	// keep objectMapper final
 	public static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -122,7 +128,12 @@ public class IRCTApplication {
 		logger.info("Loading Whitelists");
 		loadWhiteLists();
 		logger.info("Finihsed loading whitelists");
-		
+
+		logger.info("Loading Token Introspection Conf");
+		loadTokenIntrospection();
+		logger.info("Finished loading token Introspection Conf");
+
+
 		logger.info("Finished Starting IRCT Application");
 	}
 
@@ -467,6 +478,21 @@ public class IRCTApplication {
 		}
 	}
 
+	private void loadTokenIntrospection(){
+		try {
+			Context ctx = new InitialContext();
+			verify_user_method = (String) ctx.lookup("global/verify_user_method");
+			token_introspection_url = (String) ctx.lookup("global/token_introspection_url");
+			token_introspection_token = (String) ctx.lookup("global/token_introspection_token");
+			ctx.close();
+		} catch (NamingException e) {
+			verify_user_method = "sessionFilter";
+		}
+
+		logger.info("verify_user_method setup as: " + verify_user_method);
+	}
+
+
 	/**
 	 * Get the name of the result data folder
 	 *
@@ -498,4 +524,15 @@ public class IRCTApplication {
 		return whitelistEnabled;
 	}
 
+	public String getVerify_user_method() {
+		return verify_user_method;
+	}
+
+	public String getToken_introspection_url() {
+		return token_introspection_url;
+	}
+
+	public String getToken_introspection_token() {
+		return token_introspection_token;
+	}
 }

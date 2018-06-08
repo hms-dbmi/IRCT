@@ -10,9 +10,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
@@ -36,26 +33,12 @@ public class SessionFilter implements Filter {
 	private String clientSecret;
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
-    private String verify_user_method;
-    private String token_introspection_url;
-	private String token_introspection_token;
 
 	@Inject
 	private SecurityController sc;
 
 	@Override
-	public void init(FilterConfig fliterConfig) throws ServletException {
-        try {
-            Context ctx = new InitialContext();
-            verify_user_method = (String) ctx.lookup("global/verify_user_method");
-            token_introspection_url = (String) ctx.lookup("global/token_introspection_url");
-            token_introspection_token = (String) ctx.lookup("global/token_introspection_token");
-            ctx.close();
-        } catch (NamingException e) {
-            verify_user_method = "sessionFilter";
-        }
-
-		logger.info("verify_user_method setup as: " + verify_user_method);
+	public void init(FilterConfig fliterConfig){
     }
 
 	@Override
@@ -99,9 +82,9 @@ public class SessionFilter implements Filter {
 					if (user == null
 							|| user.getToken() == null
 							|| !user.getToken().equals(tokenString))
-					    if ("tokenIntrospection".equals(verify_user_method)){
+					    if ("tokenIntrospection".equals(irctApp.getVerify_user_method())){
                             //Get information from token introspection endpoint in 2.0
-                            user = sc.ensureUserExists(Utilities.extractUserFromTokenIntrospection((HttpServletRequest) req, this.userField, token_introspection_url, token_introspection_token));
+                            user = sc.ensureUserExists(Utilities.extractUserFromTokenIntrospection((HttpServletRequest) req, this.userField, irctApp.getToken_introspection_url(), irctApp.getToken_introspection_token()));
                         } else{
     						user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, this.clientSecret, this.userField));
                         }
@@ -132,7 +115,7 @@ public class SessionFilter implements Filter {
 					sc.updateUserRecord(user);
 				}
 				logger.debug("doFilter() User(token:"+user.getToken()+")");
-				
+
 				session.setAttribute("user", user);
 				req.setAttribute("user", user);
 
@@ -151,6 +134,8 @@ public class SessionFilter implements Filter {
 				return;
 			} catch (Exception e) {
 				logger.error("doFilter() "+e.getMessage());
+
+				e.printStackTrace();
 
 				String errorMessage = "{\"status\":\"error\",\"message\":\"Could not establish the user identity from request headers. "+ e.getClass().getName() + " " +e.getMessage()+"\"}";
 
