@@ -64,9 +64,13 @@ public class IRCTApplication {
 
 	// token introspection configuration parameters
 	private String verify_user_method;
+	public static final String VERIFY_METHOD_SESSION_FILETER="sessionFilter";
+	public static final String VERIFY_METHOD_TOKEN_INTRO="tokenIntro";
 	private String token_introspection_url;
 	private String token_introspection_token;
 
+	// client secret and userField related to sessionFilter
+	private String clientSecret;
 
 	// keep objectMapper final
 	public static final ObjectMapper objectMapper = new ObjectMapper();
@@ -96,16 +100,32 @@ public class IRCTApplication {
 				.build();
 	}
 
-
-
 	/**
 	 * Initiates the IRCT Application and loading of the joins, resources, and
 	 * predicates.
 	 *
 	 */
 	@PostConstruct
-	public void init() {
+	public void init() throws NamingException{
 		logger.info("Starting IRCT Application");
+
+		/********************************************************/
+		/********************************************************/
+		logger.info("Loading Token Introspection Conf");
+		loadTokenIntrospection();
+		logger.info("Finished loading token Introspection Conf");
+		/********************************************************/
+		/***********************Notice***************************/
+		//loading client secret has logic dependent on loading token introspection
+		//so please put loadTokenIntrospection() before loadClientSecret()
+		/********************************************************/
+		/********************************************************/
+		logger.info("Loading client secret");
+		loadClientSecret();
+		logger.info("Finished loading client secret");
+		/********************************************************/
+		/********************************************************/
+
 		this.oem = objectEntityManager.createEntityManager();
 		this.oem.setFlushMode(FlushModeType.COMMIT);
 
@@ -128,11 +148,6 @@ public class IRCTApplication {
 		logger.info("Loading Whitelists");
 		loadWhiteLists();
 		logger.info("Finihsed loading whitelists");
-
-		logger.info("Loading Token Introspection Conf");
-		loadTokenIntrospection();
-		logger.info("Finished loading token Introspection Conf");
-
 
 		logger.info("Finished Starting IRCT Application");
 	}
@@ -253,6 +268,29 @@ public class IRCTApplication {
 			}
 		}
 		logger.info("loadResources() Loaded " + this.resources.size() + " resources");
+	}
+
+	private void loadTokenIntrospection(){
+		verify_user_method = VERIFY_METHOD_TOKEN_INTRO;
+		try {
+			Context ctx = new InitialContext();
+			verify_user_method = (String) ctx.lookup("global/verify_user_method");
+			token_introspection_url = (String) ctx.lookup("global/token_introspection_url");
+			token_introspection_token = (String) ctx.lookup("global/token_introspection_token");
+			ctx.close();
+		} catch (NamingException e) {
+			verify_user_method = VERIFY_METHOD_SESSION_FILETER;
+		}
+
+		logger.info("verify_user_method setup as: " + verify_user_method);
+	}
+
+	private void loadClientSecret() throws NamingException{
+		if (!VERIFY_METHOD_SESSION_FILETER.equals(verify_user_method))
+			return;
+
+		Context ctx = new InitialContext();
+		clientSecret = (String) ctx.lookup("java:global/client_secret");
 	}
 	
 	/**
@@ -478,21 +516,6 @@ public class IRCTApplication {
 		}
 	}
 
-	private void loadTokenIntrospection(){
-		try {
-			Context ctx = new InitialContext();
-			verify_user_method = (String) ctx.lookup("global/verify_user_method");
-			token_introspection_url = (String) ctx.lookup("global/token_introspection_url");
-			token_introspection_token = (String) ctx.lookup("global/token_introspection_token");
-			ctx.close();
-		} catch (NamingException e) {
-			verify_user_method = "sessionFilter";
-		}
-
-		logger.info("verify_user_method setup as: " + verify_user_method);
-	}
-
-
 	/**
 	 * Get the name of the result data folder
 	 *
@@ -534,5 +557,9 @@ public class IRCTApplication {
 
 	public String getToken_introspection_token() {
 		return token_introspection_token;
+	}
+
+	public String getClientSecret() {
+		return clientSecret;
 	}
 }
