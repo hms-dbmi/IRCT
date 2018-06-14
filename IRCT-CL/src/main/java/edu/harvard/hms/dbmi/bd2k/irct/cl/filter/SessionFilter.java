@@ -80,7 +80,7 @@ public class SessionFilter implements Filter {
 					if (user == null
 							|| user.getToken() == null
 							|| !user.getToken().equals(tokenString))
-					    if (IRCTApplication.VERIFY_METHOD_TOKEN_INTRO.equals(irctApp.getVerify_user_method())){
+					    if (!IRCTApplication.VERIFY_METHOD_SESSION_FILETER.equals(irctApp.getVerify_user_method())){
                             //Get information from token introspection endpoint in 2.0
                             user = sc.ensureUserExists(Utilities.extractUserFromTokenIntrospection((HttpServletRequest) req, this.userField, irctApp.getToken_introspection_url(), irctApp.getToken_introspection_token()));
                         } else{
