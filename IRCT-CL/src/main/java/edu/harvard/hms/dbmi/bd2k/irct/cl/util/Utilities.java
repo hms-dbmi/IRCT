@@ -13,11 +13,10 @@ import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ApplicationException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
@@ -224,7 +223,7 @@ public class Utilities {
 		}
 
 		ObjectMapper json = IRCTApplication.objectMapper;
-		HttpClient client = HttpClients.createDefault();
+		CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 		HttpPost post = new HttpPost(token_introspection_url);
 		String token = extractToken(req);
 		Map<String, String> tokenMap = new HashMap<String, String>();
@@ -233,17 +232,31 @@ public class Utilities {
 		post.setHeader("Content-Type", "application/json");
 		//Authorize into the token introspection endpoint
 		post.setHeader("Authorization", "Bearer " + token_introspection_token);
-		HttpResponse response = client.execute(post);
-		if (response.getStatusLine().getStatusCode() != 200){
-			logger.error("extractUserFromTokenIntrospection() error back from token intro host server ["
-					+ token_introspection_url + "]: " + EntityUtils.toString(response.getEntity()));
-			throw new ApplicationException("Token Introspection host server return non 200 error. Please see the log");
-		}
-		JsonNode responseContent = json.readTree(response.getEntity().getContent());
-		if (!responseContent.get("active").asBoolean()){
-			throw new NotAuthorizedException("Token invalid or expired");
+		CloseableHttpResponse response = null;
+		try {
+			response = client.execute(post);
+			if (response.getStatusLine().getStatusCode() != 200){
+				logger.error("extractUserFromTokenIntrospection() error back from token intro host server ["
+						+ token_introspection_url + "]: " + EntityUtils.toString(response.getEntity()));
+				throw new ApplicationException("Token Introspection host server return non 200 error. Please see the log");
+			}
+			JsonNode responseContent = json.readTree(response.getEntity().getContent());
+			if (!responseContent.get("active").asBoolean()){
+				throw new NotAuthorizedException("Token invalid or expired");
+			}
+			return responseContent.get(userField) != null ? responseContent.get(userField).asText() : null;
+		} catch (IOException ex){
+			logger.error("extractUserFromTokenIntrospection() IOException when hitting url: " + post
+					+ " with exception msg: " + ex.getMessage());
+		} finally {
+			try {
+				if (response != null)
+					response.close();
+			} catch (IOException ex) {
+				logger.error("extractUserFromTokenIntrospection() IOExcpetion when closing http response: " + ex.getMessage());
+			}
 		}
 
-		return responseContent.get(userField) != null ? responseContent.get(userField).asText() : null;
+		return null;
 	}
 }
