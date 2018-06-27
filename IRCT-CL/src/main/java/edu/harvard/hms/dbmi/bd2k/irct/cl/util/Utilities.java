@@ -253,7 +253,7 @@ public class Utilities {
 				if (response != null)
 					response.close();
 			} catch (IOException ex) {
-				logger.error("GNOME - IOExcpetion when closing http response: " + ex.getMessage());
+				logger.error("extractUserFromTokenIntrospection() IOExcpetion when closing http response: " + ex.getMessage());
 			}
 		}
 
