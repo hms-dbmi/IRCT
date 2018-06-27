@@ -13,6 +13,8 @@ import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ApplicationException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -224,7 +226,16 @@ public class Utilities {
 
 		ObjectMapper json = IRCTApplication.objectMapper;
 		CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
-		HttpPost post = new HttpPost(token_introspection_url);
+
+		String[] token_intro_urlArray = token_introspection_url.substring(8).split("/");
+		HttpHost target = new HttpHost(token_intro_urlArray[0], 443, "https");
+		HttpHost proxy = new HttpHost("bmiproxyp.chmcres.cchmc.org", 80, "http");
+		RequestConfig requestConfig = RequestConfig.custom()
+				.setProxy(proxy).build();
+
+		HttpPost post = new HttpPost(token_introspection_url.substring(8+token_intro_urlArray[0].length()));
+		post.setConfig(requestConfig);
+
 		String token = extractToken(req);
 		Map<String, String> tokenMap = new HashMap<String, String>();
 		tokenMap.put("token", token);
@@ -234,7 +245,7 @@ public class Utilities {
 		post.setHeader("Authorization", "Bearer " + token_introspection_token);
 		CloseableHttpResponse response = null;
 		try {
-			response = client.execute(post);
+			response = client.execute(target, post);
 			if (response.getStatusLine().getStatusCode() != 200){
 				logger.error("extractUserFromTokenIntrospection() error back from token intro host server ["
 						+ token_introspection_url + "]: " + EntityUtils.toString(response.getEntity()));
