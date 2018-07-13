@@ -16,6 +16,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.util.Utilities;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.impl.conn.SystemDefaultRoutePlanner;
 import org.apache.log4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -38,6 +39,7 @@ import javax.persistence.criteria.Root;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.ProxySelector;
 import java.util.*;
 
 /**
@@ -96,7 +98,12 @@ public class IRCTApplication {
 	static {
 		HTTP_CLIENT_CONNECTION_MANAGER = new PoolingHttpClientConnectionManager();
 		HTTP_CLIENT_CONNECTION_MANAGER.setMaxTotal(100);
-		CLOSEABLE_HTTP_CLIENT = HttpClients.custom().setConnectionManager(HTTP_CLIENT_CONNECTION_MANAGER)
+		CLOSEABLE_HTTP_CLIENT = HttpClients
+				.custom()
+				.setConnectionManager(HTTP_CLIENT_CONNECTION_MANAGER)
+				.setRoutePlanner(
+						new SystemDefaultRoutePlanner(ProxySelector
+								.getDefault()))
 				.build();
 	}
 
