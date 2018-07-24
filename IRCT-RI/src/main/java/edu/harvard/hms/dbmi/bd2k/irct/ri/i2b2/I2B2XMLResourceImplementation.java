@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
+import com.sun.org.apache.xerces.internal.dom.TextImpl;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByOntology;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindByPath;
@@ -27,6 +29,7 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.inner.ElementData;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateTimeType;
@@ -62,6 +65,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 import org.apache.log4j.Logger;
+import org.w3c.dom.Node;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -228,7 +232,9 @@ public class I2B2XMLResourceImplementation
 						basePath = pathComponents[0] + "/" + pathComponents[1] + "/" + pathComponents[2];
 
 						conceptsType = ontCell.getChildren(client, myPath, false, true, false, -1, "core");
-
+						for (ConceptType conceptType : conceptsType.getConcept()){
+							exposeMetadataxml(conceptType);
+						}
 					}
 					// Convert ConceptsType to Entities
 					entities = convertConceptsTypeToEntities(basePath, conceptsType);
@@ -274,6 +280,40 @@ public class I2B2XMLResourceImplementation
 			throw new ResourceInterfaceException(e.getMessage());
 		}
 		return entities;
+	}
+
+	private void exposeMetadataxml(ConceptType conceptType){
+		if (conceptType == null || conceptType.getMetadataxml() == null)
+			return;
+
+		ElementData elementData = new ElementData();
+//		conceptType.getMetadataxml().getAny().add(elementData);
+//		for (Element metadataElement: conceptType.getMetadataxml().getAny()){
+//			if (metadataElement instanceof ElementNSImpl){
+//				convertElementToMap((ElementNSImpl) metadataElement, elementData.getData());
+//
+//			}
+//		}
+	}
+
+	private void convertElementToMap(ElementNSImpl metadataElement, Map<String, Object> metadataElementMap){
+		String localName = metadataElement.getLocalName();
+		Node firstChild = metadataElement.getFirstChild();
+
+		if (firstChild instanceof ElementNSImpl){
+			Map<String, Object> innerMap = new HashMap<>();
+			metadataElementMap.put(localName, innerMap);
+			convertElementToMap((ElementNSImpl) firstChild, innerMap);
+		}
+
+		if (firstChild instanceof TextImpl) {
+			metadataElementMap.put(localName, ((TextImpl)firstChild).getData());
+		}
+
+		Node nextSibling = metadataElement.getNextSibling();
+		if (nextSibling != null && nextSibling instanceof ElementNSImpl) {
+			convertElementToMap((ElementNSImpl) nextSibling, metadataElementMap);
+		}
 	}
 
 	@Override
@@ -1448,4 +1488,6 @@ public class I2B2XMLResourceImplementation
 
         return singleReturnMyPath;
     }
+
+
 }

@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.i2b2.api.ont.xml;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.w3c.dom.Element;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAnyElement;
 import javax.xml.bind.annotation.XmlType;
-import org.w3c.dom.Element;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -37,7 +38,7 @@ import org.w3c.dom.Element;
 })
 public class XmlValueType {
 
-    @XmlAnyElement
+    @XmlAnyElement(lax = true)
     protected List<Element> any;
 
     /**

@@ -108,8 +108,6 @@
 						<configuration>
 							<includeScope>runtime</includeScope>
 							<outputDirectory>${project.build.directory}/dependency-jars/</outputDirectory>
-							<source>1.7</source>
-							<target>1.7</target>
 						</configuration>
 					</execution>
 				</executions>
