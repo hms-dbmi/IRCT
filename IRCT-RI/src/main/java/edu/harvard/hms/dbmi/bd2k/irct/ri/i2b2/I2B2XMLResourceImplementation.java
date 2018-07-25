@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 import com.sun.org.apache.xerces.internal.dom.TextImpl;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
@@ -29,7 +31,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.result.exception.ResultSetException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.Column;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.tabular.FileResultSet;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
-import edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.inner.ElementData;
 import edu.harvard.hms.dbmi.i2b2.api.crc.CRCCell;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.pdo.*;
 import edu.harvard.hms.dbmi.i2b2.api.crc.xml.psm.ConstrainDateTimeType;
@@ -65,6 +66,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 import org.apache.log4j.Logger;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -287,13 +289,18 @@ public class I2B2XMLResourceImplementation
 			return;
 
 		ElementData elementData = new ElementData();
-//		conceptType.getMetadataxml().getAny().add(elementData);
-//		for (Element metadataElement: conceptType.getMetadataxml().getAny()){
-//			if (metadataElement instanceof ElementNSImpl){
-//				convertElementToMap((ElementNSImpl) metadataElement, elementData.getData());
-//
-//			}
-//		}
+		for (Element metadataElement: conceptType.getMetadataxml().getAny()){
+			if (metadataElement instanceof ElementNSImpl){
+				convertElementToMap((ElementNSImpl) metadataElement, elementData.data);
+			} else {
+				// this part has not been tested
+				elementData.data.put(metadataElement.getClass().getSimpleName(), metadataElement);
+			}
+		}
+		conceptType.setMetadataxml(elementData
+				.cleanData());
+
+
 	}
 
 	private void convertElementToMap(ElementNSImpl metadataElement, Map<String, Object> metadataElementMap){
@@ -301,7 +308,7 @@ public class I2B2XMLResourceImplementation
 		Node firstChild = metadataElement.getFirstChild();
 
 		if (firstChild instanceof ElementNSImpl){
-			Map<String, Object> innerMap = new HashMap<>();
+			Map<String, Object> innerMap = new LinkedHashMap<>();
 			metadataElementMap.put(localName, innerMap);
 			convertElementToMap((ElementNSImpl) firstChild, innerMap);
 		}
@@ -1209,7 +1216,7 @@ public class I2B2XMLResourceImplementation
 				}
 			}
 
-			Map<String, String> attributes = new HashMap<String, String>();
+			Map<String, Object> attributes = new HashMap<String, Object>();
 			attributes.put("level", Integer.toString(concept.getLevel()));
 			attributes.put("key", concept.getKey());
 			attributes.put("name", concept.getName());
@@ -1218,6 +1225,10 @@ public class I2B2XMLResourceImplementation
 			attributes.put("visualattributes", concept.getVisualattributes());
 			if (concept.getTotalnum() != null) {
 				attributes.put("totalnum", concept.getTotalnum().toString());
+			}
+
+			if (concept.getMetadataxml() instanceof ElementData){
+				attributes.put("metadataxml", ((ElementData) concept.getMetadataxml()).data);
 			}
 
 			attributes.put("facttablecolumn", concept.getFacttablecolumn());
@@ -1241,6 +1252,9 @@ public class I2B2XMLResourceImplementation
 				attributes.put("modifier.synonymCd", modifier.getSynonymCd());
 				attributes.put("modifier.totalnum", modifier.getTotalnum().toString());
 				attributes.put("modifier.basecode", modifier.getBasecode());
+				if (concept.getMetadataxml() instanceof ElementData){
+					attributes.put("metadataxml", ((ElementData) concept.getMetadataxml()).data);
+				}
 				attributes.put("modifier.facttablecolumn", modifier.getFacttablecolumn());
 				attributes.put("modifier.tablename", modifier.getTablename());
 				attributes.put("modifier.columnname", modifier.getColumnname());
@@ -1275,7 +1289,7 @@ public class I2B2XMLResourceImplementation
 				returnEntity.setDataType(PrimitiveDataType.STRING);
 			}
 
-			Map<String, String> attributes = new HashMap<String, String>();
+			Map<String, Object> attributes = new HashMap<String, Object>();
 
 			attributes.put("appliedPath", modifier.getAppliedPath());
 			attributes.put("baseCode", modifier.getBasecode());
@@ -1452,7 +1466,7 @@ public class I2B2XMLResourceImplementation
         for(Entity entity : getPathRelationship(baseEntity, I2B2OntologyRelationship.CHILD, user)) {
 
             if(entity.getAttributes().containsKey("visualattributes")) {
-                String visualAttributes = entity.getAttributes().get("visualattributes");
+                String visualAttributes = (String)entity.getAttributes().get("visualattributes");
 
                 if(visualAttributes.startsWith("C") || visualAttributes.startsWith("F")) {
                     returns.putAll(getAllChildrenAsAliasMap(entity.getPui(), subPUI, compact, user));
@@ -1489,5 +1503,38 @@ public class I2B2XMLResourceImplementation
         return singleReturnMyPath;
     }
 
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public class ElementData extends edu.harvard.hms.dbmi.i2b2.api.ont.xml.XmlValueType {
+		Map<String, Object> data;
+
+		public ElementData(){
+			data = new LinkedHashMap<>();
+		}
+
+		@JsonAnyGetter
+		public Map<String, Object> getData() {
+			return data;
+		}
+
+		public ElementData cleanData(){
+			this.data = cleanMap(data);
+			return this;
+		}
+
+		private Map<String, Object> cleanMap(Map<String, Object> map){
+			Map<String, Object> cleanedMap = new LinkedHashMap<>();
+			for (Map.Entry<String, Object> entry : map.entrySet()){
+				if (entry.getValue() instanceof Map) {
+					if (((Map) entry.getValue()).isEmpty()){
+						continue;
+					}
+					cleanedMap.put(entry.getKey(), cleanMap((Map)entry.getValue()));
+				} else {
+					cleanedMap.put(entry.getKey(), entry.getValue());
+				}
+			}
+			return cleanedMap;
+		}
+	}
 
 }

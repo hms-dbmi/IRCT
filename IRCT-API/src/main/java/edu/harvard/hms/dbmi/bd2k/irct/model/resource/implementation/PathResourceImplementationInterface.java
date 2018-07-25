@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation;
 
-import java.util.List;
-
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
 import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
 import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
+
+import java.util.List;
 
 /**
  * Provides an implemntation that descripes tha API for any resource that has
@@ -25,7 +25,6 @@ public interface PathResourceImplementationInterface extends
 	 *            Path
 	 * @param relationship
 	 *            Relationships
-	 * @param session Secure Session
 	 * @return Paths
 	 * @throws ResourceInterfaceException
 	 *             A resource exception occurred
@@ -37,8 +36,7 @@ public interface PathResourceImplementationInterface extends
 	 * Given a path find all entities that match the finds
 	 * 
 	 * @param path Path
-	 * @param findInformation Information on find
-	 * @param session Session
+	 * @param findInformation Information on finds
 	 * @return Paths
 	 * @throws ResourceInterfaceException A resource exception occurred
 	 */
