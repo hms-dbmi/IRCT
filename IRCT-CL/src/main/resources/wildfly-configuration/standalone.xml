@@ -360,12 +360,12 @@
 				<!-- If any of these three are missing, the system will default to sessionFilter.
 				      token_introspection_url and token_introspection_token are only needed if verify_user_method is set to 'tokenIntrospection' -->
 				<simple name="java:global/verify_user_method" value="${env.VERIFY_USER_METHOD:sessionFilter}"/>
-				<simple name="java:global/token_introspection_url" value="${env.INTROSPECTION_URL}" />
-				<simple name="java:global/token_introspection_token" value="${env.INTROSPECTION_TOKEN}"/>
+				<simple name="java:global/token_introspection_url" value="${env.TOKEN_INTROSPECTION_URL}" />
+				<simple name="java:global/token_introspection_token" value="${env.TOKEN_INTROSPECTION_TOKEN}"/>
 
 				<!-- if don't need this whitelist functionality, just put false in the value field below.
 					currently only support absolute location -->
-				<simple name="java:global/whitelist_config_file" value="${env.WHITELIST_PATH}" />
+				<simple name="java:global/whitelist_config_file" value="${env.WHITELIST_CONFIG_FILE}" />
 			</bindings>
 			<remote-naming />
 		</subsystem>
