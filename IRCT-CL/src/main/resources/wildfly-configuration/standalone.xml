@@ -149,15 +149,13 @@
 						<password>sa</password>
 					</security>
 				</datasource>
-				<datasource jndi-name="java:jboss/datasources/irct-cl-DS"
-					pool-name="ComunicationLayerDS" use-java-context="true">
-					<connection-url>jdbc:mysql://localhost:3306/irct?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true&amp;autoReconnectForPools=true
-					</connection-url>
-					<driver>mysql</driver>
-					<security>
-						<user-name>irct</user-name>
-						<password>A VALID PASSWORD FOR YOUR LOCAL MYSQL USER IRCT</password>
-					</security>
+				<datasource jndi-name="java:jboss/datasources/irct-cl-DS" pool-name="ComunicationLayerDS" use-java-context="true">
+                    <connection-url>jdbc:mysql://${env.IRCT_DB_HOST}:${env.IRCT_DB_PORT:3306}/irct?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true&amp;autoReconnectForPools=true</connection-url>
+                    <driver>mysql</driver>
+                    <security>
+                        <user-name>${env.IRCT_DB_CONNECTION_USER}</user-name>
+                        <password>${env.IRCT_DB_PASSWORD}</password>
+                    </security>
 					<pool>
 						<min-pool-size>5</min-pool-size>
 						<max-pool-size>50</max-pool-size>
@@ -351,26 +349,23 @@
 		</subsystem>
 		<subsystem xmlns="urn:jboss:domain:naming:2.0">
 			<bindings>
-				<simple name="java:global/redirect_on_success"
-					value="/IRCT-UI/token.html" />
-				<simple name="java:global/domain"
-					value="avillachlab.auth0.com" />
-				<simple name="java:global/userField" value="email" />
-				<simple name="java:global/resultDataFolder"
-					value="scratch/irct" />
-				<simple name="java:global/client_secret" value="<Client Secret for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
-				<simple name="java:global/client_id" value="<Client ID for the i2b2/tranSmart resource you have configured in your local mysql for irct>" />
-				<simple name="java:global/KeyTimeOutInMinutes" value="720" />
+				<simple name="java:global/redirect_on_success" value="/IRCT-UI/token.html" />
+				<simple name="java:global/domain" value="${env.AUTH0_DOMAIN}"/>
+				<simple name="java:global/userField" value="${env.IRCT_USER_FIELD:email}"/>
+				<simple name="java:global/resultDataFolder" value="scratch/irct" />
+				<simple name="java:global/client_secret" value="${env.CLIENT_SECRET:dummysecret}"/>
+	            <simple name="java:global/client_id" value="${env.CLIENT_ID:dummyid}"/>
+	            <simple name="java:global/KeyTimeOutInMinutes" value="${env.IRCT_KEY_TIMEOUT_IN_MINUTES:720}"/>
 
 				<!-- If any of these three are missing, the system will default to sessionFilter.
 				      token_introspection_url and token_introspection_token are only needed if verify_user_method is set to 'tokenIntrospection' -->
-				<simple name="java:global/verify_user_method" value="<'tokenIntrospection' to use URL above, else 'sessionFilter' to use session filter to validate tokens>"/>
-				<simple name="java:global/token_introspection_url" value="<URL for the PICSURE-2.0 instance token introspection endpoint you wish to verify tokens>" />
-				<simple name="java:global/token_introspection_token" value="<token granting access to URL above>"/>
+				<simple name="java:global/verify_user_method" value="${env.VERIFY_USER_METHOD:sessionFilter}"/>
+				<simple name="java:global/token_introspection_url" value="${env.INTROSPECTION_URL}" />
+				<simple name="java:global/token_introspection_token" value="${env.INTROSPECTION_TOKEN}"/>
 
 				<!-- if don't need this whitelist functionality, just put false in the value field below.
 					currently only support absolute location -->
-				<simple name="java:global/whitelist_config_file" value="<Client whitelist config file location>" />
+				<simple name="java:global/whitelist_config_file" value="${env.WHITELIST_PATH}" />
 			</bindings>
 			<remote-naming />
 		</subsystem>
