@@ -364,7 +364,7 @@
 				<simple name="java:global/token_introspection_token" value="${env.TOKEN_INTROSPECTION_TOKEN}"/>
 
 				<!-- currently only supports absolute file path location -->
-				<simple name="java:global/whitelist_enabled" value="${env.WHITELIST_ENABLED:false}" />
+				<simple name="java:global/whitelist_enabled" value="${env.WHITELIST_ENABLED:false}" type="boolean" />
 				<simple name="java:global/whitelist_config_file" value="${env.WHITELIST_CONFIG_FILE}" />
 			</bindings>
 			<remote-naming />
