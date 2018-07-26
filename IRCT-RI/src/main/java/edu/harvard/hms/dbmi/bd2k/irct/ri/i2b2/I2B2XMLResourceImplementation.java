@@ -234,9 +234,6 @@ public class I2B2XMLResourceImplementation
 						basePath = pathComponents[0] + "/" + pathComponents[1] + "/" + pathComponents[2];
 
 						conceptsType = ontCell.getChildren(client, myPath, false, true, false, -1, "core");
-						for (ConceptType conceptType : conceptsType.getConcept()){
-							exposeMetadataxml(conceptType);
-						}
 					}
 					// Convert ConceptsType to Entities
 					entities = convertConceptsTypeToEntities(basePath, conceptsType);
@@ -299,7 +296,6 @@ public class I2B2XMLResourceImplementation
 		}
 		conceptType.setMetadataxml(elementData
 				.cleanData());
-
 
 	}
 
@@ -1197,6 +1193,7 @@ public class I2B2XMLResourceImplementation
 			throws UnsupportedEncodingException {
 		List<Entity> returns = new ArrayList<Entity>();
 		for (ConceptType concept : conceptsType.getConcept()) {
+			exposeMetadataxml(concept);
 			Entity returnEntity = new Entity();
 			returnEntity.setName(concept.getName());
 			String appendPath = converti2b2Path(concept.getKey());
