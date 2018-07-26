@@ -35,3 +35,5 @@
 .DS_Store
 
 src/main/.DS_Store
+/target/
+/wildfly*

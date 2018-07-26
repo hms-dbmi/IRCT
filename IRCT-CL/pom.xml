@@ -14,8 +14,9 @@
 	<description></description>
 
 	<properties>
+		<wildfly.dist>${project.basedir}</wildfly.dist>
 		<version.wildfly>9.0.1.Final</version.wildfly>
-		<jboss.home>${project.build.directory}/wildfly-${version.wildfly}</jboss.home>
+		<jboss.home>${wildfly.dist}/wildfly-${version.wildfly}</jboss.home>
 		<server.config>standalone.xml</server.config>
 	</properties>
 
@@ -316,7 +317,15 @@
 											<version>${version.wildfly}</version>
 											<type>zip</type>
 											<overWrite>false</overWrite>
-											<outputDirectory>${project.build.directory}</outputDirectory>
+											<!-- Placing the widlfly distribution in the same target folder as the war files causes wildfly
+											startup issues if the deployments directory is linked to the target folder, e.g.
+											
+											ERROR [org.jboss.as.server.deployment.scanner] (DeploymentScanner-threads - 1) 
+											WFLYDS0011: The deployment scanner found a directory named META-INF that was 
+											not inside a directory whose name ends with .ear, .jar, .rar, .sar or .war. 
+											This is likely the result of unzipping an archive directly inside the 
+											/opt/jboss/wildfly/standalone/deployments directory, which is a user error. -->
+											<outputDirectory>${wildfly.dist}</outputDirectory>
 										</artifactItem>
 									</artifactItems>
 								</configuration>
