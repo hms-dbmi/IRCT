@@ -58,7 +58,7 @@ public class IRCTApplication {
 	
 	// key is the name string, value is a JsonArray for resources
 	private Map<String, JsonArray> whitelist;
-	private boolean whitelistEnabled;
+	private boolean whitelistEnabled = false;
 
 	private Map<String, Resource> resources;
 	private Map<String, IRCTJoin> supportedJoinTypes;
@@ -469,21 +469,22 @@ public class IRCTApplication {
 	private void loadWhiteLists() {
 		try {
 			Context ctx = new InitialContext();
+			whitelistEnabled = (Boolean) ctx.lookup("global/whitelist_enabled");
 			whitelistLocation = (String) ctx.lookup("global/whitelist_config_file");
 			ctx.close();
 		} catch (NamingException e) {
-			whitelistLocation = "false";
+			logger.error("whitelist_config_file naming execption", e);
+			whitelistEnabled = false;
 		}
 		
-		if (whitelistLocation.equals("false")){
+		if (!whitelistEnabled) {
 			logger.info("Whitelist functionality is not enabled");
-			whitelistEnabled = false;
 			return;
-		} else {
-			// to be able to support change the configuration white list Json file at runtime
-			if (whitelist == null)
-				whitelist = new HashMap<>();
-			whitelistEnabled = true;
+		}
+		
+		// to be able to support change the configuration white list Json file at runtime
+		if (whitelist == null) {
+			whitelist = new HashMap<>();
 		}
 		
 		try (JsonReader reader = Json.createReader(
