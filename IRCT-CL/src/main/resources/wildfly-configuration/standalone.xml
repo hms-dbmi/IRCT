@@ -352,7 +352,7 @@
 				<simple name="java:global/redirect_on_success" value="/IRCT-UI/token.html" />
 				<simple name="java:global/domain" value="${env.AUTH0_DOMAIN}"/>
 				<simple name="java:global/userField" value="${env.IRCT_USER_FIELD:email}"/>
-				<simple name="java:global/resultDataFolder" value="scratch/irct" />
+				<simple name="java:global/resultDataFolder" value="${env.RESULT_DATA_FOLDER:/scratch/irct}" />
 				<simple name="java:global/client_secret" value="${env.CLIENT_SECRET:dummysecret}"/>
 	            <simple name="java:global/client_id" value="${env.CLIENT_ID:dummyid}"/>
 	            <simple name="java:global/KeyTimeOutInMinutes" value="${env.IRCT_KEY_TIMEOUT_IN_MINUTES:720}"/>
