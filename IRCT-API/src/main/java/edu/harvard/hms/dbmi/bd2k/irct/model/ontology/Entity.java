@@ -48,7 +48,7 @@ public class Entity {
 	@Transient
 	private Map<String, Integer> counts;
 	@Transient
-	private Map<String, String> attributes;
+	private Map<String, Object> attributes;
 
 	
 	/**
@@ -73,7 +73,7 @@ public class Entity {
 		this.dataType = null;
 		this.relationships = new ArrayList<OntologyRelationship>();
 		this.counts = new HashMap<String, Integer>();
-		this.attributes = new HashMap<String, String>();
+		this.attributes = new HashMap<String, Object>();
 	}
 
 	public Entity(String pui, String description) {
@@ -142,7 +142,7 @@ public class Entity {
 			if(this.attributes.get(attributeName) == null) {
 				attributesObject.addNull(attributeName);
 			} else {
-				attributesObject.add(attributeName, this.attributes.get(attributeName));
+				attributesObject.add(attributeName, (String)this.attributes.get(attributeName));
 			}
 		}
 		jsonBuilder.add("attributes", attributesObject.build());
@@ -335,7 +335,7 @@ public class Entity {
 	 * 
 	 * @return the attributes
 	 */
-	public Map<String, String> getAttributes() {
+	public Map<String, Object> getAttributes() {
 		return attributes;
 	}
 
@@ -344,7 +344,7 @@ public class Entity {
 	 * 
 	 * @param attributes the attributes to set
 	 */
-	public void setAttributes(Map<String, String> attributes) {
+	public void setAttributes(Map<String, Object> attributes) {
 		this.attributes = attributes;
 	}
 

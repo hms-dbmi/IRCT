@@ -233,10 +233,10 @@ public class Utilities {
 		ObjectMapper json = IRCTApplication.objectMapper;
 		CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 
-		String[] token_intro_urlArray = token_introspection_url.substring(8).split("/");
-		HttpHost target = new HttpHost(token_intro_urlArray[0], 443, "https");
+		String token_intro_url = token_introspection_url.substring(8).split("/")[0];
+		HttpHost target = new HttpHost(token_intro_url, 443, "https");
 
-		HttpPost post = new HttpPost(token_introspection_url.substring(8+token_intro_urlArray[0].length()));
+		HttpPost post = new HttpPost(token_introspection_url.substring(8 + token_intro_url.length()));
 		applyProxySettings(post);
 
 		String token = extractToken(req);
@@ -285,7 +285,7 @@ public class Utilities {
 		if (proxyHost != null) {
 			int port = 80;
 			if (proxyPort != null) {
-				port = Integer.valueOf(proxyPort);
+				port = Integer.parseInt(proxyPort);
 			}
 
 			if (proxyProtocol == null) {

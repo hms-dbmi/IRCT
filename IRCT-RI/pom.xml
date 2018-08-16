@@ -63,6 +63,12 @@
 			<artifactId>resty</artifactId>
 			<version>0.3.1</version>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.xml.parsers</groupId>
+			<artifactId>jaxp-ri</artifactId>
+			<version>1.4.5</version>
+			<scope>runtime</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<finalName>IRCT-RI</finalName>
@@ -108,8 +114,6 @@
 						<configuration>
 							<includeScope>runtime</includeScope>
 							<outputDirectory>${project.build.directory}/dependency-jars/</outputDirectory>
-							<source>1.7</source>
-							<target>1.7</target>
 						</configuration>
 					</execution>
 				</executions>
