@@ -29,6 +29,9 @@ public class SessionFilter implements Filter {
 	@Inject
 	private IRCTApplication irctApp;
 
+	@javax.annotation.Resource(mappedName = "java:global/jwks_uri")
+	private String jwksUri;
+
 	@javax.annotation.Resource(mappedName = "java:global/userField")
 	private String userField;
 
@@ -44,8 +47,10 @@ public class SessionFilter implements Filter {
 		logger.debug("doFilter() Starting");
 		HttpServletRequest request = (HttpServletRequest) req;
 
-		// If processing URL /securityService/*, we are creating a session/secureSession
-		if (request.getRequestURI().endsWith("/securityService/startSession") || request.getRequestURI().endsWith("/securityService/createKey")) {
+		// If processing URL /securityService/*, we are creating a session/secureSession; ignore CORS preflight calls
+		if (	request.getRequestURI().endsWith("/securityService/startSession") ||
+				request.getRequestURI().endsWith("/securityService/createKey") ||
+				request.getMethod().equals("OPTIONS")) {
 			// Do Nothing
 			logger.debug("doFilter() securityService URL is NOT filtered.");
 		} else {
@@ -84,7 +89,7 @@ public class SessionFilter implements Filter {
                             //Get information from token introspection endpoint in 2.0
                             user = sc.ensureUserExists(Utilities.extractUserFromTokenIntrospection((HttpServletRequest) req, this.userField, irctApp.getToken_introspection_url(), irctApp.getToken_introspection_token()));
                         } else{
-    						user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, irctApp.getClientSecret(), this.userField));
+    						user = sc.ensureUserExists(Utilities.extractEmailFromJWT((HttpServletRequest) req, irctApp.getClientSecret(), this.jwksUri, this.userField));
                         }
 				}
 
@@ -107,7 +112,7 @@ public class SessionFilter implements Filter {
 				// TODO DI-896 change. Since the user above gets created without an actual token, we need 
 				// to re-extract the token, from the header and parse it and place it inside the user object, 
 				// for future playtime.
-				if (user.getToken() == null) {
+				if (user.getToken() == null || !user.getToken().equals(tokenString)) {
 					logger.debug("doFilter() No token in user object, so let's add one.");
 					user.setToken(tokenString);
 					sc.updateUserRecord(user);
