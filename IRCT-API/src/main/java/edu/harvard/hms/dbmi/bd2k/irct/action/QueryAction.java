@@ -45,10 +45,15 @@ public class QueryAction implements Action {
 	 *            Run the query
 	 */
 	public void setup(Resource resource, Query query) {
+		setup(resource, query, null);
+	}
+
+	public void setup(Resource resource, Query query, Result result) {
 		this.query = query;
 		this.resource = resource;
 		this.status = ActionStatus.CREATED;
 		this.irctEventListener = Utilities.getIRCTEventListener();
+		this.result = result;
 	}
 
 	@Override
@@ -74,8 +79,7 @@ public class QueryAction implements Action {
 			QueryResourceImplementationInterface queryInterface = (QueryResourceImplementationInterface) resource
 					.getImplementingInterface();
 
-			this.result = ActionUtilities.createResult(queryInterface.getQueryDataType(query));
-			this.result.setUser(user);
+			this.result = ActionUtilities.updateResult(this.result, queryInterface.getQueryDataType(query), user);
 			logger.debug("run() starting query");
 			this.result = queryInterface.runQuery(user, query, result);
 			logger.debug("run() finished query");

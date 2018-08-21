@@ -43,6 +43,15 @@ public class ActionUtilities {
 		result.setJobType("ACTION");
 		return result;
 	}
+
+	static protected Result updateResult(Result result, ResultDataType resultDataType, User user) throws NamingException, PersistableException {
+		InitialContext ic = new InitialContext();
+		ResultController resultController = (ResultController) ic.lookup("java:module/ResultController");
+		result = resultController.updateResult(resultDataType, result);
+		result.setJobType("ACTION");
+		result.setUser(user);
+		return result;
+	}
 	
 	/**
 	 * Saves the results 

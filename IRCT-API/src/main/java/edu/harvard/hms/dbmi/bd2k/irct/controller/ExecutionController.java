@@ -110,7 +110,7 @@ public class ExecutionController implements Serializable{
 		if(!resource.isSetup()) {
 			resource = rc.getResource(resource.getName());
 		}
-		qa.setup(resource, query);
+		qa.setup(resource, query, newResult);
 
 		ExecutableLeafNode eln = new ExecutableLeafNode();
 		eln.setAction(qa);
