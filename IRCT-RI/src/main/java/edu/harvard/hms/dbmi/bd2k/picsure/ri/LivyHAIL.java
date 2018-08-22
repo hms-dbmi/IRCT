@@ -49,6 +49,7 @@ import java.util.*;
 /**
  * A resource implementation of a data source that communicates with a HAIL proxy via HTTP
  */
+@SuppressWarnings("Duplicates")
 public class LivyHAIL implements QueryResourceImplementationInterface,
         PathResourceImplementationInterface {
     Logger logger = Logger.getLogger(this.getClass());
