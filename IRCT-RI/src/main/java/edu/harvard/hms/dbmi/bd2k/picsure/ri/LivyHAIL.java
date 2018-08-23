@@ -239,7 +239,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                     .getPui(), resourceName));
         }
 
-        //TODO Create a session
         // Initialize a new session
         JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", new HashMap<String, String>());
         logger.info(sessionResponse.get("id"));
