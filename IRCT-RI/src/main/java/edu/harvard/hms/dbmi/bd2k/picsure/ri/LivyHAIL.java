@@ -219,8 +219,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         result.setMessage("Started running the query.");
 
         // Convert the predicate fields into variables on the Hail request
-        // These variables will be used when rendering the Hail template
-        // into an actual script.
+        // These variables will be used when rendering the Hail template into an actual script.
         Map<String, String> hailVariables = new HashMap<String, String>();
         for (WhereClause whereClause : whereClauses) {
 
@@ -240,14 +239,17 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                     .getPui(), resourceName));
         }
 
+        //TODO Create a session
+        // Initialize a new session
+        JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", new HashMap<String, String>());
+        logger.info(sessionResponse.get("id"));
+
         // hailVariables now contains at least 'template' and 'study' fields, but not necessarily with valid values
-//TODO Create a session
-        // Send the JSON request to the remote datasource, as an HTTP POST, with
-        // `variables` as the body of the request.
+        // Send the JSON request to the remote datasource, as an HTTP POST, with `variables` as the body of the request.
         logger.debug("runQuery() starting hail job submission");
         Date starttime = new Date();
         //TODO Read pyspark template file and substitute placeholders with hailVaiables (gene, significance and sample ids)
-        JsonNode nd = restPOST(this.resourceURL + "/statements", hailVariables);
+        JsonNode nd = restPOST(this.resourceURL + "/sessions", hailVariables);
         logger.debug("runQUery() hail job submission finished");
 
         // Parse JSON and evaluate if this is an error, or whatnot
@@ -276,7 +278,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         logger.debug("getResults() getting result for " + hailJobUUID);
 
         //TODO Get result from the output json file
-        JsonNode nd = restGET(resourceURL + "/statemnts" + hailJobUUID);
+        JsonNode nd = restGET(resourceURL + "/statements" + hailJobUUID);
         HailResponse hailResponse = new HailResponse(nd);
         logger.debug("getResults() finished parsing Hail response.");
 
