@@ -236,27 +236,8 @@ public class ResultController {
 		
 		Result result = new Result();
 		entityManager.persist(result);
-		
-		result.setDataType(resultDataType);
-		result.setStartTime(new Date());
 
-		if (resultDataType == ResultDataType.TABULAR) {
-			FileResultSet frs = new FileResultSet();
-			frs.persist(irctApp.getResultDataFolder()
-					+ "/" + result.getId());
-			result.setResultSetLocation(irctApp.getResultDataFolder()
-					+ "/" + result.getId());
-			result.setData(frs);
-		} else if (resultDataType == ResultDataType.JSON) {
-			throw new PersistableException("ResultDataType JSON is not implemented");
-		} else {
-			result.setResultStatus(ResultStatus.ERROR);
-			result.setMessage("Unknown Result Data Type");
-			return result;
-		}
-		result.setResultStatus(ResultStatus.CREATED);
-		entityManager.merge(result);
-		return result;
+		return updateResult(resultDataType, result);
 	}
 
 	public Result updateResult(ResultDataType resultDataType, Result result)
