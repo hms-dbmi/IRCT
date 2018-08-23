@@ -182,6 +182,8 @@ public class ExecutionController implements Serializable{
 						result.setData(finalResult.getData());
 						result.setResultSetLocation(finalResult.getResultSetLocation());
 						result.setMessage(finalResult.getMessage());
+						result.setResourceActionId(finalResult.getResourceActionId());
+						result.setEndTime(finalResult.getEndTime());
 
 						if(((Persistable) result.getData()).isPersisted()) {
 							((Persistable) result.getData()).merge();
@@ -192,6 +194,7 @@ public class ExecutionController implements Serializable{
 					} else {
 						result.setResultStatus(ResultStatus.ERROR);
 						result.setMessage(finalResult.getMessage());
+						result.setResourceActionId(finalResult.getResourceActionId());
 					}
 
 					result.setEndTime(new Date());
@@ -206,8 +209,6 @@ public class ExecutionController implements Serializable{
 					e.printStackTrace();
 					log.info(e.getMessage());
 					result.setResultStatus(ResultStatus.ERROR);
-				} finally {
-
 				}
 				return result;
 			}
