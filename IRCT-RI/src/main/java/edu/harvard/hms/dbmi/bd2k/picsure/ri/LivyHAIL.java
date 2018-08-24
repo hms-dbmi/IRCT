@@ -62,6 +62,10 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
     protected ResourceState resourceState;
 
+    protected String SessionID;
+
+    private String dataFile = "~/glowing-bear-backend/deployments/hail/data/example_data_PMC.maf";
+
 //    Map<Entity> allPathEntities;
 
     @Override
@@ -90,10 +94,15 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
             throw new ResourceInterfaceException("Hail Interface setup() is missing:" + errorString);
         }
 
+        // Initialize a new session
+        JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", new HashMap<String, String>());
+        SessionID = sessionResponse.get("id").toString();
+
         resourceState = ResourceState.READY;
         logger.debug("setup() for " + resourceName +
                 " Finished. " + resourceName +
                 " is in READY state.");
+
     }
 
     @Override
@@ -237,18 +246,21 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
             hailVariables.put("study", Utility.getURLFromPui(whereClause
                     .getField()
                     .getPui(), resourceName));
-        }
 
-        // Initialize a new session
-        JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", new HashMap<String, String>());
-        logger.info(sessionResponse.get("id"));
+            // Add the dataset to the haiLVariables
+            hailVariables.put("dataset", dataFile);
+        }
 
         // hailVariables now contains at least 'template' and 'study' fields, but not necessarily with valid values
         // Send the JSON request to the remote datasource, as an HTTP POST, with `variables` as the body of the request.
         logger.debug("runQuery() starting hail job submission");
         Date starttime = new Date();
-        //TODO Read pyspark template file and substitute placeholders with hailVaiables (gene, significance and sample ids)
-        JsonNode nd = restPOST(this.resourceURL + "/sessions", hailVariables);
+
+        // Read the PySpark template file
+        Map<java.lang.String,java.lang.String> filledTemplate = GenerateQuery(hailVariables);
+
+        JsonNode nd = restPOST(this.resourceURL + "/sessions/" + SessionID + "/statements", filledTemplate);
+
         logger.debug("runQUery() hail job submission finished");
 
         // Parse JSON and evaluate if this is an error, or whatnot
@@ -577,6 +589,29 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         result.setData(frs);
         result.setDataType(ResultDataType.TABULAR);
         result.setMessage("Data has been downloaded");
+
+    }
+
+    private java.util.Map GenerateQuery(Map variables) {
+
+        // Get the specified variables out of the HashMap hailVariables
+        Object dataSet = variables.get("dataset");
+        Object gene = variables.get("gene");
+        Object significance = variables.get("significance");
+        Object subjectIds = variables.get("subject_id");
+
+        // Fill in the template with the desired variables
+        String template = "mt = hl.import_table('" + dataSet + "')\n" +
+                "new_data = mt.filter(mt.Hugo_symbol=='" + gene + "')&" +
+                "(mt.CLIN_SIG=='" + significance + "')&" +
+                "(mt.Tumor_Sample_Barcode=='" + subjectIds + "')\n" +
+                "new_data.show()";
+
+        // Create a HashMap to specify where the data code can be found for the post request
+        Map<java.lang.String, java.lang.String> filledTemplate = new HashMap();
+        filledTemplate.put("code", template);
+
+        return filledTemplate;
 
     }
 
