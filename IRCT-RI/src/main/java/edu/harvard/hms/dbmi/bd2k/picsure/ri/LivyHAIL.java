@@ -54,12 +54,10 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         PathResourceImplementationInterface {
     Logger logger = Logger.getLogger(this.getClass());
 
-
     private static final String PATH_NAME = "pui";
 
     protected String resourceName;
     protected String resourceURL;
-
     protected ResourceState resourceState;
 
     protected String sessionID;
@@ -144,7 +142,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                 throw new RuntimeException(e);
             }
 
-
         } else {
             String objectPath = p.substring(p.indexOf('/', 2));
             logger.debug("getPathRelationship() objectPath: " + objectPath);
@@ -161,7 +158,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         logger.debug("getPathRelationship() Finished");
         return entities;
     }
-
 
     private List<Entity> retrieveAllPathTree() {
         String urlString = resourceURL + "/tree";
@@ -229,8 +225,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
             }
             result = getResults(user, result);
             result.setResultStatus(ResultStatus.RUNNING);
-        }
-        catch (InterruptedException | UnsupportedOperationException e) {
+        } catch (InterruptedException | UnsupportedOperationException e) {
             result.setResultStatus(ResultStatus.ERROR);
             result.setMessage(e.getMessage());
         }
@@ -269,7 +264,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         Date starttime = new Date();
 
         // Read the PySpark template file
-        Map<java.lang.String,java.lang.String> filledTemplate = generateQuery(hailVariables);
+        Map<java.lang.String, java.lang.String> filledTemplate = generateQuery(hailVariables);
 
         JsonNode nd = restPOST(this.resourceURL + "/sessions/" + sessionID + "/statements", filledTemplate);
 
@@ -340,7 +335,9 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     }
 
     @Override
-    public ResourceState getState() { return resourceState; }
+    public ResourceState getState() {
+        return resourceState;
+    }
 
     @Override
     public ResultDataType getQueryDataType(Query query) {
@@ -448,10 +445,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         logger.debug("restPOST() Starting ");
         JsonNode responseObject = null;
 
-
         ObjectMapper objectMapper = IRCTApplication.objectMapper;
         CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
-
 
         HttpPost post = new HttpPost((urlString));
         post.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
@@ -465,7 +460,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         } catch (UnsupportedEncodingException e) {
             throw new ResourceInterfaceException("Hail - restPOST() the encoding is not supported by apache httppost: " + e.getMessage());
         }
-
 
         try (CloseableHttpResponse restResponse = restClient.execute(post)) {
 
@@ -596,7 +590,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         result.setData(frs);
         result.setDataType(ResultDataType.TABULAR);
         result.setMessage("Data has been downloaded");
-
     }
 
     private java.util.Map generateQuery(Map variables) {
@@ -619,21 +612,20 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         postTemplate.put("code", template);
 
         return postTemplate;
-
     }
 
-    public void updateResourceState() {
+    private void updateResourceState() {
 
         // Create a dictionary to map the state of Livy to the ResourceState
         HashMap<String, ResourceState> stateMapping = new HashMap<>();
-            stateMapping.put("not_started", ResourceState.READY);
-            stateMapping.put("starting", ResourceState.RUNNING);
-            stateMapping.put("idle", ResourceState.COMPLETE);
-            stateMapping.put("busy", ResourceState.RUNNING);
-            stateMapping.put("shutting_down", ResourceState.RUNNING);
-            stateMapping.put("error", null);
-            stateMapping.put("dead", null);
-            stateMapping.put("success", ResourceState.COMPLETE);
+        stateMapping.put("not_started", ResourceState.READY);
+        stateMapping.put("starting", ResourceState.RUNNING);
+        stateMapping.put("idle", ResourceState.COMPLETE);
+        stateMapping.put("busy", ResourceState.RUNNING);
+        stateMapping.put("shutting_down", ResourceState.RUNNING);
+        stateMapping.put("error", null);
+        stateMapping.put("dead", null);
+        stateMapping.put("success", ResourceState.COMPLETE);
 
         // Get the state of the session
         JsonNode request = restGET(this.resourceURL + "/sessions/" + sessionID);
@@ -645,7 +637,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
     class PathElement {
         String pui;
-
     }
 
     class HailResponse {
@@ -718,7 +709,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         public String getHailMessage() {
             return hailMessage;
         }
-
 
     }
 }
