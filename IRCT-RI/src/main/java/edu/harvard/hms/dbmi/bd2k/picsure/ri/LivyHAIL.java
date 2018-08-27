@@ -93,7 +93,10 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         }
 
         // Initialize a new session
-        JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", new HashMap<String, String>());
+        HashMap<String, String> kindSpecified = new HashMap<>();
+        kindSpecified.put("kind" , "pyspark");
+
+        JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", kindSpecified);
         sessionID = sessionResponse.get("id").toString();
 
         resourceState = ResourceState.READY;
