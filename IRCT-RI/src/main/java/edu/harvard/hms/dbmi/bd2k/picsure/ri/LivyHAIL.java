@@ -62,7 +62,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
     protected ResourceState resourceState;
 
-    protected String SessionID;
+    protected String sessionID;
 
     private String dataFile = "~/glowing-bear-backend/deployments/hail/data/example_data_PMC.maf";
 
@@ -96,13 +96,12 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
         // Initialize a new session
         JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", new HashMap<String, String>());
-        SessionID = sessionResponse.get("id").toString();
+        sessionID = sessionResponse.get("id").toString();
 
         resourceState = ResourceState.READY;
         logger.debug("setup() for " + resourceName +
                 " Finished. " + resourceName +
                 " is in READY state.");
-
     }
 
     @Override
@@ -222,6 +221,19 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         if (result == null)
             logger.error("runQuery() `result` object is null, still.");
 
+        try {
+            // Wait for it to be either ready or fail
+            while (resourceState != ResourceState.COMPLETE) {
+                Thread.sleep(3000);
+                updateResourceState();
+            }
+            result = getResults(user, result);
+            result.setResultStatus(ResultStatus.RUNNING);
+        }
+        catch (InterruptedException | UnsupportedOperationException e) {
+            result.setResultStatus(ResultStatus.ERROR);
+            result.setMessage(e.getMessage());
+        }
 
         List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
         result.setResultStatus(ResultStatus.CREATED);
@@ -257,11 +269,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         Date starttime = new Date();
 
         // Read the PySpark template file
-        Map<java.lang.String,java.lang.String> filledTemplate = GenerateQuery(hailVariables);
+        Map<java.lang.String,java.lang.String> filledTemplate = generateQuery(hailVariables);
 
-        JsonNode nd = restPOST(this.resourceURL + "/sessions/" + SessionID + "/statements", filledTemplate);
+        JsonNode nd = restPOST(this.resourceURL + "/sessions/" + sessionID + "/statements", filledTemplate);
 
-        logger.debug("runQUery() hail job submission finished");
+        logger.debug("runQuery() hail job submission finished");
 
         // Parse JSON and evaluate if this is an error, or whatnot
         HailResponse hailResponse = new HailResponse(nd);
@@ -328,12 +340,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     }
 
     @Override
-    public ResourceState getState() {
-
-
-//TODO Make call to the livy API and map livy state to the ResourceState
-        return resourceState;
-    }
+    public ResourceState getState() { return resourceState; }
 
     @Override
     public ResultDataType getQueryDataType(Query query) {
@@ -592,7 +599,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
     }
 
-    private java.util.Map GenerateQuery(Map variables) {
+    private java.util.Map generateQuery(Map variables) {
 
         // Get the specified variables out of the HashMap hailVariables
         Object dataSet = variables.get("dataset");
@@ -608,11 +615,32 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                 "new_data.show()";
 
         // Create a HashMap to specify where the data code can be found for the post request
-        Map<java.lang.String, java.lang.String> filledTemplate = new HashMap();
-        filledTemplate.put("code", template);
+        HashMap<java.lang.String, java.lang.String> postTemplate = new HashMap<>();
+        postTemplate.put("code", template);
 
-        return filledTemplate;
+        return postTemplate;
 
+    }
+
+    public void updateResourceState() {
+
+        // Create a dictionary to map the state of Livy to the ResourceState
+        HashMap<String, ResourceState> stateMapping = new HashMap<>();
+            stateMapping.put("not_started", ResourceState.READY);
+            stateMapping.put("starting", ResourceState.RUNNING);
+            stateMapping.put("idle", ResourceState.COMPLETE);
+            stateMapping.put("busy", ResourceState.RUNNING);
+            stateMapping.put("shutting_down", ResourceState.RUNNING);
+            stateMapping.put("error", null);
+            stateMapping.put("dead", null);
+            stateMapping.put("success", ResourceState.COMPLETE);
+
+        // Get the state of the session
+        JsonNode request = restGET(this.resourceURL + "/sessions/" + sessionID);
+        String requestState = request.get("state").asText();
+
+        // Convert the Livy state to the one of IRCT and set the new resource state
+        resourceState = stateMapping.get(requestState);
     }
 
     class PathElement {
