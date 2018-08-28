@@ -62,7 +62,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
     protected String sessionID;
 
-    private String dataFile = "/app/data/example_data_PMC.maf";
+    protected String inputFileDir = "/app/data/";
+    protected String outputFileDir = "/app/data/output/";
+    // Choose your desired input file and output file name
+    protected String inputFileName = "/example_data_PMC.maf";
+    protected String outputFileName = "BRCA2_benign";
 
 //    Map<Entity> allPathEntities;
 
@@ -255,8 +259,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                     .getField()
                     .getPui(), resourceName));
 
-            // Add the dataset to the haiLVariables
-            hailVariables.put("dataset", dataFile);
+            // Add the desired input file and the output file name to the haiLVariables
+            String inputFile = inputFileDir + inputFileName;
+            String outputFile = outputFileDir + outputFileName;
+            hailVariables.put("dataset", inputFile);
+            hailVariables.put("output_name", outputFile);
         }
 
         // hailVariables now contains at least 'template' and 'study' fields, but not necessarily with valid values
@@ -598,15 +605,16 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         Object gene = variables.get("gene");
         Object significance = variables.get("significance");
         Object subjectIds = variables.get("subject_id");
+        Object outputDir = variables.get("output_name");
 
         // Fill in the template with the desired variables
         String template = "import hail as hl\n" +
-                "hl.init(sc)\n" +
+                "hl.init(sc, quiet=True, idempotent=True)\n" +
                 "mt = hl.import_table('" + dataSet + "')\n" +
                 "new_data = mt.filter((mt.Hugo_Symbol=='" + gene + "')&" +
                 "(mt.CLIN_SIG=='" + significance + "')&" +
                 "(mt.Tumor_Sample_Barcode=='" + subjectIds + "'))\n" +
-                "new_data.show()";
+                "new_data.export(output='" + outputDir + "', types_file='maf')";
 
         // Create a HashMap to specify where the data code can be found for the post request
         HashMap<java.lang.String, java.lang.String> postTemplate = new HashMap<>();
