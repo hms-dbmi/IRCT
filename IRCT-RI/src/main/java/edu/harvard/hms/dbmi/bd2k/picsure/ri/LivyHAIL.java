@@ -62,7 +62,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
     protected String sessionID;
 
-    private String dataFile = "~/glowing-bear-backend/deployments/hail/data/example_data_PMC.maf";
+    private String dataFile = "/app/data/example_data_PMC.maf";
 
 //    Map<Entity> allPathEntities;
 
@@ -226,8 +226,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                 Thread.sleep(3000);
                 updateResourceState();
             }
-            result = getResults(user, result);
-            result.setResultStatus(ResultStatus.RUNNING);
         } catch (InterruptedException | UnsupportedOperationException e) {
             result.setResultStatus(ResultStatus.ERROR);
             result.setMessage(e.getMessage());
@@ -298,8 +296,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         String hailJobUUID = result.getResourceActionId();
         logger.debug("getResults() getting result for " + hailJobUUID);
 
-        //TODO Get result from the output json file
-        JsonNode nd = restGET(resourceURL + "/statements" + hailJobUUID);
+        JsonNode nd = restGET(resourceURL + "/sessions/" + sessionID + "/statements/" + hailJobUUID);
+
         HailResponse hailResponse = new HailResponse(nd);
         logger.debug("getResults() finished parsing Hail response.");
 
@@ -310,15 +308,13 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         } else {
             logger.debug("getResults() jobStatus: " + hailResponse.getJobStatus());
 
-            if (hailResponse.getJobStatus().equalsIgnoreCase("running")) {
+            if (hailResponse.getJobStatus().equalsIgnoreCase("RUNNING")) {
                 result.setResultStatus(ResultStatus.RUNNING);
             }
-            if (hailResponse.getJobStatus().equalsIgnoreCase("finished")) {
+            if (hailResponse.getJobStatus().equalsIgnoreCase("AVAILABLE")) {
                 logger.debug("getResults() setting result status to COMPLETE");
                 result.setResultStatus(ResultStatus.COMPLETE);
 
-                // Parse and persist the data
-                nd = restGET(resourceURL + "/data?id=" + result.getResourceActionId());
                 logger.debug("getResults() parsing returned actual data");
                 try {
                     parseData(result, nd);
@@ -443,7 +439,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
      * @throws IOException
      */
 
-    //TODO Change/overload call to receive arbitrary body content
     private JsonNode restPOST(String urlString, Map<String, String> payload) {
         logger.debug("restPOST() Starting ");
         JsonNode responseObject = null;
@@ -575,7 +570,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
         //Expected to be a string in TSV format.
         //If not, a ResultSetException will most likely occur while appending rows or columns
-        String tsv = responseJsonNode.asText();
+        String tsv = responseJsonNode.get("output").get("data").asText();
+
         //first line is header, data starts at second line
         String[] allRows = tsv.split("\n");
         String[] headers = allRows[0].split("\t");
@@ -604,10 +600,12 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         Object subjectIds = variables.get("subject_id");
 
         // Fill in the template with the desired variables
-        String template = "mt = hl.import_table('" + dataSet + "')\n" +
-                "new_data = mt.filter(mt.Hugo_symbol=='" + gene + "')&" +
+        String template = "import hail as hl\n" +
+                "hl.init(sc)\n" +
+                "mt = hl.import_table('" + dataSet + "')\n" +
+                "new_data = mt.filter((mt.Hugo_Symbol=='" + gene + "')&" +
                 "(mt.CLIN_SIG=='" + significance + "')&" +
-                "(mt.Tumor_Sample_Barcode=='" + subjectIds + "')\n" +
+                "(mt.Tumor_Sample_Barcode=='" + subjectIds + "'))\n" +
                 "new_data.show()";
 
         // Create a HashMap to specify where the data code can be found for the post request
@@ -652,25 +650,30 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         public HailResponse(JsonNode rootNode) {
             logger.debug("HailResponse() constructor");
 
-            if (rootNode.get("status") == null) {
+            if (rootNode.get("state") == null) {
                 logger.error("HailResponse() 'status' field is mandatory, but it is missing.");
             } else {
                 logger.debug("HailResponse() 'status' field has data in it.");
                 // Start parsing a Hail response
-                if (rootNode.get("status").textValue().equalsIgnoreCase("ok")) {
+                if (rootNode.get("state").textValue().equalsIgnoreCase("waiting") ||
+                        rootNode.get("state").textValue().equalsIgnoreCase("running") ||
+                                rootNode.get("state").textValue().equalsIgnoreCase("available")) {
                     logger.debug("HailResponse() Success message from Hail.");
 
                     // Success response from Hail
-                    if (rootNode.get("job") != null) {
+                    if (rootNode.get("output") != null) {
                         // If this is a job response
                         logger.debug("HailResponse() parse job details.");
-                        this.jobUUID = rootNode.get("job").get("id").textValue();
-                        this.hailMessage = rootNode.get("job").get("state").textValue();
-                        this.jobStatus = rootNode.get("job").get("state").textValue();
-
+                        this.jobUUID = rootNode.get("id").toString();
+                        this.hailMessage = rootNode.get("output").textValue();
+                        String state = rootNode.get("state").textValue();
+                        mapResultState(state);
                     } else {
                         logger.debug("HailResponse() parse data details.");
+                        this.jobUUID = rootNode.get("id").toString();
                         this.hailMessage = "Parsing Hail data";
+                        String state = rootNode.get("state").textValue();
+                        mapResultState(state);
                     }
 
                 } else {
@@ -682,6 +685,20 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
             }
             logger.debug("HailResponse() finished");
         }
+
+        public void mapResultState(String stateLivy) {
+
+            // Create a dictionary to map the result state of Livy to the one of IRCT
+            HashMap<String, String> resultStateMapping = new HashMap<>();
+            resultStateMapping.put("waiting", "");
+            resultStateMapping.put("running", "RUNNING");
+            resultStateMapping.put("available", "AVAILABLE");
+            resultStateMapping.put("error", "ERROR");
+            resultStateMapping.put("cancelling", "ERROR");
+            resultStateMapping.put("cancelled", "ERROR");
+
+            this.jobStatus = resultStateMapping.get(stateLivy);
+          }
 
         public String getJobUUID() {
             return jobUUID;
