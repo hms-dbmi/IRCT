@@ -65,7 +65,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     protected String inputFileDir = "/app/data/";
     protected String outputFileDir = "/app/data/output/";
     // Choose your desired input file and output file name
-    protected String inputFileName = "/example_data_PMC.maf";
+    protected String inputFileName = "example_data_PMC.maf";
     protected String outputFileName = "BRCA2_benign";
 
 //    Map<Entity> allPathEntities;
@@ -577,7 +577,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
         //Expected to be a string in TSV format.
         //If not, a ResultSetException will most likely occur while appending rows or columns
-        String tsv = responseJsonNode.get("output").get("data").asText();
+        String tsv = responseJsonNode.get("output").get("data").get("text/plain").asText();
 
         //first line is header, data starts at second line
         String[] allRows = tsv.split("\n");
@@ -601,26 +601,55 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     private java.util.Map generateQuery(Map variables) {
 
         // Get the specified variables out of the HashMap hailVariables
-        Object dataSet = variables.get("dataset");
-        Object gene = variables.get("gene");
-        Object significance = variables.get("significance");
-        Object subjectIds = variables.get("subject_id");
-        Object outputDir = variables.get("output_name");
+        String dataSet = variables.get("dataset").toString();
+        String gene = variables.get("gene").toString();
+        String significance = variables.get("significance").toString();
+        String subjectIds = variables.get("subject_id").toString();
+        String outputDir = variables.get("output_name").toString();
+
+        // Parse multiple variables into one string suitable for the Hail template
+        String genesHailFormat = parseMultipleVariables(gene, "Hugo_Symbol");
+        String significancesHailFormat = parseMultipleVariables(significance, "CLIN_SIG");
+        String idsHailFormat = parseMultipleVariables(subjectIds, "Tumor_Sample_Barcode");
 
         // Fill in the template with the desired variables
-        String template = "import hail as hl\n" +
+        String template = "import warnings\n" +
+                "warnings.filterwarnings('ignore')\n" +
+                "import hail as hl\n" +
                 "hl.init(sc, quiet=True, idempotent=True)\n" +
                 "mt = hl.import_table('" + dataSet + "')\n" +
-                "new_data = mt.filter((mt.Hugo_Symbol=='" + gene + "')&" +
-                "(mt.CLIN_SIG=='" + significance + "')&" +
-                "(mt.Tumor_Sample_Barcode=='" + subjectIds + "'))\n" +
-                "new_data.export(output='" + outputDir + "', types_file='maf')";
+                "new_data = mt.filter((" + genesHailFormat + ") & " +
+                                     "(" + significancesHailFormat + ") & " +
+                                     "(" + idsHailFormat + "))\n" +
+                "new_data.export(output='" + outputDir + "', types_file='maf')\n" +
+                "new_data.to_pandas().to_string()";
 
         // Create a HashMap to specify where the data code can be found for the post request
         HashMap<java.lang.String, java.lang.String> postTemplate = new HashMap<>();
         postTemplate.put("code", template);
 
         return postTemplate;
+    }
+
+    private String parseMultipleVariables(String variable, String columnName) {
+
+        // The variables are strings that can consist of multiple elements separated by commas
+        String[] splittedVariables = variable.split(",");
+
+        StringBuilder hailFormat = new StringBuilder();
+        int i = 0;
+        // Create for every variable a string in where the column is set to the variable name
+        for (String var : splittedVariables) {
+            String part = "(mt." + columnName + "=='" + var + "')";
+            if (i++ == splittedVariables.length-1) {
+                hailFormat.append(part);
+            } else {
+                // The string should be extended with the or operator until the last element
+                hailFormat.append(part + " | ");
+            }
+        }
+
+        return hailFormat.toString();
     }
 
     private void updateResourceState() {
