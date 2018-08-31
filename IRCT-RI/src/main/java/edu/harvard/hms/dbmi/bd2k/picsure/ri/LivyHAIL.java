@@ -575,20 +575,26 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
             throws PersistableException, ResultSetException {
         FileResultSet frs = (FileResultSet) result.getData();
 
-        //Expected to be a string in TSV format.
-        //If not, a ResultSetException will most likely occur while appending rows or columns
+        // Expected to be a string in TSV format.
+        // If not, a ResultSetException will most likely occur while appending rows or columns
         String tsv = responseJsonNode.get("output").get("data").get("text/plain").asText();
+        // Tabs in the tab-separated text are translated to (multiple) spaces after getting it from the JsonNode,
+        // so the spaces are first replaced by a tab
+        String parsedTsv = tsv.replaceAll("^ +| +$|( )+", "\t");
 
-        //first line is header, data starts at second line
-        String[] allRows = tsv.split("\n");
+        // First line is header, data starts at second line
+        String[] allRows = parsedTsv.split("\\\\n");
         String[] headers = allRows[0].split("\t");
-        for (int i = 0; i < headers.length; i++) {
+
+        // The header line started with a tab, so skip the first column
+        for (int i = 1; i < headers.length; i++) {
             frs.appendColumn(new Column(headers[i], PrimitiveDataType.STRING));
         }
         for (int i = 1; i < allRows.length; i++) {
             String[] row = allRows[i].split("\t");
             frs.appendRow();
-            for (int j = 0; j < row.length; j++) {
+            // A data line start with the line number, so the first element is skipped
+            for (int j = 1; j < row.length; j++) {
                 frs.updateString(j, row[j]);
             }
         }
