@@ -473,7 +473,7 @@ public class IRCTApplication {
 			whitelistLocation = (String) ctx.lookup("global/whitelist_config_file");
 			ctx.close();
 		} catch (NamingException e) {
-			logger.error("whitelist_config_file naming execption", e);
+			logger.debug("whitelist_config_file naming execption", e);
 			whitelistEnabled = false;
 		}
 		
