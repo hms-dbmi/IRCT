@@ -61,8 +61,9 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     protected ResourceState resourceState;
 
     protected String sessionID;
+    protected String inputFile;
 
-    protected String inputFileDir = "/app/data/";
+    protected String dataFileDir = "/app/data/";
     protected String outputFileDir = "/app/data/output/";
     // Choose your desired input file and output file name
     protected String inputFileName = "example_data_PMC.maf";
@@ -259,10 +260,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
                     .getField()
                     .getPui(), resourceName));
 
-            // Add the desired input file and the output file name to the haiLVariables
-            String inputFile = inputFileDir + inputFileName;
+            // Add the desired input file to the haiLVariables, which is at the second position of the PUI
+            inputFile = whereClause.getField().getPui().split("/")[2];
+
+            // TODO remove export file when output through API is as expected
             String outputFile = outputFileDir + outputFileName;
-            hailVariables.put("dataset", inputFile);
             hailVariables.put("output_name", outputFile);
         }
 
@@ -607,23 +609,22 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     private java.util.Map generateQuery(Map variables) {
 
         // Get the specified variables out of the HashMap hailVariables
-        String dataSet = variables.get("dataset").toString();
         String gene = variables.get("gene").toString();
         String significance = variables.get("significance").toString();
         String subjectIds = variables.get("subject_id").toString();
         String outputDir = variables.get("output_name").toString();
 
         // Parse multiple variables into one string suitable for the Hail template
-        String genesHailFormat = parseMultipleVariables(gene, "Hugo_Symbol");
+        String genesHailFormat = parseMultipleVariables(gene, "GENE");
         String significancesHailFormat = parseMultipleVariables(significance, "CLIN_SIG");
-        String idsHailFormat = parseMultipleVariables(subjectIds, "Tumor_Sample_Barcode");
+        String idsHailFormat = parseMultipleVariables(subjectIds, "ID");
 
         // Fill in the template with the desired variables
         String template = "import warnings\n" +
                 "warnings.filterwarnings('ignore')\n" +
                 "import hail as hl\n" +
                 "hl.init(sc, quiet=True, idempotent=True)\n" +
-                "mt = hl.import_table('" + dataSet + "')\n" +
+                "mt = hl.import_table(" + inputFile + ")\n" +
                 "new_data = mt.filter((" + genesHailFormat + ") & " +
                                      "(" + significancesHailFormat + ") & " +
                                      "(" + idsHailFormat + "))\n" +
