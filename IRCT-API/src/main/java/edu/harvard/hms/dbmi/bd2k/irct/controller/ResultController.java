@@ -236,10 +236,17 @@ public class ResultController {
 		
 		Result result = new Result();
 		entityManager.persist(result);
-		
+
+		return updateResult(resultDataType, result);
+	}
+
+	public Result updateResult(ResultDataType resultDataType, Result result)
+			throws PersistableException {
+		logger.log(Level.FINE, "createResult() "+resultDataType.toString());
+
 		result.setDataType(resultDataType);
 		result.setStartTime(new Date());
-		
+
 		if (resultDataType == ResultDataType.TABULAR) {
 			FileResultSet frs = new FileResultSet();
 			frs.persist(irctApp.getResultDataFolder()

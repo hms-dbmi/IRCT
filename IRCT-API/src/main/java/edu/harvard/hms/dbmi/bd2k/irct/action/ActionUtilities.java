@@ -27,7 +27,17 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
  *
  */
 public class ActionUtilities {
-	
+
+	private static ResultController resultController;
+
+	private static ResultController getResultController() throws NamingException {
+		if (resultController == null){
+			resultController = (ResultController) new InitialContext().lookup("java:module/ResultController");
+		}
+
+		return resultController;
+	}
+
 	/**
 	 * Creates a result of a given different result data type
 	 * 
@@ -37,10 +47,15 @@ public class ActionUtilities {
 	 * @throws PersistableException An error occurred saving the result.
 	 */ 
 	static protected Result createResult(ResultDataType resultDataType) throws NamingException, PersistableException {
-		InitialContext ic = new InitialContext();
-		ResultController resultController = (ResultController) ic.lookup("java:module/ResultController");
-		Result result = resultController.createResult(resultDataType); 
+		Result result = getResultController().createResult(resultDataType);
 		result.setJobType("ACTION");
+		return result;
+	}
+
+	static protected Result updateResult(Result result, ResultDataType resultDataType, User user) throws NamingException, PersistableException {
+		result = getResultController().updateResult(resultDataType, result);
+		result.setJobType("ACTION");
+		result.setUser(user);
 		return result;
 	}
 	
@@ -51,9 +66,7 @@ public class ActionUtilities {
 	 * @throws NamingException An exception occurred getting the result controller
 	 */
 	static protected void mergeResult(Result result) throws NamingException {
-		InitialContext ic = new InitialContext();
-		ResultController resultController = (ResultController) ic.lookup("java:module/ResultController");
-		resultController.mergeResult(result);
+		getResultController().mergeResult(result);
 	}
 	
 	/**
@@ -69,13 +82,11 @@ public class ActionUtilities {
 	 */
 	static protected Map<String, Object> convertResultSetFieldToObject(User user, List<Field> fields, Map<String, String> stringValues) throws NamingException, ResultSetException, PersistableException {
 		Map<String, Object> returns = new HashMap<String, Object>();
-		InitialContext ic = new InitialContext();
-		ResultController resultController = (ResultController) ic.lookup("java:module/ResultController");
-		
+
 		for(Field field : fields) {
 			if(field.getDataTypes().contains(PrimitiveDataType.RESULTSET)) {
 				
-				Result result = resultController.getResult(user, Long.valueOf(stringValues.get(field.getPath())));
+				Result result = getResultController().getResult(user, Long.valueOf(stringValues.get(field.getPath())));
 				ResultSet rs = (ResultSet) result.getData();
 				rs.load(result.getResultSetLocation());
 				returns.put(field.getPath(), rs);
