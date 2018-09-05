@@ -50,8 +50,7 @@ import java.util.*;
  * A resource implementation of a data source that communicates with a HAIL proxy via HTTP
  */
 @SuppressWarnings("Duplicates")
-public class LivyHAIL implements QueryResourceImplementationInterface,
-        PathResourceImplementationInterface {
+public class LivyHAIL implements QueryResourceImplementationInterface {
     Logger logger = Logger.getLogger(this.getClass());
 
     private static final String PATH_NAME = "pui";
@@ -64,8 +63,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     protected String inputFile;
 
     protected String dataFileDir = "/app/data/";
-
-//    Map<Entity> allPathEntities;
 
     @Override
     public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
@@ -121,109 +118,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     @Override
     public String getType() {
         return "Hail";
-    }
-
-    @Override
-    public List<Entity> getPathRelationship(Entity path, OntologyRelationship relationship, User user) {
-        logger.debug("getPathRelationship() Starting");
-        List<Entity> entities = new ArrayList<Entity>();
-
-        // Split the path into components. The first component is the Hail resource name, the rest is
-        // a URL path like string.
-        String p = path.getPui();
-        logger.debug("getPathRelationship() pui:" + p);
-        if (p.indexOf('/', 2) == -1) {
-            // This is a request for the root
-
-            // Call the external URL
-            InputStream is = simpleRestCall(this.resourceURL);
-
-            // Parse the response, as JSON mime type
-            ObjectMapper objectMapper = IRCTApplication.objectMapper;
-            JsonNode responseJsonNode;
-            try {
-                responseJsonNode = objectMapper.readTree(is);
-                String responseStatus = responseJsonNode.get("status").textValue();
-                Entity e = new Entity();
-
-                e.setPui("objectIdVal");
-                e.setName("objectNameVal");
-                e.setDisplayName("objectDisplayNameVal status:" + responseStatus);
-
-                entities.add(e);
-            } catch (JsonMappingException jme) {
-                logger.error("getPathRelationship() Exception:" + jme.getMessage());
-                throw new RuntimeException("Could not parse JSON response from `" + resourceName + "` resource");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-        } else {
-            String objectPath = p.substring(p.indexOf('/', 2));
-            logger.debug("getPathRelationship() objectPath: " + objectPath);
-
-            Entity e = new Entity();
-
-            e.setPui("objectIdVal");
-            e.setName("objectNameVal");
-            e.setDisplayName("objectDisplayNameVal");
-
-            entities.add(e);
-        }
-
-        logger.debug("getPathRelationship() Finished");
-        return entities;
-    }
-
-    private List<Entity> retrieveAllPathTree() {
-        String urlString = resourceURL + "/tree";
-
-        CloseableHttpClient httpClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
-        HttpGet httpGet = new HttpGet(urlString);
-
-        CloseableHttpResponse response = null;
-
-        List<Entity> entities = null;
-
-        try {
-            response = httpClient.execute(httpGet);
-            HttpEntity entity = response.getEntity();
-
-//            entities = parseAllHailPathJsonNode(IRCTApplication.objectMapper
-//                    .readTree(entity
-//                            .getContent()));
-
-            EntityUtils.consume(entity);
-        } catch (IOException ex) {
-            logger.error("IOException when retrieving all path from Hail API:" + urlString +
-                    " with exception message: " + ex.getMessage());
-        } finally {
-            try {
-                if (response != null)
-                    response.close();
-            } catch (IOException ex) {
-                logger.error("GNOME - IOExcpetion when closing http response: " + ex.getMessage());
-            }
-        }
-
-        return entities;
-    }
-
-    /**
-     * @param pathNode
-     * @return null if nothing
-     */
-    private TreeMap<String, JsonNode> parseAllHailPathJsonNode(JsonNode pathNode) {
-        TreeMap<String, JsonNode> entityTreeMap = null;
-        return entityTreeMap;
-    }
-
-    @Override
-    public List<Entity> find(Entity path, FindInformationInterface findInformation, User user) {
-        logger.debug("find() starting");
-        List<Entity> returns = new ArrayList<Entity>();
-        logger.debug("find() finished");
-        return returns;
     }
 
     @Override
@@ -343,89 +237,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     @Override
     public ResultDataType getQueryDataType(Query query) {
         return ResultDataType.TABULAR;
-    }
-
-    private InputStream simpleRestCall(String urlString, Map<String, String> payload) {
-        logger.debug("simpleRestCall() Starting");
-
-        HttpEntity restEntity = null;
-        CloseableHttpClient restClient = HttpClientBuilder.create().build();
-        URIBuilder builder = null;
-        HttpGet get = null;
-        try {
-            builder = new URIBuilder(urlString);
-            for (String fieldName : payload.keySet()) {
-                logger.debug("simpleRestCall() add `" + fieldName + "` to payload as `" + payload.get(fieldName) + "`.");
-                builder.setParameter(fieldName, payload.get(fieldName));
-            }
-            get = new HttpGet(builder.build());
-            get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("Invalid URL generated:" + urlString);
-        }
-        CloseableHttpResponse restResponse = null;
-        try {
-            restResponse = restClient.execute(get);
-            restEntity = restResponse.getEntity();
-            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
-            EntityUtils.consume(restEntity);
-            logger.debug("simpleRestCall() released entity resource.");
-        } catch (IOException ex) {
-            logger.error("simpleRestCall() IOException: Cannot execute POST with URL: " + urlString);
-        } finally {
-            try {
-                if (restResponse != null)
-                    restResponse.close();
-            } catch (Exception ex) {
-                logger.error("simpleRestCall() finallyException: " + ex.getMessage());
-            }
-        }
-        logger.debug("simpleRestCall() finished.");
-
-        if (restEntity != null) {
-            try {
-                return restEntity.getContent();
-            } catch (IOException ioex) {
-                logger.error("simpleRestCall() Exception:" + ioex);
-
-            } finally {
-
-            }
-        }
-        return null;
-    }
-
-    private InputStream simpleRestCall(String urlString) {
-        logger.debug("restCall() Starting");
-        HttpEntity restEntity = null;
-        CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
-
-        HttpGet get = new HttpGet(urlString);
-        get.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
-
-        try (CloseableHttpResponse restResponse = restClient.execute(get)) {
-
-            restEntity = restResponse.getEntity();
-
-            // https://stackoverflow.com/questions/15969037/why-did-the-author-use-entityutils-consumehttpentity#15970985
-            EntityUtils.consume(restEntity);
-            logger.debug("restCall() released entity resource.");
-        } catch (IOException ex) {
-            logger.error("restCall() IOException: Cannot execute POST with URL: " + urlString);
-        }
-        logger.debug("restCall() finished.");
-
-        if (restEntity != null) {
-            try {
-                return restEntity.getContent();
-            } catch (IOException ioex) {
-                logger.error("restCall() Exception:" + ioex);
-
-            } finally {
-
-            }
-        }
-        return null;
     }
 
     /**
@@ -688,10 +499,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         resourceState = stateMapping.get(requestState);
     }
 
-    class PathElement {
-        String pui;
-    }
-
     class HailResponse {
 
         private String errorMessage = "";
@@ -764,14 +571,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
         public String getErrorMessage() {
             return this.errorMessage;
-        }
-
-        public void setError(String errorMsg) {
-            this.errorMessage = errorMsg;
-        }
-
-        public Data getData() {
-            return this.hailData;
         }
 
         public String getJobStatus() {
