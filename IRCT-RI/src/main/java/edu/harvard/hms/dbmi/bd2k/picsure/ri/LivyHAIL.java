@@ -64,10 +64,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
     protected String inputFile;
 
     protected String dataFileDir = "/app/data/";
-    protected String outputFileDir = "/app/data/output/";
-    // Choose your desired input file and output file name
-    protected String inputFileName = "example_data_PMC.maf";
-    protected String outputFileName = "BRCA2_benign";
 
 //    Map<Entity> allPathEntities;
 
@@ -97,17 +93,29 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
             throw new ResourceInterfaceException("Hail Interface setup() is missing:" + errorString);
         }
 
-        // Initialize a new session
+        // Initialize a new PySpark session
         HashMap<String, String> kindSpecified = new HashMap<>();
         kindSpecified.put("kind" , "pyspark");
-
         JsonNode sessionResponse = restPOST(this.resourceURL + "/sessions", kindSpecified);
         sessionID = sessionResponse.get("id").toString();
 
-        resourceState = ResourceState.READY;
+        try {
+            // Wait for the session to be either ready or fail
+            while (resourceState != ResourceState.COMPLETE) {
+                Thread.sleep(3000);
+                updateResourceState();
+            }
+        } catch (InterruptedException | UnsupportedOperationException e) {
+            logger.error("Session state is not ready");
+        }
+
+        // Initialize hail and load all datafiles as a hail table
+        Map<java.lang.String, java.lang.String> dataTemplate = loadDataTemplate();
+        restPOST(this.resourceURL + "/sessions/" + sessionID + "/statements", dataTemplate);
+
         logger.debug("setup() for " + resourceName +
                 " Finished. " + resourceName +
-                " is in READY state.");
+                " is in COMPLETE state.");
     }
 
     @Override
@@ -225,17 +233,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         if (result == null)
             logger.error("runQuery() `result` object is null, still.");
 
-        try {
-            // Wait for it to be either ready or fail
-            while (resourceState != ResourceState.COMPLETE) {
-                Thread.sleep(3000);
-                updateResourceState();
-            }
-        } catch (InterruptedException | UnsupportedOperationException e) {
-            result.setResultStatus(ResultStatus.ERROR);
-            result.setMessage(e.getMessage());
-        }
-
         List<WhereClause> whereClauses = query.getClausesOfType(WhereClause.class);
         result.setResultStatus(ResultStatus.CREATED);
         result.setMessage("Started running the query.");
@@ -262,10 +259,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
 
             // Add the desired input file to the haiLVariables, which is at the second position of the PUI
             inputFile = whereClause.getField().getPui().split("/")[2];
-
-            // TODO remove export file when output through API is as expected
-            String outputFile = outputFileDir + outputFileName;
-            hailVariables.put("output_name", outputFile);
         }
 
         // hailVariables now contains at least 'template' and 'study' fields, but not necessarily with valid values
@@ -612,7 +605,6 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         String gene = variables.get("gene").toString();
         String significance = variables.get("significance").toString();
         String subjectIds = variables.get("subject_id").toString();
-        String outputDir = variables.get("output_name").toString();
 
         // Parse multiple variables into one string suitable for the Hail template
         String genesHailFormat = parseMultipleVariables(gene, "GENE");
@@ -620,15 +612,10 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         String idsHailFormat = parseMultipleVariables(subjectIds, "ID");
 
         // Fill in the template with the desired variables
-        String template = "import warnings\n" +
-                "warnings.filterwarnings('ignore')\n" +
-                "import hail as hl\n" +
-                "hl.init(sc, quiet=True, idempotent=True)\n" +
-                "mt = hl.import_table(" + inputFile + ")\n" +
-                "new_data = mt.filter((" + genesHailFormat + ") & " +
+        String template =
+                "new_data = all_data_files['" + inputFile + "'].filter((" + genesHailFormat + ") & " +
                                      "(" + significancesHailFormat + ") & " +
                                      "(" + idsHailFormat + "))\n" +
-                "new_data.export(output='" + outputDir + "', types_file='maf')\n" +
                 "new_data.to_pandas().to_string()";
 
         // Create a HashMap to specify where the data code can be found for the post request
@@ -647,7 +634,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         int i = 0;
         // Create for every variable a string in where the column is set to the variable name
         for (String var : splittedVariables) {
-            String part = "(mt." + columnName + "=='" + var + "')";
+            String part = "(all_data_files['" + inputFile + "']." + columnName + "=='" + var + "')";
             if (i++ == splittedVariables.length-1) {
                 hailFormat.append(part);
             } else {
@@ -657,6 +644,27 @@ public class LivyHAIL implements QueryResourceImplementationInterface,
         }
 
         return hailFormat.toString();
+    }
+
+    private java.util.Map loadDataTemplate() {
+
+        // Create a PySpark that imports hail and load all datafiles as a hail table
+        String pysparkFormatTemplate =
+                "import warnings\n" +
+                "warnings.filterwarnings('ignore')\n" +
+                "import hail as hl\n" +
+                "hl.init(sc, quiet=True, idempotent=True)\n" +
+                "import os\n" +
+                "all_data_files = {}\n" +
+                "for data_file in os.listdir('" + dataFileDir + "'):\n" +
+                "\tif data_file.endswith('.maf'):\n" +
+                "\t\tall_data_files[data_file] = hl.import_table('" + dataFileDir + "'+data_file)\n";
+
+        // Create a HashMap to specify where the data code can be found for the post request
+        HashMap<java.lang.String, java.lang.String> postDataTemplate = new HashMap<>();
+        postDataTemplate.put("code", pysparkFormatTemplate);
+
+        return postDataTemplate;
     }
 
     private void updateResourceState() {
