@@ -195,7 +195,7 @@ public class ResourceService {
 		try {
 			logger.debug("GET /find params  :"+findInformation.getRequiredParameters());
 
-			List<Resource> resourceList = null;
+			List<Resource> resourceList = new ArrayList<>();
 			if (resource == null) {
 				// Search all resources
 				resourceList = rc.getQueryResources();
