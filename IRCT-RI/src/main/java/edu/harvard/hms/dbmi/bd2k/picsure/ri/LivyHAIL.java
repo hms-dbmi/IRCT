@@ -1,21 +1,16 @@
 package edu.harvard.hms.dbmi.bd2k.picsure.ri;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.harvard.hms.dbmi.bd2k.irct.IRCTApplication;
 import edu.harvard.hms.dbmi.bd2k.irct.exception.ResourceInterfaceException;
-import edu.harvard.hms.dbmi.bd2k.irct.model.find.FindInformationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.Entity;
-import edu.harvard.hms.dbmi.bd2k.irct.model.ontology.OntologyRelationship;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.Query;
 import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
-import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.PathResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
@@ -31,7 +26,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -41,9 +35,7 @@ import org.apache.log4j.Logger;
 import us.monoid.json.JSONException;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.util.*;
 
 /**
@@ -401,7 +393,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             frs.appendRow();
             // A data line start with the line number, so the first element is skipped
             for (int j = 1; j < row.length; j++) {
-                frs.updateString(j, row[j]);
+                // ColumnIndex starts counting at 0
+                frs.updateString(j-1, row[j]);
             }
         }
 
@@ -468,7 +461,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
                 "import os\n" +
                 "all_data_files = {}\n" +
                 "for data_file in os.listdir('" + dataFileDir + "'):\n" +
-                "\tif data_file.endswith('.maf'):\n" +
+                "\tif data_file.endswith('.maf') or data_file.endswith('.tsv'):\n" +
                 "\t\tall_data_files[data_file] = hl.import_table('" + dataFileDir + "'+data_file)\n";
 
         // Create a HashMap to specify where the data code can be found for the post request
