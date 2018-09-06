@@ -67,7 +67,6 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -154,9 +153,9 @@ public class I2B2Passthrough
 
 						Entity entity = new Entity();
 						if (pt.getPath() == null) {
-							entity.setPui(path.getPui() + "/" + URLEncoder.encode(pt.getName(), "UTF-8"));
+							entity.setPui(path.getPui() + "/" + pt.getName());
 						} else {
-							entity.setPui(path.getPui() + URLEncoder.encode(pt.getPath(), "UTF-8"));
+							entity.setPui(path.getPui() + pt.getPath());
 						}
 						entity.setDisplayName(pt.getName());
 						entity.setName(pt.getId());
