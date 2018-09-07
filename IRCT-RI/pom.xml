@@ -68,6 +68,11 @@
 			<artifactId>jaxp-ri</artifactId>
 			<version>1.4.5</version>
 			<scope>runtime</scope>
+ 		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20180813</version>
 		</dependency>
 	</dependencies>
 	<build>
