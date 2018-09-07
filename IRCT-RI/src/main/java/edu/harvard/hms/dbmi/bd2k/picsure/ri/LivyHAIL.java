@@ -32,6 +32,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import us.monoid.json.JSONException;
 
 import java.io.IOException;
@@ -375,26 +377,33 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
         // Expected to be a string in TSV format.
         // If not, a ResultSetException will most likely occur while appending rows or columns
-        String tsv = responseJsonNode.get("output").get("data").get("text/plain").asText();
-        // Tabs in the tab-separated text are translated to (multiple) spaces after getting it from the JsonNode,
-        // so the spaces are first replaced by a tab
-        String parsedTsv = tsv.replaceAll("^ +| +$|( )+", "\t");
+        JsonNode queryOutput = responseJsonNode.get("output").get("data").get("text/plain");
+        // Remove the first and the last apostrophes to avoid json in string format
+        String jsonString = queryOutput.textValue().replaceAll("^'|'$", "");
 
-        // First line is header, data starts at second line
-        String[] allRows = parsedTsv.split("\\\\n");
-        String[] headers = allRows[0].split("\t");
+        JSONObject jsonObject = new JSONObject(jsonString);
+        logger.debug("Parsed json object: " + jsonObject);
 
-        // The header line started with a tab, so skip the first column
-        for (int i = 1; i < headers.length; i++) {
-            frs.appendColumn(new Column(headers[i], PrimitiveDataType.STRING));
+        // Get the header
+        JSONArray fields = jsonObject.getJSONObject("schema").getJSONArray("fields");
+        // Header starts with 'index', which do not have to include in the end output table
+        for (int i = 1; i < fields.length(); i++) {
+            JSONObject field = fields.getJSONObject(i);
+            frs.appendColumn(new Column(field.getString("name"),
+                             PrimitiveDataType.valueOf(field.getString("type").toUpperCase())));
         }
-        for (int i = 1; i < allRows.length; i++) {
-            String[] row = allRows[i].split("\t");
+        // Get the data rows
+        JSONArray rows = jsonObject.getJSONArray("data");
+        // Rows are starting with the 'index', which do not have to include in the end output table
+        for (int i = 1; i < rows.length(); i++) {
+            JSONObject row = rows.getJSONObject(i);
             frs.appendRow();
             // A data line start with the line number, so the first element is skipped
-            for (int j = 1; j < row.length; j++) {
+            for (int j = 1; j < row.length(); j++) {
+                String header = fields.getJSONObject(j).getString("name");
+                String value = row.getString(header);
                 // ColumnIndex starts counting at 0
-                frs.updateString(j-1, row[j]);
+                frs.updateString(j-1, value);
             }
         }
 
@@ -420,7 +429,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
                 "new_data = all_data_files['" + inputFile + "'].filter((" + genesHailFormat + ") & " +
                                      "(" + significancesHailFormat + ") & " +
                                      "(" + idsHailFormat + "))\n" +
-                "new_data.to_pandas().to_string()";
+                "new_data.to_pandas().to_json(orient='table')";
 
         // Create a HashMap to specify where the data code can be found for the post request
         HashMap<java.lang.String, java.lang.String> postTemplate = new HashMap<>();
