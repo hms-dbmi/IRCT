@@ -389,8 +389,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         JSONArray fields = jsonObject.getJSONObject("schema").getJSONArray("fields");
         for (int i = 0; i < fields.length(); i++) {
             JSONObject field = fields.getJSONObject(i);
-            // Remove the index column, which is autonatically added by converting to JSON
-            if (!field.equals("index")) {
+            // Remove the index column, which is automatically added by converting to JSON
+            if (!field.get("name").equals("index")) {
                 PrimitiveDataType dataType = PrimitiveDataType.valueOf(field.getString("type").toUpperCase());
                 frs.appendColumn(new Column(field.getString("name"), dataType));
             }
@@ -403,10 +403,9 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             // Get for every row the data per column
             for (int j = 0; j < row.length(); j++) {
                 String header = fields.getJSONObject(j).getString("name");
-                // Skip the 'index' column, because it is not added to the header
                 if (!header.equals("index")) {
                     String value = row.get(header).toString();
-                    frs.updateString(j, value);
+                    frs.updateString(j-1, value);
                 }
             }
         }
