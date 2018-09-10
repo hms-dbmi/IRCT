@@ -95,6 +95,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             while (resourceState != ResourceState.COMPLETE) {
                 Thread.sleep(3000);
                 updateResourceState();
+                logger.debug(resourceName + " is in state" + resourceState);
             }
         } catch (InterruptedException | UnsupportedOperationException e) {
             logger.error("Session state is not ready");
@@ -386,24 +387,27 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
         // Get the header
         JSONArray fields = jsonObject.getJSONObject("schema").getJSONArray("fields");
-        // Header starts with 'index', which do not have to include in the end output table
-        for (int i = 1; i < fields.length(); i++) {
+        for (int i = 0; i < fields.length(); i++) {
             JSONObject field = fields.getJSONObject(i);
-            frs.appendColumn(new Column(field.getString("name"),
-                             PrimitiveDataType.valueOf(field.getString("type").toUpperCase())));
+            // Remove the index column, which is autonatically added by converting to JSON
+            if (!field.equals("index")) {
+                PrimitiveDataType dataType = PrimitiveDataType.valueOf(field.getString("type").toUpperCase());
+                frs.appendColumn(new Column(field.getString("name"), dataType));
+            }
         }
         // Get the data rows
         JSONArray rows = jsonObject.getJSONArray("data");
-        // Rows are starting with the 'index', which do not have to include in the end output table
-        for (int i = 1; i < rows.length(); i++) {
+        for (int i = 0; i < rows.length(); i++) {
             JSONObject row = rows.getJSONObject(i);
             frs.appendRow();
-            // A data line start with the line number, so the first element is skipped
-            for (int j = 1; j < row.length(); j++) {
+            // Get for every row the data per column
+            for (int j = 0; j < row.length(); j++) {
                 String header = fields.getJSONObject(j).getString("name");
-                String value = row.getString(header);
-                // ColumnIndex starts counting at 0
-                frs.updateString(j-1, value);
+                // Skip the 'index' column, because it is not added to the header
+                if (!header.equals("index")) {
+                    String value = row.get(header).toString();
+                    frs.updateString(j, value);
+                }
             }
         }
 
