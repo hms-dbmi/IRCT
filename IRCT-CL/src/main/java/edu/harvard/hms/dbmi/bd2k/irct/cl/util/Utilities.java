@@ -234,9 +234,9 @@ public class Utilities {
 		CloseableHttpClient client = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 
 		String token_intro_url = token_introspection_url.substring(8).split("/")[0];
-		HttpHost target = new HttpHost(token_intro_url, 443, "https");
+//		HttpHost target = new HttpHost(token_intro_url, 443, "https");
 
-		HttpPost post = new HttpPost(token_introspection_url.substring(8 + token_intro_url.length()));
+		HttpPost post = new HttpPost(token_introspection_url);
 		applyProxySettings(post);
 
 		String token = extractToken(req);
@@ -248,7 +248,8 @@ public class Utilities {
 		post.setHeader("Authorization", "Bearer " + token_introspection_token);
 		CloseableHttpResponse response = null;
 		try {
-			response = client.execute(target, post, buildHttpClientContext());
+			response = client.execute(post, buildHttpClientContext());
+//			response = client.execute(target, post, buildHttpClientContext());
 			if (response.getStatusLine().getStatusCode() != 200){
 				logger.error("extractUserFromTokenIntrospection() error back from token intro host server ["
 						+ token_introspection_url + "]: " + EntityUtils.toString(response.getEntity()));
