@@ -474,7 +474,9 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
     /**
      * Get the Hail variables and put them in the PySpark template with the correct Hail
-     * function.
+     * function. In here, the function 'filter' is used.
+     * NOTE: this function contains assumptions about the data. It assumes that the data
+     * file as the column names 'GENE', 'CLIN_SIG', and 'ID'.
      *
      * @param variables <String, String> of Hail variables
      * @return Map<java.lang.String, java.lang.String> of the Livy request body 'code'
@@ -508,6 +510,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
     /**
      * Check if a Hail variable consist of multiple values and parse the values to a
      * PySpark template that can be read by Hail.
+     * NOTE: this function contains assumptions. If a Hail variables contains multiple
+     * values, it is assumed that these are separated by comma's.
      *
      * @param variable String of Hail variables separated by comma's
      * @param columnName String referring the to column name in the data file
@@ -537,6 +541,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
     /**
      * Create a PySpark template that loads the Hail library and read all data files
      * as a Hail table.
+     * NOTE: this function contains assumptions. It is assumed that the data files
+     * are tab-separated file of the format maf or tsv.
      *
      * @return java.util.Map<java.lang.String, java.lang.String> of the Livy request
      * body 'code'
