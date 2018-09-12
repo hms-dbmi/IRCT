@@ -12,7 +12,6 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.query.WhereClause;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.PrimitiveDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.ResourceState;
 import edu.harvard.hms.dbmi.bd2k.irct.model.resource.implementation.QueryResourceImplementationInterface;
-import edu.harvard.hms.dbmi.bd2k.irct.model.result.Data;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.Result;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultDataType;
 import edu.harvard.hms.dbmi.bd2k.irct.model.result.ResultStatus;
@@ -34,7 +33,6 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import us.monoid.json.JSONException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -47,17 +45,22 @@ import java.util.*;
 public class LivyHAIL implements QueryResourceImplementationInterface {
     Logger logger = Logger.getLogger(this.getClass());
 
-    private static final String PATH_NAME = "pui";
-
     protected String resourceName;
     protected String resourceURL;
     protected ResourceState resourceState;
 
-    protected String sessionID;
-    protected String inputFile;
+    private String sessionID;
+    private String inputFile;
 
-    protected String dataFileDir = "/app/data/";
+    private String dataFileDir = "/app/data/";
 
+    /**
+     * Set up the resource parameters, initialize a PySpark session, start the
+     * Hail library and load all available data files as Hail tables.
+     *
+     * @param parameters Map<String, String> of setup parameters
+     * @throws ResourceInterfaceException if a set up parameter is missing
+     */
     @Override
     public void setup(Map<String, String> parameters) throws ResourceInterfaceException {
 
@@ -65,6 +68,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             logger.debug("setup for Hail" +
                     " Starting...");
 
+        // Check the resource name
         String errorString = "";
         this.resourceName = parameters.get("resourceName");
         if (this.resourceName == null) {
@@ -72,6 +76,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             errorString += " resourceName";
         }
 
+        // Check the resource URL
         String tempResourceURL = parameters.get("resourceURL");
         if (tempResourceURL == null) {
             logger.error("setup() `resourceURL` parameter is missing.");
@@ -110,11 +115,27 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
                 " is in COMPLETE state.");
     }
 
+    /**
+     * A string representation of the type of resource implementation this is.
+     *
+     * @return Type of resource
+     */
     @Override
     public String getType() {
         return "Hail";
     }
 
+    /**
+     * Run the given query. It converts the predicate fields into variables on the Hail request,
+     * create a POST request with the variables set in a Hail function using a PySpark template.
+     *
+     * @param user A basic user representation. It can be associated with a session in EE 7. The
+     * userId, and name are the same in this implementation.
+     * @param query A query against any individual or group of resources
+     * @param result Execution that is run on the IRCT
+     * @return Execution that is run on the IRCT with set parameters for receiving it
+     * @throws ResourceInterfaceException when there is an error in the Resource Interface
+     */
     @Override
     public Result runQuery(User user, Query query, Result result) throws ResourceInterfaceException {
         logger.debug("runQuery() *** STARTING ***");
@@ -128,7 +149,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
         // Convert the predicate fields into variables on the Hail request
         // These variables will be used when rendering the Hail template into an actual script.
-        Map<String, String> hailVariables = new HashMap<String, String>();
+        Map<String, String> hailVariables = new HashMap<>();
         for (WhereClause whereClause : whereClauses) {
 
             for (String fieldName : whereClause.getStringValues().keySet()) {
@@ -155,9 +176,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         logger.debug("runQuery() starting hail job submission");
         Date starttime = new Date();
 
-        // Read the PySpark template file
+        // Read the PySpark template file and create a request with it
         Map<java.lang.String, java.lang.String> filledTemplate = generateQuery(hailVariables);
-
         JsonNode nd = restPOST(this.resourceURL + "/sessions/" + sessionID + "/statements", filledTemplate);
 
         logger.debug("runQuery() hail job submission finished");
@@ -180,6 +200,15 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         return result;
     }
 
+    /**
+     * Perform GET Request on the Hail job, and parse the data as a JSON table.
+     *
+     * @param user A basic user representation. It can be associated with a session in EE 7. The
+     * userId, and name are the same in this implementation.
+     * @param result Execution that is run on the IRCT with set parameters for receiving it
+     * @return Result of the Hail query
+     * @throws ResourceInterfaceException when there is an error in the Resource Interface
+     */
     @Override
     public Result getResults(User user, Result result) throws ResourceInterfaceException {
         logger.debug("getResults() starting");
@@ -187,15 +216,18 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         String hailJobUUID = result.getResourceActionId();
         logger.debug("getResults() getting result for " + hailJobUUID);
 
+        // Create a GET request on the Hail job.
         JsonNode nd = restGET(resourceURL + "/sessions/" + sessionID + "/statements/" + hailJobUUID);
 
         HailResponse hailResponse = new HailResponse(nd);
         logger.debug("getResults() finished parsing Hail response.");
 
+        // Check for errors
         if (hailResponse.isError()) {
             logger.debug("getResults() Hail error message:" + hailResponse.getErrorMessage());
             result.setResultStatus(ResultStatus.ERROR);
             result.setMessage(hailResponse.getErrorMessage());
+        // Get the results when no errors are occurred
         } else {
             logger.debug("getResults() jobStatus: " + hailResponse.getJobStatus());
 
@@ -208,6 +240,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
                 logger.debug("getResults() parsing returned actual data");
                 try {
+                    // Parse the output
                     parseData(result, nd);
                 } catch (PersistableException pe) {
                     logger.error("getResults() Unable to persist data");
@@ -224,11 +257,26 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         return result;
     }
 
+    /**
+     * Get the state of the resource.
+     * Note that this function is not used, but part is of the
+     * 'QueryResourceImplementationInterface'.
+     *
+     * @return the resource state
+     */
     @Override
     public ResourceState getState() {
         return resourceState;
     }
 
+    /**
+     * Get the result data type.
+     * Note that this function is not used, but part is of the
+     * 'QueryResourceImplementationInterface'.
+     *
+     * @param query Query to run
+     * @return Result data type
+     */
     @Override
     public ResultDataType getQueryDataType(Query query) {
         return ResultDataType.TABULAR;
@@ -236,17 +284,14 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
     /**
      * HTTP POST with JSON body, constructed from `payload` Map, and parse the
-     * returned stream into a JsonNode object for later parsing. Protocoll errors
+     * returned stream into a JsonNode object for later parsing. Protocol errors
      * are captured as well.
-     * Any protocol or parsing error will be thrown as RuntimeException
+     * Any protocol or parsing error will be thrown as RuntimeException.
      *
-     * @param urlString
-     * @param payload
-     * @return
-     * @throws JSONException
-     * @throws IOException
+     * @param urlString String referring to the Resource URL
+     * @param payload Map<String, String> of Livy parameters of the request body
+     * @return JsonNode containing the elements inside a JSON stream
      */
-
     private JsonNode restPOST(String urlString, Map<String, String> payload) {
         logger.debug("restPOST() Starting ");
         JsonNode responseObject = null;
@@ -254,9 +299,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         ObjectMapper objectMapper = IRCTApplication.objectMapper;
         CloseableHttpClient restClient = IRCTApplication.CLOSEABLE_HTTP_CLIENT;
 
+        // Create the HTTP post request
         HttpPost post = new HttpPost((urlString));
         post.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
 
+        // Set the request body as a string entity
         try {
             post.setEntity(
                     new StringEntity(objectMapper
@@ -267,6 +314,7 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             throw new ResourceInterfaceException("Hail - restPOST() the encoding is not supported by apache httppost: " + e.getMessage());
         }
 
+        // Try to close the request and otherwise raise an error
         try (CloseableHttpResponse restResponse = restClient.execute(post)) {
 
             if (restResponse.getStatusLine().getStatusCode() != 200) {
@@ -310,12 +358,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
     }
 
     /**
-     * HTTP GET, parse the returned stream into a JsonNode object for
-     * later parsing.
+     * HTTP GET, parse the returned stream into a JsonNode object for later parsing.
      *
-     * @param urlString
-     * @return
-     * @throws ResourceInterfaceException
+     * @param urlString String referring to the Resource URL
+     * @return JsonNode object of the JSON response
+     * @throws ResourceInterfaceException when there is an error in the Resource Interface
      */
     private JsonNode restGET(String urlString) throws ResourceInterfaceException {
         logger.debug("restGET() Starting");
@@ -326,9 +373,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             ObjectMapper objectMapper = IRCTApplication.objectMapper;
             CloseableHttpClient restClient = HttpClientBuilder.create().build();
 
+            // Executes HTTP request using the given Resource URL
             HttpGet get = new HttpGet((urlString));
             restResponse = restClient.execute(get);
 
+            // Check for errors
             if (restResponse == null) {
                 logger.error("restResponse is null");
                 throw new ResourceInterfaceException("Could not get Hail response");
@@ -372,6 +421,14 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         return responseObject;
     }
 
+    /**
+     * Parse the output element of the JsonNode into a JSON Table.
+     *
+     * @param result Execution that is run on the IRCT with set parameters for receiving it
+     * @param responseJsonNode Output of GET request containing JsonNode elements
+     * @throws PersistableException when a problem occours by the persistence provider
+     * @throws ResultSetException when the data can not be converted to the result table
+     */
     private void parseData(Result result, JsonNode responseJsonNode)
             throws PersistableException, ResultSetException {
         FileResultSet frs = (FileResultSet) result.getData();
@@ -415,7 +472,14 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         result.setMessage("Data has been downloaded");
     }
 
-    private java.util.Map generateQuery(Map variables) {
+    /**
+     * Get the Hail variables and put them in the PySpark template with the correct Hail
+     * function.
+     *
+     * @param variables <String, String> of Hail variables
+     * @return Map<java.lang.String, java.lang.String> of the Livy request body 'code'
+     */
+    private java.util.Map<java.lang.String, java.lang.String> generateQuery(Map variables) {
 
         // Get the specified variables out of the HashMap hailVariables
         String gene = variables.get("gene").toString();
@@ -441,6 +505,14 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         return postTemplate;
     }
 
+    /**
+     * Check if a Hail variable consist of multiple values and parse the values to a
+     * PySpark template that can be read by Hail.
+     *
+     * @param variable String of Hail variables separated by comma's
+     * @param columnName String referring the to column name in the data file
+     * @return String readable by Hail using PySpark
+     */
     private String parseMultipleVariables(String variable, String columnName) {
 
         // The variables are strings that can consist of multiple elements separated by commas
@@ -462,7 +534,14 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         return hailFormat.toString();
     }
 
-    private java.util.Map loadDataTemplate() {
+    /**
+     * Create a PySpark template that loads the Hail library and read all data files
+     * as a Hail table.
+     *
+     * @return java.util.Map<java.lang.String, java.lang.String> of the Livy request
+     * body 'code'
+     */
+    private java.util.Map<java.lang.String, java.lang.String> loadDataTemplate() {
 
         // Create a PySpark that imports hail and load all datafiles as a hail table
         String pysparkFormatTemplate =
@@ -483,9 +562,12 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         return postDataTemplate;
     }
 
+    /**
+     * Map the resource state of Livy to the one of IRCT.
+     */
     private void updateResourceState() {
 
-        // Create a dictionary to map the state of Livy to the ResourceState
+        // Create a dictionary to map the state of Livy to the IRCT ResourceState
         HashMap<String, ResourceState> stateMapping = new HashMap<>();
         stateMapping.put("not_started", ResourceState.READY);
         stateMapping.put("starting", ResourceState.RUNNING);
@@ -504,13 +586,20 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
         resourceState = stateMapping.get(requestState);
     }
 
+    /**
+     * Get the Hail response of the POST request.
+     */
     class HailResponse {
 
         private String errorMessage = "";
         private String hailMessage = "";
         private String jobStatus = "";
-        private Data hailData = null;
 
+        /**
+         * Get JsonNode elements out of the response of the POST request.
+         *
+         * @param rootNode JsonNode containing the elements inside a JSON stream
+         */
         public HailResponse(JsonNode rootNode) {
             logger.debug("HailResponse() constructor");
 
@@ -526,13 +615,14 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
 
                     // Success response from Hail
                     if (rootNode.get("output") != null) {
-                        // If this is a job response
+                        // Get JsonNode elements if this is a job response
                         logger.debug("HailResponse() parse job details.");
                         this.jobUUID = rootNode.get("id").toString();
                         this.hailMessage = rootNode.get("output").textValue();
                         String state = rootNode.get("state").textValue();
                         mapResultState(state);
                     } else {
+                        // Else get the available elements out to get the output of te response later
                         logger.debug("HailResponse() parse data details.");
                         this.jobUUID = rootNode.get("id").toString();
                         this.hailMessage = "Parsing Hail data";
@@ -550,6 +640,11 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             logger.debug("HailResponse() finished");
         }
 
+        /**
+         * Map the result State of Livy to the one of IRCT.
+         *
+         * @param stateLivy String that represent the result state of Livy
+         */
         public void mapResultState(String stateLivy) {
 
             // Create a dictionary to map the result state of Livy to the one of IRCT
@@ -564,24 +659,49 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
             this.jobStatus = resultStateMapping.get(stateLivy);
           }
 
+        /**
+         * Get the Hail job number.
+         *
+         * @return String representing the Hail job number
+         */
         public String getJobUUID() {
             return jobUUID;
         }
 
         private String jobUUID = "";
 
+        /**
+         * Check if an error occurs.
+         *
+         * @return boolean that refers if there is an error message or not
+         */
         public boolean isError() {
             return !this.errorMessage.isEmpty();
         }
 
+        /**
+         * Get the error message.
+         *
+         * @return String with the error message
+         */
         public String getErrorMessage() {
             return this.errorMessage;
         }
 
+        /**
+         * Get the IRCT status of the Hail job.
+         *
+         * @return String that represents the state a result is in
+         */
         public String getJobStatus() {
             return jobStatus;
         }
 
+        /**
+         * Get the JsonNode element 'output' out of the JSON stream.
+         *
+         * @return String of the JsonNode element 'output'
+         */
         public String getHailMessage() {
             return hailMessage;
         }
