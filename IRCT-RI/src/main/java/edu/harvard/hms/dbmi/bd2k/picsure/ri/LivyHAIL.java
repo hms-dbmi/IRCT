@@ -52,6 +52,8 @@ public class LivyHAIL implements QueryResourceImplementationInterface {
     private String sessionID;
     private String inputFile;
 
+    // This data directory is created in our docker compose file by defining the
+    // volume './hail/data:/app/data'. Docker image: https://github.com/thehyve/livy-hail-docker
     private String dataFileDir = "/app/data/";
 
     /**
