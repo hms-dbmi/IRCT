@@ -366,6 +366,10 @@
 				<!-- currently only supports absolute file path location -->
 				<simple name="java:global/whitelist_enabled" value="${env.WHITELIST_ENABLED:false}" type="boolean" />
 				<simple name="java:global/whitelist_config_file" value="${env.WHITELIST_CONFIG_FILE}" />
+
+				<!-- Cross-Origin Resource Sharing configuration -->
+				<simple name="java:global/cors_enabled" value="${env.CORS_ENABLED:false}" type="boolean" />
+				<simple name="java:global/cors_allow_origin" value="${env.CORS_ALLOW_ORIGIN}" />
 			</bindings>
 			<remote-naming />
 		</subsystem>
