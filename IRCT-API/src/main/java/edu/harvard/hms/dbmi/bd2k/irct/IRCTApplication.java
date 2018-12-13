@@ -66,7 +66,7 @@ public class IRCTApplication {
 
 	// token introspection configuration parameters
 	private String verify_user_method;
-	public static final String VERIFY_METHOD_SESSION_FILETER="sessionFilter";
+	public static final String VERIFY_METHOD_SESSION_FILTER="sessionFilter";
 	public static final String VERIFY_METHOD_TOKEN_INTRO="tokenIntro";
 	private String token_introspection_url;
 	private String token_introspection_token;
@@ -285,15 +285,15 @@ public class IRCTApplication {
 			token_introspection_token = (String) ctx.lookup("global/token_introspection_token");
 			ctx.close();
 		} catch (NamingException e) {
-			verify_user_method = VERIFY_METHOD_SESSION_FILETER;
+			verify_user_method = VERIFY_METHOD_SESSION_FILTER;
 		}
 
 		logger.info("verify_user_method setup as: " + verify_user_method);
 	}
 
 	private void loadClientSecret() throws NamingException{
-		if (!VERIFY_METHOD_SESSION_FILETER.equals(verify_user_method)) {
-			logger.info("System is not in "+ VERIFY_METHOD_SESSION_FILETER+ " mode, client secret is not loaded");
+		if (!VERIFY_METHOD_SESSION_FILTER.equals(verify_user_method)) {
+			logger.info("System is not in "+ VERIFY_METHOD_SESSION_FILTER+ " mode, client secret is not loaded");
 			return;
 		}
 		Context ctx = new InitialContext();

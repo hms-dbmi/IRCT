@@ -37,7 +37,7 @@ public class SecurityController implements Serializable{
 	 *            User Id
 	 * @return User
 	 */
-	public User ensureUserExists(String userId) {
+	synchronized public User ensureUserExists(String userId) {
 		logger.info("ensureUserExists() Starting " + userId);
 		if (userId == null){
 			logger.error("ensureUserExists() userId is null");
