@@ -1,0 +1,261 @@
+openapi: 3.0.0
+info:
+  contact:
+    email: avillach_lab_developers@googlegroups.com
+    name: AvillachLab
+    url: https://avillach-lab.hms.harvard.edu/
+    x-role: responsible developer
+  description: Meta API to provide access to multiple data sources
+  termsOfService: https://raw.githubusercontent.com/hms-dbmi/IRCT/DI-931_NoHTMLResponse/IRCT-API/termsofservice.html?token=ARJ4SRLWirZlWhUKWEBG8XqdkwbNMGpYks5aJs0kwA%3D%3D
+  title: NHANES via PIC-SURE API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: '1.4'
+  x-accessRestriction: none
+  x-otherContacts:
+  - email: isaac_kohane@harvard.edu
+    name: Isaac Kohane
+    url: http://dbmi.hms.harvard.edu/person/faculty/zak-kohane
+    x-role: responsible developer
+  - email: paul_avillach@hms.harvard.edu
+    name: Paul Avillach
+    url: https://avillach-lab.hms.harvard.edu/
+    x-role: responsible developer
+  - email: Jason_Stedman@hms.harvard.edu
+    name: Jason Stedman
+    url: https://avillach-lab.hms.harvard.edu/people/jason-stedman
+    x-role: responsible developer
+  - email: yu_zhang@hms.harvard.edu
+    name: Yu Zhang
+    url: https://avillach-lab.hms.harvard.edu/people-display
+    x-role: responsible developer
+  - email: gabor_korodi@hms.harvard.edu
+    name: Gabor Korodi
+    url: https://avillach-lab.hms.harvard.edu/people/gabor-korodi
+    x-role: responsible developer
+servers:
+- description: Open access production server
+  url: https://nhanes.hms.harvard.edu/rest/v1
+  x-maturity: production
+- description: Open access development server
+  url: https://tm-dev-app.hms.harvard.edu/rest/v1.4
+  x-maturity: development
+tags:
+- name: NIHdatacommons
+paths:
+  /about:
+    get:
+      description: Returns information about the provider API
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIDescription'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+          description: User is not authorized to access this endpoint
+      summary: Basic endpoint to gather somem information about the deployed component
+      operationId: getAbout
+      tags:
+      - v1.4
+  /find:
+    get:
+      description: Returns a concept description and various additional information
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathRecord'
+      summary: Find available concepts based on metadata information
+      operationId: getFind
+      tags:
+      - v1.4
+  /path:
+    get:
+      description: Returns a concept description and various additional information including immediate child information
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathRecord'
+      summary: Get concept path information in a hierarchical way
+      operationId: getPath
+      tags:
+      - v1.4
+  /query:
+    get:
+      description: Returns a concept description and various additional information
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryRespRecord'
+      summary: Generic JSON query
+      operationId: getQuery
+      tags:
+      - v1.4
+    post:
+      description: Returns a concept description and various additional information
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathRecord'
+      summary: Create a new query and execute it.
+      operationId: postQuery
+      tags:
+      - v1.4
+  /resource:
+    get:
+      description: Returns a concept description and various additional information
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceRecord'
+      summary: Get information about the datasource provider connected to this server.
+      operationId: getResource
+      tags:
+      - v1.4
+  /search:
+    get:
+      description: Returns a concept description and various additional information
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathRecord'
+      summary: Execute a text search for available concepts
+      operationId: getSearch
+      tags:
+      - v1.4
+  /systemService/about:
+    get:
+      description: Returns information about the provider API
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIDescription'
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+          description: User is not authorized to access this endpoint
+      summary: Old endpoint to get some very basic minimal information about the API
+      operationId: getSystemServiceDetails
+      tags:
+      - v1
+components:
+  schemas:
+    APIDescription:
+      properties:
+        user:
+          type: string
+        vesion:
+          type: string
+      required:
+      - vesion
+      type: object
+    PathRecord:
+      properties:
+        concept:
+          type: string
+        pui:
+          type: string
+      required:
+      - concept
+      type: object
+    QueryReqRecord:
+      properties:
+        name:
+          type: string
+        resource:
+          type: string
+        select:
+          items:
+            $ref: '#/components/schemas/SelectClause'
+          type: array
+        token:
+          type: string
+        where:
+          items:
+            $ref: '#/components/schemas/WhereClause'
+          type: array
+      required:
+      - resource
+      - project
+      - select
+      - where
+      type: object
+    QueryRespRecord:
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
+      type: object
+    ResourceRecord:
+      properties:
+        description:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+      required:
+      - id
+      - name
+      type: object
+    SelectClause:
+      properties:
+        alias:
+          type: string
+        field:
+          type: string
+      required:
+      - field
+      - alias
+      type: object
+    UnauthorizedError:
+      properties:
+        message:
+          type: string
+        status:
+          type: string
+      required:
+      - status
+      - message
+      type: object
+    WhereClause:
+      properties:
+        field:
+          type: string
+        operator:
+          type: string
+        predicate:
+          type: string
+        value:
+          type: string
+      required:
+      - field
+      - predicate
+      type: object
