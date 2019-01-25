@@ -105,7 +105,7 @@ paths:
     post:
       description: Returns a concept description and various additional information
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
