@@ -49,6 +49,7 @@ paths:
       description: Returns information about the provider API
       responses:
         '200':
+          description: Returns information about the provider API
           content:
             application/json:
               schema:
@@ -68,6 +69,7 @@ paths:
       description: Returns a concept description and various additional information
       responses:
         '200':
+          description: Returns a concept description and various additional information
           content:
             application/json:
               schema:
@@ -81,6 +83,7 @@ paths:
       description: Returns a concept description and various additional information including immediate child information
       responses:
         '200':
+          description: Returns a concept description and various additional information including immediate child information
           content:
             application/json:
               schema:
@@ -94,6 +97,7 @@ paths:
       description: Returns a concept description and various additional information
       responses:
         '200':
+          description: Returns a concept description and various additional information
           content:
             application/json:
               schema:
@@ -106,6 +110,7 @@ paths:
       description: Returns a concept description and various additional information
       responses:
         '201':
+          description: Returns a concept description and various additional information
           content:
             application/json:
               schema:
@@ -119,6 +124,7 @@ paths:
       description: Returns a concept description and various additional information
       responses:
         '200':
+          description: Returns a concept description and various additional information
           content:
             application/json:
               schema:
@@ -132,6 +138,7 @@ paths:
       description: Returns a concept description and various additional information
       responses:
         '200':
+          description: Returns a concept description and various additional information
           content:
             application/json:
               schema:
@@ -145,6 +152,7 @@ paths:
       description: Returns information about the provider API
       responses:
         '200':
+          description: Returns information about the provider API
           content:
             application/json:
               schema:
