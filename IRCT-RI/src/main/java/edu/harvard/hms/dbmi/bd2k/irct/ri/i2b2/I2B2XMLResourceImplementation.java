@@ -601,7 +601,7 @@ public class I2B2XMLResourceImplementation
 
 
 			while( pdrt == null){
-                if (result.getMetaData().containsKey("aliasMap"))
+                if (result.getMetaData().containsKey("aliasMap") || result.getMetaData().containsKey("returnFullSet"))
                     pdrt = crcCell.getPDOfromInputList(client, resultId, min, null, false, false, false,
                             null, result.getMetaData());
                 else
