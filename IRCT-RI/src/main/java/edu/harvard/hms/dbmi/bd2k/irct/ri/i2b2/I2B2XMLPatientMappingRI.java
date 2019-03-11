@@ -8,6 +8,13 @@ import edu.harvard.hms.dbmi.bd2k.irct.model.security.User;
 import java.util.Arrays;
 import java.util.Map;
 
+/**
+ * The patient mapping RI work is handled by main i2b2xmlRI, the switch to turn it on is
+ * the parameter: <code>returnFullSet</code>, when this parameter sets to false, the main i2b2xmlRI will work
+ *
+ * The returnFullSet parameter will finally affect creating getPdoFromInputlist function in CRCCell class
+ * like patient mapping
+ */
 public class I2B2XMLPatientMappingRI extends I2B2XMLResourceImplementation {
 
     @Override
