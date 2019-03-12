@@ -1,13 +1,10 @@
 # ************************************************************
-# Sequel Pro SQL dump
-# Version 4541
-#
-# http://www.sequelpro.com/
-# https://github.com/sequelpro/sequelpro
-#
-# Host: 192.168.99.100 (MySQL 5.7.22)
+# 
 # Database: irct
 # Generation Time: 2019-03-12 14:52:55 +0000
+# This script creates the required tables for IRCT operations.
+# Derived from dbmi/irct-db:18.1-Quickstart docker image.
+#
 # ************************************************************
 
 
