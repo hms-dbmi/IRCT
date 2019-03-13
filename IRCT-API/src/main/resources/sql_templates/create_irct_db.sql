@@ -1,3 +1,7 @@
+DROP DATABASE IF EXISTS `auth`;
+CREATE DATABASE `auth`;
+USE `auth`;
+
 # ************************************************************
 # 
 # Database: irct
