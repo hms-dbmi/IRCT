@@ -1,6 +1,6 @@
-DROP DATABASE IF EXISTS `auth`;
-CREATE DATABASE `auth`;
-USE `auth`;
+DROP DATABASE IF EXISTS `irct`;
+CREATE DATABASE `irct`;
+USE `irct`;
 
 # ************************************************************
 # 
