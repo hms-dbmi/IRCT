@@ -2,6 +2,14 @@ DROP DATABASE IF EXISTS `irct`;
 CREATE DATABASE `irct`;
 USE `irct`;
 
+# Customized attributes
+set @resourceName = 'i2b2-wildfly-default';
+set @resourceURL = 'http://i2b2-wildfly:9090/i2b2/services/';
+set @password = 'demouser';
+set @domain = 'i2b2demo';
+set @ignoreCertificate = 'false';
+set @username = 'demo';
+
 # ************************************************************
 # 
 # Database: irct
@@ -633,7 +641,7 @@ LOCK TABLES `Resource` WRITE;
 
 INSERT INTO `Resource` (`id`, `implementingInterface`, `name`, `ontologyType`)
 VALUES
-	(1,'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation','i2b2-wildfly-default','TREE');
+	(1,'edu.harvard.hms.dbmi.bd2k.irct.ri.i2b2.I2B2XMLResourceImplementation',@resourceName,'TREE');
 
 /*!40000 ALTER TABLE `Resource` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -742,14 +750,14 @@ LOCK TABLES `resource_parameters` WRITE;
 INSERT INTO `resource_parameters` (`id`, `value`, `name`)
 VALUES
 	(1,NULL,'clientId'),
-	(1,'i2b2demo','domain'),
-	(1,'true','ignoreCertificate'),
+	(1,@domain,'domain'),
+	(1,@ignoreCertificate,'ignoreCertificate'),
 	(1,NULL,'namespace'),
-	(1,'demouser','password'),
-	(1,'i2b2-wildfly-default','resourceName'),
-	(1,'http://i2b2-wildfly:9090/i2b2/services/','resourceURL'),
+	(1,@password,'password'),
+	(1,@resourceName,'resourceName'),
+	(1,@resourceURL,'resourceURL'),
 	(1,NULL,'transmartURL'),
-	(1,'demo','username');
+	(1,@username,'username');
 
 /*!40000 ALTER TABLE `resource_parameters` ENABLE KEYS */;
 UNLOCK TABLES;
