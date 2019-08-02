@@ -58,6 +58,9 @@ public class SecurityService implements Serializable {
 	@javax.annotation.Resource(mappedName ="java:global/client_secret")
 	private String clientSecret;
 
+	@javax.annotation.Resource(mappedName ="java:global/jwks_uri")
+	private String jwksUri;
+
 	@javax.annotation.Resource(mappedName ="java:global/userField")
 	private String userField;
 
@@ -74,7 +77,7 @@ public class SecurityService implements Serializable {
 
 		try {
 			User userObject = sc.ensureUserExists(Utilities
-					.extractEmailFromJWT(req, this.clientSecret, this.userField));
+					.extractEmailFromJWT(req, this.clientSecret, this.jwksUri, this.userField));
 			logger.debug("/createKey user exists");
 			userObject.setToken(Utilities.extractToken(req));
 

@@ -68,6 +68,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -107,6 +108,8 @@ public class I2B2XMLResourceImplementation
 	protected boolean returnFullSet = true;
 	protected List<String> sourceWhiteList;
 
+	protected boolean useJWT;
+
 	protected ResourceState resourceState;
 
 	@Override
@@ -145,10 +148,13 @@ public class I2B2XMLResourceImplementation
 		String certificateString = parameters.get("ignoreCertificate");
 		logger.debug("certificateString:" + (certificateString != null ? certificateString : "NULL"));
 
+		this.useJWT = Boolean.valueOf(parameters.get("useJWT"));
+		logger.debug("useJWT is " + useJWT);
+
 		if (this.proxyURL == null) {
 			this.useProxy = false;
-			this.userName = parameters.get("username");
-			this.password = parameters.get("password");
+			this.userName = this.useJWT ? "" : parameters.get("username");
+			this.password = this.useJWT ? "" : parameters.get("password");
 			logger.debug("setup() Since no proxyURL has been specified. using username/password [" + this.userName + "/"
 					+ this.password + "]");
 		} else {
@@ -199,7 +205,7 @@ public class I2B2XMLResourceImplementation
 				// If first then get projects
 				if (pathComponents.length == 2) {
 					logger.debug("getPathRelationship() creating PMCell.");
-					pmCell = createPMCell();
+					pmCell = createPMCell(user.getName(), user.getToken());
 
 					ConfigureType configureType = pmCell.getUserConfiguration(client, null,
 							new String[] { "undefined" });
@@ -219,7 +225,7 @@ public class I2B2XMLResourceImplementation
 					}
 
 				} else {
-					ontCell = createOntCell(pathComponents[2]);
+					ontCell = createOntCell(pathComponents[2], user.getName(), user.getToken());
 					ConceptsType conceptsType = null;
 					if (pathComponents.length == 3) {
 						// If beyond second then get ontology categories
@@ -250,7 +256,7 @@ public class I2B2XMLResourceImplementation
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
-				ontCell = createOntCell(pathComponents[2]);
+				ontCell = createOntCell(pathComponents[2], user.getName(), user.getToken());
 				ModifiersType modifiersType = ontCell.getModifiers(client, false, false, null, -1, resourcePath, false,
 						null);
 				entities = convertModifiersTypeToEntities(basePath, modifiersType);
@@ -264,7 +270,7 @@ public class I2B2XMLResourceImplementation
 				if (resourcePath.lastIndexOf('\\') != resourcePath.length() - 1) {
 					resourcePath += '\\';
 				}
-				ontCell = createOntCell(pathComponents[2]);
+				ontCell = createOntCell(pathComponents[2], user.getName(), user.getToken());
 
 				ConceptsType conceptsType = null;
 
@@ -343,30 +349,30 @@ public class I2B2XMLResourceImplementation
 		try {
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
-				pmCell = createPMCell();
+				pmCell = createPMCell(user.getName(), user.getToken());
 				ConfigureType configureType = pmCell.getUserConfiguration(client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
-					for (ConceptType category : getCategories(client, pt.getId()).getConcept()) {
+					for (ConceptType category : getCategories(client, pt.getId(), user).getConcept()) {
 
 						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
 
 						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pt.getId(),
-								runNameSearch(client, pt.getId(), categoryName, strategy, searchTerm)));
+								runNameSearch(client, pt.getId(), categoryName, strategy, searchTerm, user)));
 					}
 				}
 			} else {
 				String[] pathComponents = path.getPui().split("/");
 				if (pathComponents.length == 3) {
 					// Get All Categories
-					for (ConceptType category : getCategories(client, pathComponents[2]).getConcept()) {
+					for (ConceptType category : getCategories(client, pathComponents[2], user).getConcept()) {
 						String categoryName = converti2b2Path(category.getKey()).split("/")[1];
 						entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
-								runNameSearch(client, pathComponents[2], categoryName, strategy, searchTerm)));
+								runNameSearch(client, pathComponents[2], categoryName, strategy, searchTerm, user)));
 					}
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
-							runNameSearch(client, pathComponents[2], pathComponents[3], strategy, searchTerm)));
+							runNameSearch(client, pathComponents[2], pathComponents[3], strategy, searchTerm, user)));
 				}
 			}
 		} catch (JAXBException | UnsupportedOperationException | I2B2InterfaceException | IOException e) {
@@ -382,23 +388,23 @@ public class I2B2XMLResourceImplementation
 		try {
 
 			if ((path == null) || (path.getPui().split("/").length <= 2)) {
-				pmCell = createPMCell();
+				pmCell = createPMCell(user.getName(), user.getToken());
 				ConfigureType configureType = pmCell.getUserConfiguration(client, null, new String[] { "undefined" });
 				for (ProjectType pt : configureType.getUser().getProject()) {
 					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pt.getId(),
-							runCategorySearch(client, pt.getId(), null, ontologyType, ontologyTerm)));
+							runCategorySearch(client, pt.getId(), null, ontologyType, ontologyTerm, user)));
 				}
 			} else {
 				String[] pathComponents = path.getPui().split("/");
 				if (pathComponents.length == 3) {
 					// Get All Categories
 					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
-							runCategorySearch(client, pathComponents[2], null, ontologyType, ontologyTerm)));
+							runCategorySearch(client, pathComponents[2], null, ontologyType, ontologyTerm, user)));
 				} else {
 					// Run request
 					entities.addAll(convertConceptsTypeToEntities("/" + this.resourceName + "/" + pathComponents[2],
 							runCategorySearch(client, pathComponents[2], pathComponents[3], ontologyType,
-									ontologyTerm)));
+									ontologyTerm, user)));
 				}
 			}
 		} catch (JAXBException | UnsupportedOperationException | I2B2InterfaceException | IOException e) {
@@ -535,7 +541,7 @@ public class I2B2XMLResourceImplementation
 		}
 
 		try {
-			crcCell = createCRCCell(projectId, user.getName());
+			crcCell = createCRCCell(projectId, user.getName(), user.getToken());
 			MasterInstanceResultResponseType mirrt = crcCell.runQueryInstanceFromQueryDefinition(client, null, null,
 					"IRCT", null, "ANY", 0, roolt, panels.toArray(new PanelType[panels.size()]));
 
@@ -587,6 +593,7 @@ public class I2B2XMLResourceImplementation
 
 			HttpClient client = createClient(user);
 			String resultInstanceId = result.getResourceActionId();
+			String projectId = resultInstanceId.split("\\|")[0];
 			String resultId = resultInstanceId.split("\\|")[2];
 
 			// Get PDO List
@@ -599,6 +606,7 @@ public class I2B2XMLResourceImplementation
 
 			int min = 0;
 
+			crcCell = createCRCCell(projectId, user.getName(), user.getToken());
 
 			while( pdrt == null){
                 if (result.getMetaData().containsKey("aliasMap") || result.getMetaData().containsKey("returnFullSet"))
@@ -665,7 +673,7 @@ public class I2B2XMLResourceImplementation
 
 		try {
 			logger.debug("checkForResult() creating `CRCCell`");
-			CRCCell crcCell = createCRCCell(projectId, user.getName());
+			CRCCell crcCell = createCRCCell(projectId, user.getName(), user.getToken());
 
 			// Is Query Master List Complete?
 			InstanceResponseType instanceResponse = crcCell.getQueryInstanceListFromQueryId(client, queryId);
@@ -1328,55 +1336,55 @@ public class I2B2XMLResourceImplementation
 	}
 
 	private ConceptsType runNameSearch(HttpClient client, String projectId, String category, String strategy,
-			String searchTerm)
+			String searchTerm, User user)
 			throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
-		ONTCell ontCell = createOntCell(projectId);
+		ONTCell ontCell = createOntCell(projectId, user.getName(), user.getToken());
 		return ontCell.getNameInfo(client, true, category, false, strategy, searchTerm, -1, null, true, "core");
 	}
 
-	private ConceptsType getCategories(HttpClient client, String projectId)
+	private ConceptsType getCategories(HttpClient client, String projectId, User user)
 			throws JAXBException, ClientProtocolException, IOException, I2B2InterfaceException {
-		ONTCell ontCell = createOntCell(projectId);
+		ONTCell ontCell = createOntCell(projectId, user.getName(), user.getToken());
 
 		return ontCell.getCategories(client, false, false, true, "core");
 	}
 
 	private ConceptsType runCategorySearch(HttpClient client, String projectId, String category, String ontologyType,
-			String ontologyTerm)
+			String ontologyTerm, User user)
 			throws UnsupportedOperationException, JAXBException, I2B2InterfaceException, IOException {
-		ONTCell ontCell = createOntCell(projectId);
+		ONTCell ontCell = createOntCell(projectId, user.getName(), user.getToken());
 		return ontCell.getCodeInfo(client, true, category, false, "exact", ontologyType + ":" + ontologyTerm, -1, null,
 				true, "core");
 	}
 
-	private CRCCell createCRCCell(String projectId, String userName) throws JAXBException {
+	protected CRCCell createCRCCell(String projectId, String userName, String jwt) throws JAXBException {
 		if (this.useProxy) {
 			crcCell.setupConnection(this.resourceURL, this.domain, userName, "", projectId, this.useProxy,
 					this.proxyURL + "/QueryToolService");
 		} else {
-			crcCell.setupConnection(this.resourceURL + "QueryToolService/", this.domain, this.userName, this.password,
+			crcCell.setupConnection(this.resourceURL + "QueryToolService/", this.domain, this.useJWT ? userName : this.userName, this.useJWT ? jwt : this.password,
 					projectId, false, null);
 		}
 		return crcCell;
 	}
 
-	private ONTCell createOntCell(String projectId) throws JAXBException {
+	protected ONTCell createOntCell(String projectId, String userName, String jwt) throws JAXBException {
 		if (this.useProxy) {
 			ontCell.setupConnection(this.resourceURL, this.domain, "", "", projectId, this.useProxy,
 					this.proxyURL + "/OntologyService");
 		} else {
-			ontCell.setupConnection(this.resourceURL + "OntologyService/", this.domain, this.userName, this.password,
+			ontCell.setupConnection(this.resourceURL + "OntologyService/", this.domain, this.useJWT ? userName : this.userName, this.useJWT ? jwt : this.password,
 					projectId, false, null);
 		}
 		return ontCell;
 	}
 
-	private PMCell createPMCell() throws JAXBException {
+	protected PMCell createPMCell(String userName, String jwt) throws JAXBException {
 		if (this.useProxy) {
 			pmCell.setupConnection(this.resourceURL, this.domain, "", "", "", this.useProxy,
 					this.proxyURL + "/PMService");
 		} else {
-			pmCell.setupConnection(this.resourceURL + "PMService/", this.domain, this.userName, this.password, "",
+			pmCell.setupConnection(this.resourceURL + "PMService/", this.domain, this.useJWT ? userName : this.userName, this.useJWT ? jwt : this.password, "",
 					false, null);
 		}
 		return pmCell;
@@ -1417,7 +1425,7 @@ public class I2B2XMLResourceImplementation
 	}
 
 	protected void addAuthenticationHeader(User user, List<Header> defaultHeaders) {
-		// Do nothing.
+		defaultHeaders.add(new BasicHeader("Authorization", "Bearer " + user.getToken()));
 	}
 
 	private HttpClientBuilder ignoreCertificate() throws NoSuchAlgorithmException, KeyManagementException {
