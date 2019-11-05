@@ -85,7 +85,7 @@ public class I2B2TranSMARTResourceImplementation extends
 			throws ResourceInterfaceException {
 		List<Entity> returns = super.getPathRelationship(path, relationship, user);
 
-		java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ");
+		java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINEST, "getPathRelationship() ");
 		// Get the counts from the tranSMART server
 		try {
 			HttpClient client = createClient(user);
@@ -101,7 +101,7 @@ public class I2B2TranSMARTResourceImplementation extends
 				basePath = pathComponents[0] + "/" + pathComponents[1] + "/"
 						+ pathComponents[2];
 
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() URL:"+this.transmartURL
+				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINEST, "getPathRelationship() URL:"+this.transmartURL
 				+ "/chart/childConceptPatientCounts");
 				HttpPost post = new HttpPost(this.transmartURL
 						+ "/chart/childConceptPatientCounts");
@@ -113,14 +113,14 @@ public class I2B2TranSMARTResourceImplementation extends
 				formParameters.add(new BasicNameValuePair("concept_level", ""));
 
 				post.setEntity(new UrlEncodedFormEntity(formParameters));
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() making call over HTTP");
+				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINEST, "getPathRelationship() making call over HTTP");
 				HttpResponse response = client.execute(post);
 
 				JsonReader jsonReader = Json.createReader(response.getEntity()
 						.getContent());
 				JsonObject responseContent = jsonReader.readObject();
 
-				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINE, "getPathRelationship() ResponseEntity:"
+				java.util.logging.Logger.getGlobal().log(java.util.logging.Level.FINEST, "getPathRelationship() ResponseEntity:"
 						+responseContent.toString());
 
 				JsonObject counts = responseContent.getJsonObject("counts");

@@ -57,7 +57,7 @@ public class ProcessController implements Serializable{
 		} else {
 			entityManager.merge(this.process);
 		}
-		log.info("Process " + this.process.getId() + " saved");
+		log.finest("Process " + this.process.getId() + " saved");
 
 	}
 
@@ -76,7 +76,7 @@ public class ProcessController implements Serializable{
 		if (this.process == null) {
 			throw new ProcessException("No process to load.");
 		}
-		log.info("Query " + this.process.getId() + " loaded");
+		log.finest("Query " + this.process.getId() + " loaded");
 	}
 
 	/**
